@@ -250,9 +250,25 @@ Property-based tests generate hundreds of random inputs and find edge cases you 
 - **Contract testing:** Pact checks that the frontend and backend still agree on the API
 - **Mutation testing** (Stryker): checks that your tests actually fail when the code is wrong
 
-### 3.4 Fighting flaky tests
+### 3.4 Fighting and Eliminating Flaky Tests
 
-Common causes: shared state between tests, real time and randomness, race conditions, fixed sleeps, order dependence, external services. Fix by controlling time, seeding data, awaiting conditions (not delays), isolating state, and quarantining a flaky test with a ticket rather than ignoring it.
+Flaky tests pass on local laptops and randomly fail in CI pipelines, eroding trust in automated testing.
+
+**The 5 Primary Root Causes of Flakiness:**
+1. **Uncontrolled Clocks & Real Time:** Relying on `setTimeout(..., 500)` instead of `vi.useFakeTimers()` or Playwright's `await expect(locator).toBeVisible()`.
+2. **Shared Database State:** Tests executing concurrently writing to the same row without unique test run UUIDs.
+3. **Unawaited Promises & Floating Tasks:** Asynchronous background operations completing after the test teardown has already run.
+4. **Order Dependency:** Test B requiring data inserted by Test A. Every test must be completely isolated and runnable in random order (`--shuffle`).
+5. **Animation & CSS Transitions:** Clicking elements while layout transitions or opacity fades are still rendering.
+
+#### DevQuest Campaign Combat Lore: Defeating The Flaky Test Spectre
+
+In the **Testing Realm**, cadets face *The Flaky Test Spectre*. This ghost phases in and out of existence, causing CI builds to fail intermittently.
+
+To exorcise the Spectre:
+1. Replace all arbitrary sleep timers with deterministic event-driven polling (`waitFor(() => expect(...))`).
+2. Wrap database mutation tests inside PostgreSQL transaction rollbacks (`BEGIN` ... `ROLLBACK`) so zero remnant state pollutes sibling test cases.
+3. Freeze time using `vi.useFakeTimers()` and fast-forward with `vi.advanceTimersByTime(ms)`.
 
 ### 3.5 Code review
 

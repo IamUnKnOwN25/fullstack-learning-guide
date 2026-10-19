@@ -432,28 +432,102 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
 
 // app/actions.ts - React 19 / Next.js Server Actions
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function createPost(prevState: { error?: string } | null, formData: FormData) {
   const title = formData.get("title") as string;
-  if (!title) return { error: "Title required" };
+  if (!title || title.trim().length === 0) return { error: "Title is required" };
   // await db.post.create({ data: { title } });
+  revalidateTag("posts-feed");
   revalidatePath("/posts");
   return null;
 }
 
 // In a Client Component:
-import { useActionState } from "react";
-const [state, formAction, isPending] = useActionState(createPost, null);
+"use client";
+import { useActionState, useOptimistic, use, Suspense } from "react";
+
+// React 19 useOptimistic: Instant optimistic UI update before server roundtrip
+function MessageThread({ messages, onSend }: { messages: string[]; onSend: (msg: string) => Promise<void> }) {
+  const [optimisticMessages, setOptimisticMessages] = useOptimistic(
+    messages,
+    (state, newMsg: string) => [...state, `${newMsg} (sending...)`]
+  );
+
+  async function formAction(formData: FormData) {
+    const text = formData.get("message") as string;
+    setOptimisticMessages(text);
+    await onSend(text);
+  }
+
+  return (
+    <div>
+      <ul>{optimisticMessages.map((m, i) => <li key={i}>{m}</li>)}</ul>
+      <form action={formAction}>
+        <input name="message" required />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+
+// React 19 use() API: Unwrap Promises directly inside components
+function UserProfile({ userPromise }: { userPromise: Promise<{ name: string; role: string }> }) {
+  const user = use(userPromise);
+  return <div>Welcome, {user.name} ({user.role})</div>;
+}
 ```
 
-Learn: layouts, loading and error files, metadata for SEO, Server Actions (`useActionState`, `useFormStatus`, `useOptimistic`), route handlers (`route.ts`), middleware, SSR vs SSG vs ISR vs streaming, caching and revalidation, image and font optimization.
+#### Next.js 15 App Router & Partial Prerendering (PPR)
+
+**Partial Prerendering (PPR)** marries static shell delivery with dynamic server streaming in the exact same HTTP response:
+
+```
+┌────────────────────────────────────────────────────────┐
+│ STATIC SHELL (Served instantly from Edge CDN cache)    │
+│ Navbar • Product Layout • Sidebar • Footer             │
+├────────────────────────────────────────────────────────┤
+│ <Suspense fallback={<ProductReviewsSkeleton />}>       │
+│   DYNAMIC HOLE (Streamed directly from server runtime) │
+│   Live User Inventory • Real-Time Stock Status         │
+│ </Suspense>                                            │
+└────────────────────────────────────────────────────────┘
+```
+
+```tsx
+// app/product/[id]/page.tsx
+import { Suspense } from "react";
+
+export const experimental_ppr = true; // Enables Partial Prerendering
+
+export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params; // Next.js 15: params is an async Promise
+
+  return (
+    <main>
+      <h1>Product Catalog Item: {id}</h1>
+      <StaticProductSpecs id={id} />
+      <Suspense fallback={<p>Streaming live inventory from warehouse...</p>}>
+        <LiveStockFeed productId={id} />
+      </Suspense>
+    </main>
+  );
+}
+```
+
+#### DevQuest Campaign Combat Lore: Defeating The Infinite Re-Render Fiend
+
+In the **React Realm**, cadets encounter *The Infinite Re-Render Fiend*. This monster spawns when:
+1. `useEffect` updates a state variable (`setCount(c => c + 1)`) without a dependency array or with an unstable object reference in its dependency list (`[ { id: 1 } ]`).
+2. An event handler calls the setter immediately during render (`onClick={setCount(count + 1)}` instead of `onClick={() => setCount(c => c + 1)}`).
+3. To vanquish the Fiend in the Boss Arena: pass functional state updates, extract inline object literals outside the component or wrap with stable references, and bind arrow functions inside JSX callbacks.
 
 **Task:**
 
 - [ ] Build a blog in Next.js with a list page, a dynamic `[slug]` page, metadata for SEO and a contact form using a Server Action. Deploy it to Vercel
+- [ ] Implement `useOptimistic` in a to-do or comment feed for zero-latency interactions
 
-**Checkpoint:** what is the difference between SSR, SSG and ISR? When do you need `"use client"`?
+**Checkpoint:** what is the difference between SSR, SSG and ISR? When do you need `"use client"`? How does `useOptimistic` prevent UI stutter?
 
 ### 3.4 Architecture and testing
 

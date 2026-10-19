@@ -327,12 +327,61 @@ Learn the core ideas with one provider (AWS, GCP or Azure); the others map close
 
 - [ ] Create a free-tier account, set a budget alert, host a static site on object storage with a CDN, and deploy a container to a serverless container service
 
-### 3.5 Infrastructure as code and Kubernetes (awareness)
+### 3.5 Infrastructure as code and Kubernetes (Production Architecture)
 
-- **Terraform** (or OpenTofu, Pulumi): describe cloud resources in code, review changes with `plan`, apply with `apply`
-- **Kubernetes:** pods, deployments, services, ingress, config maps, secrets, autoscaling. Learn it when you need to run many containers; many teams are better served by a PaaS or serverless containers
-- **Helm** for packaging, **GitOps** (ArgoCD, Flux) for deploying from Git
-- **Serverless and edge:** Lambda, Cloudflare Workers, Vercel Functions. Great for spiky load and small APIs; know cold starts and limits
+- **Terraform** (or OpenTofu, Pulumi): describe cloud resources declaratively, review changes with `terraform plan`, apply with `terraform apply`.
+- **Kubernetes:** pods (containers), deployments (replica sets & rolling upgrades), services (internal load balancers), ingress (domain routing & TLS termination), config maps & secrets.
+
+```yaml
+# kubernetes/production-api.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matrix-api-deployment
+  labels: { app: matrix-api }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: matrix-api }
+  template:
+    metadata:
+      labels: { app: matrix-api }
+    spec:
+      containers:
+        - name: matrix-api
+          image: ghcr.io/org/matrix-api:v1.2.0
+          ports: [{ containerPort: 3000 }]
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+          livenessProbe:
+            httpGet: { path: /health/liveness, port: 3000 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /health/readiness, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matrix-api-service
+spec:
+  type: ClusterIP
+  selector: { app: matrix-api }
+  ports:
+    - { port: 80, targetPort: 3000 }
+```
+
+#### DevQuest Campaign Combat Lore: Defeating The Merge Conflict Chimera
+
+In the **DevOps Realm**, cadets battle *The Merge Conflict Chimera*. This multi-headed beast strikes when divergent long-lived feature branches rewrite overlapping lines of code, leaving unmerged Git markers (`<<<<<<< HEAD`, `=======`, `>>>>>>>`).
+
+To vanquish the Chimera:
+1. Rebase feature branches frequently against upstream `main` (`git fetch origin && git rebase origin/main`).
+2. Run automated pre-push hooks (`husky`) to catch linter errors before pushing.
+3. Implement trunk-based development with short-lived feature flags rather than monolithic month-long branches.
 
 ```hcl
 resource "aws_s3_bucket" "site" {

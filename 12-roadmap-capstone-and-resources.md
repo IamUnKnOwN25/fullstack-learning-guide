@@ -157,6 +157,37 @@ Build one complete product that uses everything above.
 - [ ] Lighthouse 90 or higher on key pages
 - [ ] A README with screenshots, architecture diagram, data model diagram, setup steps, API docs (OpenAPI) and a "decisions and trade-offs" section
 
+### Capstone Architecture Blueprint
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        NEXT.JS EDGE FRONTEND                           │
+│           (Server Components, useOptimistic, TanStack Query)           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTPS / REST / WebSockets
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     EXPRESS / NESTJS API GATEWAY                       │
+│           (Rate Limiting, JWT Verification, RBAC Guards)               │
+└───────┬───────────────────────────┬────────────────────────────┬───────┘
+        │                           │                            │
+        ▼                           ▼                            ▼
+┌──────────────┐            ┌──────────────┐             ┌───────────────┐
+│  POSTGRESQL  │            │ REDIS ENGINE │             │ OBJECT STORE  │
+│  (Neon / RDS │            │ (BullMQ Jobs │             │ (Cloudflare R2│
+│  Prisma / SQL│            │ Rate Limits) │             │ AWS S3 / MinIO│
+└──────────────┘            └──────────────┘             └───────────────┘
+```
+
+#### DevQuest Campaign Combat Lore: Defeating The Null Void
+
+In the **Capstone Realm**, cadets face the ultimate matrix abomination: *The Null Void*. This cosmic entity represents systemic cascading failure across distributed microservices, network partitions, unhandled rejection voids, and unhandled null pointer crashes.
+
+To banish The Null Void and attain the title of **Matrix Architect**:
+1. Implement **Circuit Breaker Patterns** so failing downstreams degrade gracefully with cached fallbacks instead of crashing the API.
+2. Enforce strict **Schema DTO Contracts** with Zod so untrusted external input cannot corrupt internal domain entities.
+3. Deploy distributed **Liveness and Readiness Probes** (`/health/readiness`) verifying DB connections and background worker health before routing client traffic.
+
 ### Build order
 
 1. Data model and API with tests (week 1 to 2)
