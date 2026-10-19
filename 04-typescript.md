@@ -320,6 +320,21 @@ type PostId = number & { readonly __brand: "PostId" };
 const userId = 5 as UserId;
 // function getPost(id: PostId) {}  getPost(userId)  // Error
 
+// Const type parameters (TypeScript 5.0+)
+// Infers exact literal tuple/object types without requiring the caller to write "as const"
+function createConfig<const T extends Record<string, readonly string[]>>(config: T): T {
+  return config;
+}
+const appConfig = createConfig({ envs: ["prod", "stage"] });
+// typeof appConfig.envs is readonly ["prod", "stage"], NOT string[]!
+
+// Type Predicates (Narrowing without unsound assertions)
+interface Cat { meow(): void; }
+interface Dog { bark(): void; }
+function isDog(animal: Cat | Dog): animal is Dog {
+  return "bark" in animal;
+}
+
 // Assertion functions
 function assertIsString(v: unknown): asserts v is string {
   if (typeof v !== "string") throw new Error("Not a string");
@@ -332,6 +347,24 @@ function toArray(x: string | number) { return [x]; }
 
 // Variance, readonly arrays
 function sum(nums: readonly number[]) { return nums.reduce((a, b) => a + b, 0); }
+```
+
+#### Production Compiler Hygiene: `noUncheckedIndexedAccess`
+By default, TypeScript assumes array indices and string record keys always exist (`arr[0]` is typed as `string`), causing silent runtime `TypeError: Cannot read properties of undefined`:
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
+```
+
+```ts
+const items: string[] = [];
+const first = items[0]; // With flag: string | undefined (forces safety checks!)
 ```
 
 ### 3.5 Declaration files and module augmentation

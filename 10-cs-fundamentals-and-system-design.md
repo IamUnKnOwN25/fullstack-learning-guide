@@ -292,8 +292,31 @@ class SignupService {
 - **API gateway, rate limiting, authentication** at the edge
 - **Idempotency, retries and backoff** so repeated requests are safe
 - **Monolith vs microservices:** start monolith, split when team or scaling forces it
-- **CAP theorem:** during a network partition choose consistency or availability. **Eventual consistency** is the common trade-off
+- **CAP theorem & PACELC:** during a network partition choose consistency or availability; else choose latency or consistency
 - **Observability and failure:** timeouts, circuit breakers, graceful degradation, redundancy
+
+#### Essential Distributed Patterns
+
+##### 1. Rate Limiting Algorithms
+- **Token Bucket (Amazon, Stripe):** tokens are added to a bucket at a fixed rate up to capacity $C$. Each request consumes 1 token. Allows temporary traffic bursts without dropping requests.
+- **Leaky Bucket:** requests enter a FIFO queue and leak out at a strictly steady rate. Shapes spiky traffic into smooth flows.
+- **Sliding Window Counter:** combines the low memory of fixed windows with boundary smoothing, avoiding the 2x burst vulnerability at timestamp cutoffs.
+
+##### 2. The Dual-Write Problem & Transactional Outbox Pattern
+Writing to a database and publishing an event to a message queue (Kafka/RabbitMQ) cannot be atomic across network boundaries. If the broker is down, data diverges.
+- **Solution:** Write both the entity *and* an outbox event into the database within the **same local ACID transaction**.
+- A separate background CDC worker (Debezium or polling process) reliably reads the `outbox` table and publishes events to the broker with guaranteed **at-least-once delivery**.
+
+##### 3. Idempotent API Design (Payment Processing)
+Clients pass a unique `Idempotency-Key: uuid` header on mutating POST requests:
+1. Server checks Redis/Postgres for the key.
+2. If processing, return `409 Conflict` or wait.
+3. If completed, return the cached response immediately without re-executing payment logic.
+4. If new, process transaction and save result under the key with a 24h TTL.
+
+### 3.4 Concurrency and distributed systems (awareness)
+
+Race conditions, locks, atomic operations, optimistic concurrency (version columns), idempotency keys, exactly-once myths, distributed transactions and sagas, consensus (Raft: awareness), clock skew and NTP issues, CRDTs for collaborative editing.
 
 **A method for any design question:**
 

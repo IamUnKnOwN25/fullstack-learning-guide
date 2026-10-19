@@ -332,6 +332,29 @@ export const env = Env.parse(process.env);
 - Never log passwords, tokens or full card numbers
 - Add a `/health` route (and `/ready`) for platforms to probe
 
+#### Request Tracing with AsyncLocalStorage
+Propagate request IDs, correlation tokens, and current user identity across deeply nested async functions without prop-drilling parameters through every service and repository layer:
+
+```ts
+import { AsyncLocalStorage } from "node:async_hooks";
+import crypto from "node:crypto";
+
+export const traceStorage = new AsyncLocalStorage<{ requestId: string; userId?: string }>();
+
+// In Express middleware:
+app.use((req, res, next) => {
+  const requestId = (req.headers["x-request-id"] as string) || crypto.randomUUID();
+  res.setHeader("X-Request-ID", requestId);
+  traceStorage.run({ requestId }, () => next());
+});
+
+// In any deep database query or domain service:
+function auditLog(action: string) {
+  const store = traceStorage.getStore();
+  logger.info({ requestId: store?.requestId, action });
+}
+```
+
 ---
 
 ## Level 3: Advanced

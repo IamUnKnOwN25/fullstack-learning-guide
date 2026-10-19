@@ -173,11 +173,45 @@ BEGIN;
 COMMIT;      -- or ROLLBACK; if anything failed
 ```
 
-Know isolation levels (`READ COMMITTED` default, `REPEATABLE READ`, `SERIALIZABLE`), row locks (`SELECT ... FOR UPDATE`), and deadlocks.
+#### Isolation Levels & Concurrency Phenomena
+
+| Isolation Level | Dirty Read | Non-Repeatable Read | Phantom Read | Serialization Anomaly |
+|---|---|---|---|---|
+| **Read Uncommitted** | Allowed | Allowed | Allowed | Allowed |
+| **Read Committed** (Postgres default) | Prevented | Allowed | Allowed | Allowed |
+| **Repeatable Read** | Prevented | Prevented | Prevented (in Postgres MVCC) | Allowed |
+| **Serializable** | Prevented | Prevented | Prevented | Prevented |
+
+#### Preventing Race Conditions (Double-Spending & Overselling)
+
+When two users purchase the last concert seat at the exact same millisecond:
+
+```sql
+-- Pattern 1: Pessimistic Locking (SELECT ... FOR UPDATE)
+-- Locks selected row against writes from concurrent transactions until COMMIT
+BEGIN;
+  SELECT stock FROM products WHERE id = 42 FOR UPDATE;
+  -- If stock > 0, proceed:
+  UPDATE products SET stock = stock - 1 WHERE id = 42;
+COMMIT;
+
+-- Pattern 2: Optimistic Concurrency Control (OCC with version column)
+-- Zero lock contention; fails safely and triggers an application retry
+UPDATE products
+SET stock = stock - 1, version = version + 1
+WHERE id = 42 AND version = 3 AND stock > 0;
+-- If rows_affected === 0, another request won the race; retry or notify user
+```
+
+#### Connection Pooling Sizing Golden Rule
+A common myth is that more database connections equal better performance. In reality, each PostgreSQL connection spawns an operating system process with dedicated RAM and thread overhead:
+$$\text{Pool Size} = (\text{CPU Cores} \times 2) + \text{Disk Spindles}$$
+On a 4-core database server with fast SSDs, an application connection pool of 8–10 connections handles tens of thousands of requests per second when paired with a connection proxy like **PgBouncer** or **Supabase Supavisor**.
 
 **Task:**
 
 - [ ] Build a money transfer that rolls back when the balance would go negative. Try to break it with two concurrent sessions
+- [ ] Implement `SELECT ... FOR UPDATE` in a booking script to ensure a ticket is never double-booked
 
 ### 2.5 Using a database from Node
 

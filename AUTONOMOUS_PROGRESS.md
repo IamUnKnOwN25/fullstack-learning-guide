@@ -87,4 +87,14 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Fixed HTML boss hints with complete solution snippets.
   - Verified with `npm run validate` (18/18 unit tests passing, 0 TypeScript errors, 100% clean Next.js build).
 
+- **[2026-10-19 14:45] Cycle 10: Master Curriculum Deepening Across JS, TS, Backend, DB, CS & Security (Tests: PASS)**
+  - `03-javascript.md`: Added modern TC39 features (Array change-by-copy `toSorted`, `toReversed`, `with`, `toSpliced`; `Object.groupBy` & `Map.groupBy`; `Promise.withResolvers()`; `structuredClone()`; and cooperative main-thread yielding with `scheduler.yield()`).
+  - `04-typescript.md`: Added TypeScript 5.0+ const type parameters (`<const T>`), user-defined type predicates (`val is T`), and `noUncheckedIndexedAccess` compiler safety hygiene.
+  - `06-backend-nodejs.md`: Added asynchronous request tracing with Node.js `AsyncLocalStorage` for context propagation across async services without prop drilling.
+  - `07-databases.md`: Added transactional concurrency control (Pessimistic `SELECT ... FOR UPDATE` vs Optimistic Concurrency Control with versioning), isolation phenomena table, and connection pool sizing formula.
+  - `10-cs-fundamentals-and-system-design.md`: Added distributed rate limiting algorithms (Token Bucket, Leaky Bucket, Sliding Window Counter), the Dual-Write problem with the Transactional Outbox Pattern, and idempotent API key semantics.
+  - `11-security-and-performance.md`: Added Refresh Token Rotation with Token Family Revocation for compromised session defense, per-request dynamic CSP Nonce generation for SSR/Next.js, and Interaction to Next Paint (INP) anatomy breakdown.
+  - Verified with `vitest run` and `tsc --noEmit` (18/18 tests passing, 0 TypeScript errors).
+
+
 

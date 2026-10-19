@@ -153,10 +153,67 @@ CORS is a browser rule: a page from origin A may read responses from origin B on
 ### A3.1 Authentication done properly
 
 - Prefer a battle-tested solution (Auth.js, Clerk, Auth0, Supabase Auth, Lucia, Keycloak) over writing your own
-- **OAuth 2.0 with PKCE** for public clients, **OpenID Connect** for login, never put access tokens in URLs
-- **Passkeys (WebAuthn)** are phishing-resistant and the future of login
-- Session fixation, token rotation, device management, "log out everywhere"
-- **JWT pitfalls:** always verify the signature and algorithm, set `exp`, keep payloads small, never trust the `alg: none`, store refresh tokens in `HttpOnly` cookies
+- **OAuth 2.0 with PKCE** (Proof Key for Code Exchange) for public and single-page clients, **OpenID Connect** for federated identity
+- **Passkeys (WebAuthn)** are phishing-resistant, cryptographically backed by device secure enclaves, and the industry gold standard
+
+#### Refresh Token Rotation & Token Family Revocation
+When using short-lived Access Tokens (e.g., 15 minutes) paired with Refresh Tokens (e.g., 7 days):
+
+```ts
+// On each refresh request:
+// 1. Look up submitted refresh token
+const tokenRecord = await db.refreshToken.findUnique({ where: { token: submittedToken } });
+
+if (!tokenRecord) {
+  // Panic: Unknown token or token was already revoked!
+  return res.status(401).json({ error: "Invalid token" });
+}
+
+if (tokenRecord.isRevoked) {
+  // CRITICAL: Token reuse detected! (An attacker or victim is presenting an expired token)
+  // Revoke ALL tokens belonging to this user's token family immediately!
+  await db.refreshToken.updateMany({
+    where: { familyId: tokenRecord.familyId },
+    data: { isRevoked: true },
+  });
+  return res.status(403).json({ error: "Compromised session. Please log in again." });
+}
+
+// 2. Invalidate current token and issue fresh child token in the same family
+await db.refreshToken.update({ where: { id: tokenRecord.id }, data: { isRevoked: true } });
+const newRefreshToken = generateSecureToken();
+await db.refreshToken.create({
+  data: { token: newRefreshToken, familyId: tokenRecord.familyId, userId: tokenRecord.userId },
+});
+```
+
+#### Dynamic CSP Nonces in Modern SSR
+Avoid `'unsafe-inline'` by generating a per-request cryptographically secure nonce in your server middleware:
+
+```ts
+// middleware.ts
+import { NextResponse } from "next/server";
+
+export function middleware(request: Request) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'nonce-${nonce}';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+  `.replace(/\s{2,}/g, " ").trim();
+
+  const response = NextResponse.next();
+  response.headers.set("Content-Security-Policy", cspHeader);
+  response.headers.set("x-nonce", nonce);
+  return response;
+}
+```
 
 ### A3.2 Secrets, supply chain and infrastructure
 
@@ -187,9 +244,17 @@ CORS is a browser rule: a page from origin A may read responses from origin B on
 ### B1.1 Measure first
 
 - **Lighthouse** (DevTools), **PageSpeed Insights**, **WebPageTest**, and real-user monitoring (Core Web Vitals in Search Console)
-- **Core Web Vitals:** LCP (largest content paint, under 2.5 s), INP (interaction to next paint, under 200 ms), CLS (layout shift, under 0.1)
-- Test on a throttled network and a slow CPU (DevTools), because your laptop is faster than your users' phones
-- Set a **performance budget** (for example under 200 KB of JavaScript on first load)
+- **Core Web Vitals:**
+  - **LCP (Largest Contentful Paint, < 2.5s):** measures loading speed of primary hero image or text block.
+  - **INP (Interaction to Next Paint, < 200ms):** measures overall responsiveness across user clicks, taps, and keyboard events.
+  - **CLS (Cumulative Layout Shift, < 0.1):** measures visual stability; reserve space for images and ads with `aspect-ratio`.
+- **Anatomy of an INP Interaction:**
+  $$\text{INP} = \text{Input Delay} + \text{Processing Time} + \text{Presentation Delay}$$
+  - *Input Delay:* Main thread was blocked by unrelated long tasks when user clicked. (Fix: yield with `scheduler.yield()`).
+  - *Processing Time:* Your JavaScript event handler took too long. (Fix: offload heavy work to Web Workers).
+  - *Presentation Delay:* Browser struggled to re-render DOM/layout. (Fix: avoid synchronous DOM layout thrashing).
+- Test on a throttled network and a 4x/6x slow CPU (DevTools), because your dev machine is 10x faster than real-world mobile devices.
+- Set a **performance budget** (for example under 150 KB initial gzipped JS).
 
 ### B1.2 Quick wins
 

@@ -620,6 +620,102 @@ Also know: immutability, pure functions, memoization, the strategy and singleton
 
 WebAssembly lets near-native code (Rust, C++, Go) run in the browser for heavy tasks such as video, games or image processing. Learn it only when you have a performance problem JavaScript cannot solve.
 
+### 3.12 Modern ECMAScript (ES2022–ES2024+) & Engine Internals
+
+JavaScript evolves continuously through the TC39 standardization process. Modern production codebases rely heavily on these runtime features:
+
+#### Change Array by Copy (ES2023)
+Traditional methods (`sort()`, `reverse()`, `splice()`) mutate arrays in-place. The modern methods return fresh, mutated clones without modifying the original:
+
+```js
+const items = ["banana", "apple", "cherry"];
+
+const sorted = items.toSorted();     // ["apple", "banana", "cherry"]
+const reversed = items.toReversed(); // ["cherry", "apple", "banana"]
+const replaced = items.with(1, "mango"); // ["banana", "mango", "cherry"]
+const spliced = items.toSpliced(0, 1, "grape"); // ["grape", "apple", "cherry"]
+
+console.log(items); // Original remains completely untouched!
+```
+
+#### Object.groupBy & Map.groupBy (ES2024)
+Group collections into buckets natively without importing Lodash or writing boilerplate `reduce`:
+
+```js
+const inventory = [
+  { name: "Asparagus", type: "vegetables", quantity: 5 },
+  { name: "Bananas", type: "fruit", quantity: 0 },
+  { name: "Cherries", type: "fruit", quantity: 12 },
+  { name: "Fish", type: "meat", quantity: 22 },
+];
+
+const result = Object.groupBy(inventory, ({ type }) => type);
+// {
+//   vegetables: [{ name: "Asparagus", ... }],
+//   fruit: [{ name: "Bananas", ... }, { name: "Cherries", ... }],
+//   meat: [{ name: "Fish", ... }]
+// }
+
+// Group into a Map using complex objects or primitives as keys:
+const restockBuckets = Map.groupBy(inventory, ({ quantity }) =>
+  quantity > 10 ? "sufficient" : "low"
+);
+```
+
+#### Promise.withResolvers() (ES2024)
+Eliminates awkward Promise executor closures when managing external event-driven cancellation, deferred execution, or stream bridges:
+
+```js
+// Before:
+// let resolve, reject;
+// const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+
+// Modern:
+const { promise, resolve, reject } = Promise.withResolvers();
+
+// Resolve or reject from anywhere (event handlers, timeouts, message queues):
+setTimeout(() => resolve("Operation completed!"), 1000);
+const data = await promise;
+```
+
+#### Deep Cloning with structuredClone()
+Standard native replacement for `JSON.parse(JSON.stringify(x))` and third-party deepClone utilities:
+
+```js
+const original = {
+  date: new Date(),
+  set: new Set([1, 2, 3]),
+  map: new Map([["key", "value"]]),
+  nested: { count: 42 }
+};
+original.self = original; // Circular reference!
+
+const copy = structuredClone(original);
+console.log(copy.date instanceof Date); // true (JSON converts to string!)
+console.log(copy.self === copy);        // true (handles circular cycles safely!)
+```
+
+#### Rendering Pipeline, Frame Budgets & `scheduler.yield()`
+To maintain 60-120fps responsiveness and score green on Core Web Vitals (**INP - Interaction to Next Paint**), JavaScript must yield execution to the browser before exceeding the 50ms Long Task threshold:
+
+```js
+// Long task broken down with cooperative yielding
+async function processLargeDataset(items) {
+  for (let i = 0; i < items.length; i++) {
+    expensiveComputation(items[i]);
+
+    // Yield every 50 items so browser can process user clicks & render frames
+    if (i % 50 === 0) {
+      if ("scheduler" in window && "yield" in window.scheduler) {
+        await window.scheduler.yield(); // Native task yield
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 0)); // Fallback macrotask yield
+      }
+    }
+  }
+}
+```
+
 ---
 
 ## Projects
