@@ -185,7 +185,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         set({
           unlockedSkills: [...state.unlockedSkills, skillId],
         });
-        soundEngine.playSfx("level-up");
+        soundEngine.playSfx("skill-unlock");
         return true;
       },
 
@@ -200,6 +200,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
       healPlayer: (amount: number) => {
         const state = get();
         set({ hp: Math.min(state.maxHp, state.hp + amount) });
+        soundEngine.playSfx("heal");
       },
 
       resetHealth: () => {

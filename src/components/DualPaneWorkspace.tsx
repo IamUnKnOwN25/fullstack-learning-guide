@@ -386,25 +386,128 @@ export function DualPaneWorkspace({
 
           {/* Tab 2: Sandboxed Live Preview */}
           {activeTab === "preview" && (
-            <div className="flex-1 bg-white p-2 flex flex-col">
+            <div className="flex-1 bg-matrix-dark p-2 flex flex-col">
               <iframe
                 title="Live Sandboxed Output"
                 sandbox="allow-scripts"
                 srcDoc={
                   quest.previewType === "html"
                     ? code
-                    : `<html style="background:#0a0e17;color:#fff;font-family:monospace;padding:16px;">
-                        <body>
-                          <h3>Console output:</h3>
-                          <script>
-                            try {
-                              ${code}
-                            } catch(e) {
-                              document.body.innerHTML += '<p style="color:#ef4444">' + e.message + '</p>';
-                            }
-                          </script>
-                        </body>
-                      </html>`
+                    : `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0e17;
+      color: #e2e8f0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      color: #00e5ff;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .log-entry {
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: rgba(15, 23, 42, 0.7);
+      border-left: 3px solid #00ff9d;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .log-warn {
+      border-left-color: #f59e0b;
+      color: #fcd34d;
+    }
+    .log-error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+    }
+    .tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .tag-log { background: rgba(0, 255, 157, 0.15); color: #00ff9d; }
+    .tag-warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .tag-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .empty {
+      color: #64748b;
+      padding: 16px;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 8px;
+      border: 1px dashed #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span>Live Sandbox Console</span>
+    <span>Evaluation Active</span>
+  </div>
+  <div id="output"></div>
+  <script>
+    const output = document.getElementById('output');
+    let hasLogged = false;
+
+    function appendEntry(type, args) {
+      hasLogged = true;
+      const entry = document.createElement('div');
+      entry.className = 'log-entry log-' + type;
+      const tag = document.createElement('span');
+      tag.className = 'tag tag-' + type;
+      tag.textContent = type.toUpperCase();
+      entry.appendChild(tag);
+
+      const content = args.map(a => {
+        if (typeof a === 'object' && a !== null) {
+          try { return JSON.stringify(a, null, 2); } catch(e) { return String(a); }
+        }
+        return String(a);
+      }).join(' ');
+
+      const textNode = document.createTextNode(content);
+      entry.appendChild(textNode);
+      output.appendChild(entry);
+    }
+
+    const _origLog = console.log;
+    const _origWarn = console.warn;
+    const _origError = console.error;
+
+    console.log = (...args) => { _origLog(...args); appendEntry('log', args); };
+    console.warn = (...args) => { _origWarn(...args); appendEntry('warn', args); };
+    console.error = (...args) => { _origError(...args); appendEntry('error', args); };
+
+    try {
+      ${code}
+      if (!hasLogged) {
+        output.innerHTML = '<div class="empty">Code evaluated cleanly with zero syntax/runtime errors.<br/><br/><span style="color:#00e5ff">> Tip: Write console.log(...) statements in your code to view real-time runtime variables here.</span></div>';
+      }
+    } catch(err) {
+      appendEntry('error', [err.name + ': ' + err.message]);
+    }
+  </script>
+</body>
+</html>`
                 }
                 className="w-full h-full border-none rounded-lg"
               />

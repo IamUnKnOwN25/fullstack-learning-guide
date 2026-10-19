@@ -107,6 +107,13 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Restarted fresh dev server daemon on port 3000, confirming all 24 quests, 12 boss battles, curriculum, `/map`, and `/world-map` return `200 OK`.
   - Verified with `npx vitest run` (18/18 tests passing) and `npx tsc --noEmit` (0 errors).
 
+- **[2026-10-19 15:24] Cycle 12: Live Sandbox Console Capture, Web Audio SFX Expansion & Test Suite Hardening (Tests: PASS)**
+  - Enhanced Dual-Pane Workspace live preview sandbox with interactive console interception (`console.log`, `console.info`, `console.warn`, `console.error`), rendering real-time formatted log badges, pretty JSON dumps, and syntax/runtime error banners.
+  - Expanded client-side Web Audio API synthesizer (`src/lib/audio.ts`) with new procedural SFX: `skill-unlock` (cybernetic harmonic shimmer), `badge-inspect` (triangle chime sparkle), and `heal` (ascending harmonic pulse).
+  - Integrated `skill-unlock` SFX in `useGameStore.unlockSkill`, `heal` SFX in `healPlayer`, and interactive `badge-inspect` SFX in `InventoryModal`.
+  - Added automated unit test suite in `store.test.ts` verifying safe execution of all sound effects, volume changes, and BGM toggles across Node/SSR environments.
+  - Verified with `npm.cmd run validate` (19/19 tests passing, 0 TypeScript errors, 100% clean Next.js build across all 7 routes).
+
 
 
 

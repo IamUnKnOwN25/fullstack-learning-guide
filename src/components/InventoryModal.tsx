@@ -147,10 +147,11 @@ export function InventoryModal({ isOpen, onClose }: Props) {
               return (
                 <div
                   key={badgeId}
-                  className={`p-3.5 rounded-xl border transition-all flex items-start gap-3 ${
+                  onClick={() => soundEngine.playSfx(isEarned ? "badge-inspect" : "click")}
+                  className={`p-3.5 rounded-xl border transition-all flex items-start gap-3 cursor-pointer ${
                     isEarned
-                      ? "bg-matrix-dark/80 border-matrix-neonGold/40 shadow-sm shadow-matrix-neonGold/10"
-                      : "bg-matrix-dark/20 border-matrix-border opacity-50 grayscale"
+                      ? "bg-matrix-dark/80 border-matrix-neonGold/40 shadow-sm shadow-matrix-neonGold/10 hover:border-matrix-neonGold"
+                      : "bg-matrix-dark/20 border-matrix-border opacity-50 grayscale hover:opacity-70"
                   }`}
                 >
                   <div

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useGameStore } from "../lib/store";
+import { soundEngine } from "../lib/audio";
 
 describe("DevQuest Game Store", () => {
   beforeEach(() => {
@@ -84,5 +85,29 @@ describe("DevQuest Game Store", () => {
     const affordable = useGameStore.getState().unlockSkill("lint_shield", 2);
     expect(affordable).toBe(true);
     expect(useGameStore.getState().unlockedSkills).toContain("lint_shield");
+  });
+
+  it("safely invokes all sound engine sound effects and BGM toggles in test environment", () => {
+    const sfxTypes = [
+      "click",
+      "correct",
+      "error",
+      "attack",
+      "boss-hit",
+      "level-up",
+      "victory",
+      "skill-unlock",
+      "badge-inspect",
+      "heal",
+    ] as const;
+
+    sfxTypes.forEach((sfx) => {
+      expect(() => soundEngine.playSfx(sfx)).not.toThrow();
+    });
+
+    expect(() => soundEngine.setMuted(true)).not.toThrow();
+    expect(() => soundEngine.setVolume(0.5)).not.toThrow();
+    expect(() => soundEngine.toggleBgm()).not.toThrow();
+    expect(() => soundEngine.setMuted(false)).not.toThrow();
   });
 });
