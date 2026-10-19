@@ -716,6 +716,14 @@ async function processLargeDataset(items) {
 }
 ```
 
+#### DevQuest Campaign Combat Lore: Defeating The Callback Kraken
+
+In the **JavaScript Realm**, cadets encounter *The Callback Kraken* (Dread of the Deep Event Loop). The Kraken ensnares applications in 8-level-deep pyramid of doom callback hell and unhandled Promise rejections.
+
+To banish the Kraken in the Boss Arena:
+1. **Sever Callback Tendrils:** Refactor deeply nested asynchronous callbacks (`getUser(id, (err, user) => getOrders(user.id, (err, orders) => ...))`) into sequential linear `async/await` with `try / catch`.
+2. **Resilient Parallel Coordination:** Use `Promise.allSettled()` instead of brittle `Promise.all()` so that a single rejected downstream request does not crash sibling tasks.
+
 ---
 
 ## Projects

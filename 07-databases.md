@@ -389,6 +389,14 @@ Good for flexible, nested, rarely joined data. Many "NoSQL" needs are met by Pos
 
 - [ ] Cache your slowest endpoint in Redis with an expiry, and add a leaderboard using a sorted set
 
+#### DevQuest Campaign Combat Lore: Defeating The SQL Injection Behemoth
+
+In the **Databases Realm**, cadets encounter *The SQL Injection Behemoth* (Corrupter of Schemas). The Behemoth smashes through naive string concatenation (`SELECT * FROM users WHERE email = '` + email + `'`), escaping quotes to execute malicious payload commands like `' OR '1'='1' -- DROP TABLE users;`.
+
+To banish the Behemoth in the Boss Arena:
+1. **Parameterized Shield of Protection:** Replace template literals with parameterized prepared statements (`client.query("SELECT * FROM users WHERE email = $1", [email])`).
+2. **Strict Foreign Key Constraints:** Fortify relational tables with explicit referential integrity constraints (`ON DELETE CASCADE`, composite primary keys, and B-Tree indexes on indexed lookup columns).
+
 ---
 
 ## Projects

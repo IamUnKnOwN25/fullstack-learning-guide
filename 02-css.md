@@ -478,6 +478,14 @@ Newer: **View Transitions** (`document.startViewTransition`) for page and elemen
 
 - [ ] Use the DevTools Performance and Rendering panels to find paint flashing and layout shifts on your landing page, then fix two
 
+#### DevQuest Campaign Combat Lore: Defeating The Overflow Hydra
+
+In the **CSS Realm**, cadets battle *The Overflow Hydra* (Devourer of Viewports). The Hydra spawns chaotic horizontal scrollbars whenever elements exceed the screen boundary.
+
+To banish the Hydra in the Boss Arena:
+1. **Slay Horizontal Viewport Overflow:** Enforce universal `box-sizing: border-box`, fluid `max-width: 100%` (or container constraint `max-width: 1200px`), and centered flow with `margin: 0 auto;`.
+2. **Auto-Fit Responsive Grid Blast:** Eliminate hardcoded pixel floats by conjuring modern CSS Grid with `display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;`.
+
 ---
 
 ## Projects

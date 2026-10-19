@@ -423,6 +423,14 @@ Decorators (`@Injectable()`, `@Controller()`) appear in Angular and NestJS. Lear
 - Use **project references** and `incremental` builds in monorepos
 - Test types with `expectTypeOf` (Vitest) or `tsd`
 
+#### DevQuest Campaign Combat Lore: Defeating The Any-Demon
+
+In the **TypeScript Realm**, cadets encounter *The Any-Demon* (Bane of Compile-Time Safety). This demon infects codebases with wild untyped `any`, masking runtime crashes until production.
+
+To banish the Any-Demon in the Boss Arena:
+1. **Purge the Any Curse:** Replace wildcard `any` parameters with safe `unknown` and runtime type guard assertions (`typeof x === "string"` or custom user predicates `x is User`).
+2. **Discriminated Union Strike:** Model complex application states with strict discriminated string literal tags (`status: "idle" | "loading" | "success" | "error"`), guaranteeing exhaustive handling via the `never` type.
+
 ---
 
 ## Projects

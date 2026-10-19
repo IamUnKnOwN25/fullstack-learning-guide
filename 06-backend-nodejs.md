@@ -470,6 +470,14 @@ export type AppRouter = typeof appRouter;
 
 See file 11 for the full list. At minimum: validate input, hash passwords, parameterized queries, check ownership, HTTPS, `helmet`, strict CORS, rate limits, and `npm audit`.
 
+#### DevQuest Campaign Combat Lore: Defeating The Event Loop Blocker
+
+In the **Backend Realm**, cadets face *The Event Loop Blocker* (Staller of Concurrent Requests). This fiend halts Node's single-threaded event loop by running synchronous heavy CPU operations or `fs.readFileSync` in request handlers, causing all other incoming HTTP connections to stall and time out.
+
+To vanquish the Blocker in the Boss Arena:
+1. **Unblock the Main Thread:** Replace synchronous blocking I/O calls (`fs.readFileSync()`, `crypto.pbkdf2Sync()`) with their asynchronous non-blocking counterparts (`fs.promises.readFile()`, async crypto, or Worker Threads).
+2. **Streaming Pipeline Shield:** Stream large file payloads with `pipeline(readStream, transform, writeStream)` rather than buffering gigabytes of binary data in memory.
+
 ---
 
 ## Projects

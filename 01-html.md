@@ -496,6 +496,14 @@ const y = 2;</code></pre>
 
 - [ ] Add `hreflang` alternates and a language switcher to a two-language page
 
+#### DevQuest Campaign Combat Lore: Defeating The Malformed Tag Abomination
+
+In the **HTML Realm**, cadets encounter *The Malformed Tag Abomination* (Lord of Broken Semantics). This monster is forged from unclosed `<p>` tags, meaningless nested `<div>` soup, and inputs devoid of labels.
+
+To vanquish the Abomination in the Boss Arena:
+1. **Semantic Landmark Strike:** Replace non-semantic formatting tags (like `<b>` or `<div>`) with clear landmark elements like `<nav>` containing valid anchor links.
+2. **Accessible Input Association:** Every form `<input>` must have an associated `<label for="id">` matching the input's `id="..."`, with proper validation types (`type="email"`, `required`).
+
 ---
 
 ## Projects

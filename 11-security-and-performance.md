@@ -329,6 +329,14 @@ import { Worker } from "node:worker_threads";
 
 - [ ] Add Lighthouse CI to your pipeline with budgets (performance score, JavaScript size, LCP) that fail the build when exceeded
 
+#### DevQuest Campaign Combat Lore: Defeating The XSS Phantom
+
+In the **Security Realm**, cadets face *The XSS Phantom* (Bane of Client-Side Trust). The Phantom exploits unescaped user inputs injected directly into the DOM or `innerHTML`, exfiltrating session tokens and hijacking user identities.
+
+To banish the Phantom in the Boss Arena:
+1. **Context-Aware Sanitization:** Replace raw HTML rendering with strict character entity escaping (`&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, `"` to `&quot;`, `'` to `&#x27;`) or DOMPurify before inserting dynamic strings.
+2. **Cryptographic JWT Algorithm Whitelisting:** Enforce strict algorithm verification (`algorithms: ["HS256"]` or `RS256`), rejecting `none` algorithm token spoofing exploits.
+
 ---
 
 ## Projects
