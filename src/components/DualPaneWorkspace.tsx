@@ -235,10 +235,13 @@ export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
 
             <button
               onClick={handleRunCode}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-accent/20 hover:opacity-95 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-accent/20 hover:opacity-95 transition-all cursor-pointer"
             >
               <Play className="w-4 h-4 fill-matrix-dark" />
-              Cast Spell & Verify Code
+              <span>Cast Spell & Verify</span>
+              <kbd className="hidden sm:inline-block text-[10px] bg-matrix-dark/30 px-1.5 py-0.5 rounded border border-matrix-dark/20 text-matrix-dark font-mono">
+                Ctrl+↵
+              </kbd>
             </button>
           </div>
         </div>
@@ -326,6 +329,9 @@ export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
                     setTimeout(() => {
                       target.selectionStart = target.selectionEnd = start + 2;
                     }, 0);
+                  } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    handleRunCode();
                   }
                 }}
               />

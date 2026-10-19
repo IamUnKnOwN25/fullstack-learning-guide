@@ -249,7 +249,10 @@ export function BossBattleArena({ boss, realmId }: Props) {
               className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-matrix-neonRed to-orange-500 text-white font-mono text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-900/30 hover:opacity-90 transition-all cursor-pointer"
             >
               <Zap className="w-4 h-4 fill-white" />
-              Cast Refactor Strike ({phase.damageToBoss} DMG)
+              <span>Cast Refactor Strike ({phase.damageToBoss} DMG)</span>
+              <kbd className="hidden sm:inline-block text-[10px] bg-red-950/60 px-1.5 py-0.5 rounded border border-red-800 text-white font-mono">
+                Ctrl+↵
+              </kbd>
             </button>
           </div>
 
@@ -272,6 +275,21 @@ export function BossBattleArena({ boss, realmId }: Props) {
                 spellCheck={false}
                 className="w-full h-full bg-transparent text-gray-200 outline-none resize-none font-mono text-xs leading-relaxed selection:bg-red-500/30"
                 style={{ tabSize: 2 }}
+                onKeyDown={(e) => {
+                  if (e.key === "Tab") {
+                    e.preventDefault();
+                    const target = e.target as HTMLTextAreaElement;
+                    const start = target.selectionStart;
+                    const end = target.selectionEnd;
+                    setCode(code.substring(0, start) + "  " + code.substring(end));
+                    setTimeout(() => {
+                      target.selectionStart = target.selectionEnd = start + 2;
+                    }, 0);
+                  } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    handleAttack();
+                  }
+                }}
               />
             </div>
           </div>
