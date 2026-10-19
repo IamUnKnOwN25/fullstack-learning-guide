@@ -16,5 +16,5 @@ export default async function BossPage({ params }: PageProps) {
     notFound();
   }
 
-  return <BossBattleArena boss={boss} realmId={realmId} />;
+  return <BossBattleArena realmId={realmId} />;
 }

@@ -22,14 +22,10 @@ export default async function QuestPage({ params }: PageProps) {
     notFound();
   }
 
-  const quest = realmQuests[questIndex];
-  const nextQuest = realmQuests[questIndex + 1];
-
   return (
     <DualPaneWorkspace
-      quest={quest}
       realmId={realmId}
-      nextQuestId={nextQuest?.id}
+      questId={questId}
     />
   );
 }

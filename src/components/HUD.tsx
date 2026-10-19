@@ -73,7 +73,12 @@ export function HUD() {
               <Link
                 href="/"
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-accent hover:bg-matrix-card transition-colors"
-                onClick={() => soundEngine.playSfx("click")}
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  if (typeof window !== "undefined" && window.location.pathname === "/") {
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }
+                }}
               >
                 <MapPin className="w-3.5 h-3.5 text-matrix-accent" />
                 World Map

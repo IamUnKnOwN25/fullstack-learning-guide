@@ -17,41 +17,62 @@ import {
   BookOpen,
   ArrowRight,
   Terminal,
+  MapPin,
+  Trophy,
+  Flame,
 } from "lucide-react";
 
 export function QuestMap() {
-  const { unlockedRealms, completedQuests, completedBosses, level } = useGameStore();
+  const { unlockedRealms, completedQuests, completedBosses, level, rankTitle, stars } = useGameStore();
   const [selectedRealm, setSelectedRealm] = useState<Realm | null>(REALMS[0]);
+
+  const totalStars = Object.values(stars).reduce((sum, s) => sum + s, 0);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-      {/* Hero Mission Briefing */}
+      {/* Hero Mission Briefing & World Map Header */}
       <div className="relative rounded-2xl bg-gradient-to-r from-matrix-card via-matrix-dark to-matrix-card border border-matrix-border p-6 sm:p-8 overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-matrix-accent/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
+          <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-matrix-accent/10 border border-matrix-accent/30 text-matrix-accent text-xs font-mono font-bold">
-              <Terminal className="w-3.5 h-3.5 animate-pulse" />
-              MISSION BRIEFING • THE WEB MATRIX
+              <MapPin className="w-3.5 h-3.5 animate-pulse text-matrix-neonCyan" />
+              WORLD MAP • 12 CAMPAIGN REALMS
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Restore the Twelve Shattered Realms
+              The Web Matrix Campaign Map
             </h1>
             <p className="text-sm text-gray-300 leading-relaxed">
-              Step through each realm in order. Solve interactive coding quests in the dual-pane
-              terminal, fight Bug Monsters in Boss Battles, and assemble your full-stack power to
-              banish The Null Void.
+              This is the interactive <strong>World Map</strong>. Journey through the twelve realms of full-stack engineering,
+              from foundational HTML semantics to distributed system design and capstone architecture.
+              Select any realm below to inspect its lore, practice interactive coding quests, and defeat Bug Guardians!
             </p>
+
+            {/* Campaign Stats Strip */}
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
+              <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonCyan">
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Realms: {completedBosses.length}/12 Cleared</span>
+              </div>
+              <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-accent">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Quests: {completedQuests.length}/24 Mastered</span>
+              </div>
+              <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonGold">
+                <Star className="w-3.5 h-3.5 fill-matrix-neonGold" />
+                <span>Stars: {totalStars} Earned</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <Link
               href="/curriculum"
-              className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center gap-2 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
               onClick={() => soundEngine.playSfx("click")}
             >
               <BookOpen className="w-4 h-4 text-matrix-neonCyan" />
-              Curriculum Guides
+              Curriculum Vault
             </Link>
           </div>
         </div>
@@ -76,6 +97,11 @@ export function QuestMap() {
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setSelectedRealm(realm);
+                  if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                    setTimeout(() => {
+                      document.getElementById("realm-inspector")?.scrollIntoView({ behavior: "smooth" });
+                    }, 50);
+                  }
                 }}
                 className={`relative group p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between overflow-hidden ${
                   isSelected
@@ -153,7 +179,7 @@ export function QuestMap() {
         {/* Right Column: Selected Realm Detail & Action Launcher */}
         <div className="lg:col-span-1">
           {selectedRealm ? (
-            <div className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6">
+            <div id="realm-inspector" className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6 scroll-mt-24">
               <div>
                 <div className="flex items-center gap-2 mb-2 font-mono text-xs text-matrix-neonCyan">
                   <span>CHAPTER {String(selectedRealm.order).padStart(2, "0")}</span>
@@ -164,6 +190,18 @@ export function QuestMap() {
                 <p className="text-xs text-gray-300 leading-relaxed italic bg-matrix-dark/60 p-3 rounded-lg border border-matrix-border/80 mb-3">
                   &ldquo;{selectedRealm.lore}&rdquo;
                 </p>
+
+                {!(unlockedRealms.includes(selectedRealm.id) || level >= selectedRealm.requiredLevel) && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs space-y-1 mb-3">
+                    <div className="flex items-center gap-1.5 font-bold">
+                      <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Campaign Requirement: Level {selectedRealm.requiredLevel}</span>
+                    </div>
+                    <p className="text-[11px] text-gray-400">
+                      This realm is sealed in story order, but you may freely practice its coding quests below or consult its grimoire guide.
+                    </p>
+                  </div>
+                )}
 
                 <Link
                   href={`/curriculum?file=${selectedRealm.fileRef}`}

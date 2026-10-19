@@ -96,5 +96,17 @@ This document records each autonomous improvement cycle, deterministic verificat
   - `11-security-and-performance.md`: Added Refresh Token Rotation with Token Family Revocation for compromised session defense, per-request dynamic CSP Nonce generation for SSR/Next.js, and Interaction to Next Paint (INP) anatomy breakdown.
   - Verified with `vitest run` and `tsc --noEmit` (18/18 tests passing, 0 TypeScript errors).
 
+- **[2026-10-19 15:01] Cycle 11: World Map Overhaul, RSC Function Serialization Fix, and Route Resilience (Tests: PASS)**
+  - Diagnosed and fixed root cause of the 500 error when clicking quests or bosses: Next.js Server Components (`QuestPage` and `BossPage`) were passing non-serializable objects containing functions (`testRunner`, `testCondition`) to Client Components across the RSC boundary.
+  - Refactored `DualPaneWorkspace` and `BossBattleArena` to resolve quest and boss data from serializable string params (`realmId` and `questId`), completely removing the serialization error.
+  - Added dedicated `/map` and `/world-map` routes forwarding directly to the World Map campaign view.
+  - Enhanced `QuestMap.tsx` with explicit World Map branding, campaign progress metrics (realms cleared, quests mastered, total stars), and responsive smooth auto-scrolling to `#realm-inspector` on mobile/tablet taps.
+  - Added campaign level guidance banner indicating requirements while allowing open exploration and practice across all 12 realms.
+  - Enhanced `HUD.tsx` World Map navigation button with smooth-scroll reset when already on the home view.
+  - Cleaned up duplicate imports in `DualPaneWorkspace.tsx` and `BossBattleArena.tsx`.
+  - Restarted fresh dev server daemon on port 3000, confirming all 24 quests, 12 boss battles, curriculum, `/map`, and `/world-map` return `200 OK`.
+  - Verified with `npx vitest run` (18/18 tests passing) and `npx tsc --noEmit` (0 errors).
+
+
 
 

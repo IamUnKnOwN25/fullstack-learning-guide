@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import { Boss } from "@/data/bosses";
 import { useGameStore } from "@/lib/store";
 import { soundEngine } from "@/lib/audio";
 import {
@@ -19,25 +18,42 @@ import {
   BookOpen,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
+import { BOSSES, Boss } from "@/data/bosses";
 
 interface Props {
-  boss: Boss;
+  boss?: Boss;
   realmId: string;
 }
 
-export function BossBattleArena({ boss, realmId }: Props) {
+export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
+  const boss = initialBoss || BOSSES[realmId];
   const { hp, maxHp, takeDamage, defeatBoss, completedBosses } = useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
 
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
-  const [bossHp, setBossHp] = useState(boss.maxHp);
-  const [code, setCode] = useState(boss.phases[0].initialCode);
+  const [bossHp, setBossHp] = useState(boss?.maxHp || 100);
+  const [code, setCode] = useState(boss?.phases[0]?.initialCode || "");
   const [isHit, setIsHit] = useState(false);
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [battleWon, setBattleWon] = useState(completedBosses.includes(realmId));
   const [battleLost, setBattleLost] = useState(false);
 
-  const phase = boss.phases[currentPhaseIndex];
+  const phase = boss?.phases[currentPhaseIndex];
+
+  if (!boss || !phase) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-12 px-4 text-center space-y-4">
+        <h2 className="text-xl font-bold text-white font-mono">Boss Encounter Not Found</h2>
+        <p className="text-sm text-gray-400">The realm guardian could not be summoned.</p>
+        <Link
+          href="/"
+          className="inline-flex px-4 py-2 rounded-lg bg-matrix-neonRed text-white font-mono text-xs font-bold"
+        >
+          Retreat to World Map
+        </Link>
+      </div>
+    );
+  }
 
   // Submit Attack (Test Code)
   const handleAttack = () => {

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import { Quest } from "@/data/quests";
 import { useGameStore } from "@/lib/store";
 import { soundEngine } from "@/lib/audio";
 import {
@@ -22,18 +21,33 @@ import {
   BookOpen,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
+import { QUESTS, Quest } from "@/data/quests";
 
 interface Props {
-  quest: Quest;
+  quest?: Quest;
+  questId?: string;
   nextQuestId?: string;
   realmId: string;
 }
 
-export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
+export function DualPaneWorkspace({
+  quest: initialQuest,
+  questId,
+  nextQuestId: propNextQuestId,
+  realmId,
+}: Props) {
   const { completeQuest, completedQuests, stars } = useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
+  const realmQuests = QUESTS[realmId] || [];
+  const questIndex = questId ? realmQuests.findIndex((q) => q.id === questId) : -1;
+  const quest = initialQuest || (questIndex !== -1 ? realmQuests[questIndex] : realmQuests[0]);
+  const nextQuestId =
+    propNextQuestId ||
+    (questIndex !== -1 && questIndex + 1 < realmQuests.length
+      ? realmQuests[questIndex + 1].id
+      : undefined);
 
-  const [code, setCode] = useState(quest.starterCode);
+  const [code, setCode] = useState(quest?.starterCode || "");
   const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal">("editor");
   const [showHintIndex, setShowHintIndex] = useState<number>(-1);
   const [testResult, setTestResult] = useState<{
@@ -41,15 +55,32 @@ export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
     message?: string;
   } | null>(null);
 
-  const isCompleted = completedQuests.includes(quest.id);
+  const isCompleted = quest ? completedQuests.includes(quest.id) : false;
 
   // Sync state if quest changes
   useEffect(() => {
-    setCode(quest.starterCode);
-    setTestResult(null);
-    setShowHintIndex(-1);
-    setActiveTab("editor");
+    if (quest) {
+      setCode(quest.starterCode);
+      setTestResult(null);
+      setShowHintIndex(-1);
+      setActiveTab("editor");
+    }
   }, [quest]);
+
+  if (!quest) {
+    return (
+      <div className="w-full max-w-4xl mx-auto py-12 px-4 text-center space-y-4">
+        <h2 className="text-xl font-bold text-white font-mono">Quest Not Found</h2>
+        <p className="text-sm text-gray-400">The requested matrix trial could not be loaded.</p>
+        <Link
+          href="/"
+          className="inline-flex px-4 py-2 rounded-lg bg-matrix-accent text-matrix-dark font-mono text-xs font-bold"
+        >
+          Return to World Map
+        </Link>
+      </div>
+    );
+  }
 
   // Execute Code & Run Test Suite
   const handleRunCode = () => {
