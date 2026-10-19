@@ -22,6 +22,36 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 - 🛡️ **RPG Skill Tree & Badges:** Earn XP, level up, unlock perks, and collect achievements.
 - 🎵 **8-Bit Web Audio:** Enjoy retro sound effects and procedural chiptunes with a mute toggle.
 
+### Automated Verification & Testing
+
+DevQuest includes automated unit tests covering player mechanics, quests, and boss encounters:
+
+```bash
+# Run Vitest unit tests (Store, Quests, Bosses)
+npm run test
+
+# Run full deterministic verification gate (Typecheck + Unit Tests + Static Production Build)
+npm run validate
+```
+
+### 🗺️ The 12 Realms & Boss Guardians
+
+| # | Realm | Theme | Boss Guardian | Trophy Badge |
+|---|-------|-------|---------------|--------------|
+| 01 | HTML5 & Semantics | Ruined Foundations | The Malformed Tag Abomination | Semantic Warden |
+| 02 | CSS, Flexbox & Grid | Citadel of Styles | The Overflow Hydra | Layout Alchemist |
+| 03 | Modern JavaScript | Scripting Wilds | The Callback Kraken | Async Spellcaster |
+| 04 | Strict TypeScript | Sanctuary of Types | The Any-Demon | Discriminated Champion |
+| 05 | React & Next.js | Reactive Archipelago | The Infinite Re-Render Fiend | Master of Pure Renders |
+| 06 | Node.js Backend | Engine Bastion | The Event Loop Blocker | Non-Blocking Architect |
+| 07 | Databases & SQL | Vault of Relics | The SQL Injection Behemoth | Guardian of the Schema |
+| 08 | DevOps & Docker | Harbor of Containers | The Merge Conflict Chimera | DevOps Fleet Admiral |
+| 09 | Testing & TDD | Proving Grounds | The Flaky Test Spectre | TDD Purist |
+| 10 | CS & System Design | Spire of Algorithms | The O(N!) Goliath | Algorithmic Grandmaster |
+| 11 | Web Security & Performance | Bastion of Aegis | The XSS Phantom | Aegis Sentinel |
+| 12 | Full-Stack Capstone | The Matrix Core | The Null Void | Matrix Architect |
+
+
 ---
 
 ## How every topic is written
