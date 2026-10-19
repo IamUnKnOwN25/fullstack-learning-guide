@@ -226,6 +226,21 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
     }),
     {
       name: "devquest_player_save",
+      storage: {
+        getItem: (name) => {
+          if (typeof window === "undefined" || !window.localStorage) return null;
+          const str = window.localStorage.getItem(name);
+          return str ? JSON.parse(str) : null;
+        },
+        setItem: (name, value) => {
+          if (typeof window === "undefined" || !window.localStorage) return;
+          window.localStorage.setItem(name, JSON.stringify(value));
+        },
+        removeItem: (name) => {
+          if (typeof window === "undefined" || !window.localStorage) return;
+          window.localStorage.removeItem(name);
+        },
+      },
     }
   )
 );
