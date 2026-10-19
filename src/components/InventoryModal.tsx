@@ -31,6 +31,51 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
     description: "Banished callback hell and mastered Promises against The Callback Kraken.",
     icon: "Sparkles",
   },
+  slayer_of_any: {
+    name: "Discriminated Champion",
+    description: "Banished type 'any' and enforced strict compile-time discriminated unions.",
+    icon: "ShieldCheck",
+  },
+  slayer_of_rerenders: {
+    name: "Master of Pure Renders",
+    description: "Defeated the Infinite Re-Render Fiend using stable state dependencies.",
+    icon: "Atom",
+  },
+  slayer_of_blocker: {
+    name: "Non-Blocking Architect",
+    description: "Protected Node.js single-threaded event loop from synchronous CPU stalls.",
+    icon: "Server",
+  },
+  slayer_of_injection: {
+    name: "Guardian of the Schema",
+    description: "Eradicated SQL injection vulnerabilities using parameterized prepared statements.",
+    icon: "Database",
+  },
+  slayer_of_conflict: {
+    name: "DevOps Fleet Admiral",
+    description: "Resolved intractable Git merge conflicts and automated container pipelines.",
+    icon: "Cpu",
+  },
+  slayer_of_flakiness: {
+    name: "TDD Purist",
+    description: "Exorcised asynchronous timing race conditions with deterministic mock clocks.",
+    icon: "CheckCircle",
+  },
+  slayer_of_goliath: {
+    name: "Algorithmic Grandmaster",
+    description: "Tamed factorial algorithmic complexity with dynamic programming memoization.",
+    icon: "Network",
+  },
+  slayer_of_xss: {
+    name: "Aegis Sentinel",
+    description: "Secured web applications against XSS with strict Content-Security-Policy headers.",
+    icon: "ShieldAlert",
+  },
+  master_of_the_matrix: {
+    name: "Matrix Architect",
+    description: "Banished The Null Void and completed the Full-Stack Web Development Capstone Odyssey.",
+    icon: "Trophy",
+  },
 };
 
 export function InventoryModal({ isOpen, onClose }: Props) {

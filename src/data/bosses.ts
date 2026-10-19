@@ -213,4 +213,357 @@ export const BOSSES: Record<string, Boss> = {
       },
     ],
   },
+
+  typescript: {
+    id: "ts_boss",
+    realmId: "typescript",
+    name: "The Any-Demon",
+    title: "Infiltrator of Unchecked Types",
+    maxHp: 100,
+    xpReward: 600,
+    badge: {
+      id: "slayer_of_any",
+      name: "Discriminated Champion",
+      icon: "ShieldCheck",
+      description: "Banished type 'any' and enforced strict compile-time discriminated unions.",
+    },
+    introLore: "A dark entity shrouded in runtime undefined errors emerges, corrupting strong typing with type 'any'!",
+    defeatQuote: "No! The compiler... checked every single branch! My undefined errors have nowhere to hide!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Banish Type 'any' with Discriminated Unions",
+        bossDialogue: "Why specify types when you can just declare everything as any?! Muahaha!",
+        prompt: "Refactor the NetworkState type to use a discriminated union with a common 'status' discriminator: { status: 'loading' } | { status: 'success'; data: string } | { status: 'error'; error: Error }.",
+        initialCode: `// Fix this dangerous 'any' type with a discriminated union\ntype NetworkState = any;`,
+        language: "typescript",
+        solutionKeywords: ["status: 'loading'", "status: 'success'", "status: 'error'"],
+        testCondition: (code: string) => {
+          const hasStatus = /status:\s*['"]loading['"]/i.test(code) &&
+                            /status:\s*['"]success['"]/i.test(code) &&
+                            /status:\s*['"]error['"]/i.test(code);
+          const hasNoAny = !/type\s+NetworkState\s*=\s*any/i.test(code);
+          if (hasStatus && hasNoAny) {
+            return { passed: true, message: "Type contract enforced! The Any-Demon is staggered by compile-time safety!" };
+          }
+          return { passed: false, message: "Declare NetworkState as a discriminated union containing status: 'loading', 'success', and 'error'." };
+        },
+        hint: "type NetworkState = { status: 'loading' } | { status: 'success'; data: string } | { status: 'error'; error: Error };",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  react: {
+    id: "react_boss",
+    realmId: "react",
+    name: "The Infinite Re-Render Fiend",
+    title: "Consumer of CPU Cycles",
+    maxHp: 100,
+    xpReward: 650,
+    badge: {
+      id: "slayer_of_rerenders",
+      name: "Master of Pure Renders",
+      icon: "Atom",
+      description: "Defeated the Infinite Re-Render Fiend using stable callbacks and memoized state dependencies.",
+    },
+    introLore: "The browser tab freezes as thousands of cascading state updates loop relentlessly in an un-memoized effect!",
+    defeatQuote: "My infinite render cycle... stabilized into pristine dependency arrays!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Break the Infinite useEffect Loop",
+        bossDialogue: "I set state inside useEffect without a dependency array! Your laptop fan will spin forever!",
+        prompt: "Fix the useEffect below so it only runs once on mount by passing an empty dependency array [].",
+        initialCode: `import { useEffect, useState } from "react";\n\nfunction Tracker() {\n  const [data, setData] = useState(null);\n  // Fix this infinite render loop!\n  useEffect(() => {\n    fetchData().then(d => setData(d));\n  });\n}`,
+        language: "typescript",
+        solutionKeywords: ["useEffect", "[]"],
+        testCondition: (code: string) => {
+          const hasEmptyDeps = /useEffect\s*\([\s\S]*?,\s*\[\s*\]\s*\)/i.test(code);
+          if (hasEmptyDeps) {
+            return { passed: true, message: "Render cycle stabilized! CPU usage plummets from 100% to 0%!" };
+          }
+          return { passed: false, message: "Add an empty dependency array [] as the second argument to useEffect." };
+        },
+        hint: "useEffect(() => { ... }, []);",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  backend: {
+    id: "backend_boss",
+    realmId: "backend",
+    name: "The Event Loop Blocker",
+    title: "Choker of Server Threads",
+    maxHp: 100,
+    xpReward: 700,
+    badge: {
+      id: "slayer_of_blocker",
+      name: "Non-Blocking Architect",
+      icon: "Server",
+      description: "Protected Node.js single-threaded event loop from synchronous CPU-blocking stalls.",
+    },
+    introLore: "The server stops responding to incoming HTTP health checks because a synchronous while(true) loop has seized the event loop!",
+    defeatQuote: "You offloaded the heavy work to worker threads and asynchronous timers... Gasp!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Liberate the Thread with Async Non-Blocking APIs",
+        bossDialogue: "I use fs.readFileSync in the middle of request handlers! Every client must wait in line!",
+        prompt: "Replace the blocking fs.readFileSync call with asynchronous fs.promises.readFile and await.",
+        initialCode: `// Replace sync file read with async/await\nasync function readConfigFile(path: string) {\n  return fs.readFileSync(path, 'utf-8');\n}`,
+        language: "typescript",
+        solutionKeywords: ["await", "fs.promises.readFile"],
+        testCondition: (code: string) => {
+          const hasAsync = /await\s+(fs\.promises\.readFile|readFile)/i.test(code);
+          const hasNoSync = !/readFileSync/i.test(code);
+          if (hasAsync && hasNoSync) {
+            return { passed: true, message: "Asynchronous stream restored! Node.js processes 10,000 req/sec concurrently!" };
+          }
+          return { passed: false, message: "Use 'await fs.promises.readFile(path, 'utf-8')' instead of readFileSync." };
+        },
+        hint: "return await fs.promises.readFile(path, 'utf-8');",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  databases: {
+    id: "db_boss",
+    realmId: "databases",
+    name: "The SQL Injection Behemoth",
+    title: "Destroyer of Relational Tables",
+    maxHp: 100,
+    xpReward: 750,
+    badge: {
+      id: "slayer_of_injection",
+      name: "Guardian of the Schema",
+      icon: "Database",
+      description: "Eradicated SQL injection vulnerabilities using parameterized prepared statements.",
+    },
+    introLore: "A monstrous entity built from concatenated string queries: `SELECT * FROM users WHERE email = '' OR '1'='1'`!",
+    defeatQuote: "Prepared statements?! My injection payloads were parsed as mere string literals!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Cast the Parameterized Query Barrier",
+        bossDialogue: "Concatenate my input directly into your SQL string! Let me DROP all your tables!",
+        prompt: "Fix the query to use parameterized query syntax ($1) instead of vulnerable template string concatenation.",
+        initialCode: `// Vulnerable to SQL injection:\nconst query = \`SELECT * FROM users WHERE email = '\${userInput}'\`;\n// Fix using parameterized query: text and values [$1]`,
+        language: "typescript",
+        solutionKeywords: ["$1", "values"],
+        testCondition: (code: string) => {
+          const hasParam = /\$1/.test(code);
+          const hasNoDirectInterpolation = !/WHERE\s+email\s*=\s*['"]\$\{userInput\}['"]/i.test(code);
+          if (hasParam && hasNoDirectInterpolation) {
+            return { passed: true, message: "Parameterized query locked in! The Injection Behemoth dissolves into inert parameters!" };
+          }
+          return { passed: false, message: "Use parameterized placeholder $1 and pass userInput in values: [userInput]." };
+        },
+        hint: "const query = { text: 'SELECT * FROM users WHERE email = $1', values: [userInput] };",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  devops: {
+    id: "devops_boss",
+    realmId: "devops",
+    name: "The Merge Conflict Chimera",
+    title: "Blocker of CI/CD Pipelines",
+    maxHp: 100,
+    xpReward: 800,
+    badge: {
+      id: "slayer_of_conflict",
+      name: "DevOps Fleet Admiral",
+      icon: "Cpu",
+      description: "Resolved intractable Git merge conflicts and automated container deployment pipelines.",
+    },
+    introLore: "A grotesque chimera of `<<<<<<< HEAD`, `=======`, and `>>>>>>> branch` blocks the deployment gateway!",
+    defeatQuote: "Clean linear history... interactive rebase passed... Deploying to production!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Resolve the Merge Conflict",
+        bossDialogue: "Resolve both conflicting sides into one unified feature or suffer failed builds!",
+        prompt: "Clean up the merge conflict markers (<<<<<<<, =======, >>>>>>>) and combine both features properly.",
+        initialCode: `<<<<<<< HEAD\nconst port = process.env.PORT || 3000;\n=======\nconst port = process.env.PORT || 8080;\nconst host = "0.0.0.0";\n>>>>>>> feature/deployment`,
+        language: "typescript",
+        solutionKeywords: ["const port", "const host"],
+        testCondition: (code: string) => {
+          const hasNoMarkers = !/<{7}|={7}|>{7}/.test(code);
+          const hasPortAndHost = /const\s+port/i.test(code) && /const\s+host/i.test(code);
+          if (hasNoMarkers && hasPortAndHost) {
+            return { passed: true, message: "Conflict resolved cleanly! Automated CI/CD pipeline turns emerald green!" };
+          }
+          return { passed: false, message: "Remove all conflict markers (<<<<, ====, >>>>) and preserve both port and host." };
+        },
+        hint: "const port = process.env.PORT || 3000;\nconst host = '0.0.0.0';",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  testing: {
+    id: "testing_boss",
+    realmId: "testing",
+    name: "The Flaky Test Spectre",
+    title: "Haunter of CI Runners",
+    maxHp: 100,
+    xpReward: 850,
+    badge: {
+      id: "slayer_of_flakiness",
+      name: "TDD Purist",
+      icon: "CheckCircle",
+      description: "Exorcised asynchronous timing race conditions with deterministic mock clocks and awaits.",
+    },
+    introLore: "A ghastly apparition that causes test suites to pass locally but randomly fail on remote CI runners!",
+    defeatQuote: "No more race conditions... every promise is awaited... I am banished!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Exorcise the Un-Awaited Promise",
+        bossDialogue: "Your assertions fire before the asynchronous database write finishes! Flaky tests forever!",
+        prompt: "Make the test function async and await the async service call before running expect assertions.",
+        initialCode: `// Fix this flaky test\nit("creates user successfully", () => {\n  createUser({ name: "Alex" });\n  expect(getUserCount()).toBe(1);\n});`,
+        language: "typescript",
+        solutionKeywords: ["async", "await"],
+        testCondition: (code: string) => {
+          const hasAsync = /it\s*\(\s*['"][^'"]+['"]\s*,\s*async/i.test(code);
+          const hasAwait = /await\s+createUser/i.test(code);
+          if (hasAsync && hasAwait) {
+            return { passed: true, message: "Deterministic execution achieved! The Flaky Spectre dissolves into passing green ticks!" };
+          }
+          return { passed: false, message: "Make the callback async: it('...', async () => { await createUser(...); expect(...); });" };
+        },
+        hint: "it('creates user successfully', async () => {\n  await createUser({ name: 'Alex' });\n  expect(getUserCount()).toBe(1);\n});",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  cs: {
+    id: "cs_boss",
+    realmId: "cs",
+    name: "The O(N!) Goliath",
+    title: "Titan of Combinatorial Explosion",
+    maxHp: 100,
+    xpReward: 900,
+    badge: {
+      id: "slayer_of_goliath",
+      name: "Algorithmic Grandmaster",
+      icon: "Network",
+      description: "Tamed factorial algorithmic complexity with dynamic programming and memoization.",
+    },
+    introLore: "A monolithic beast with billions of redundant recursive branches devouring available heap memory!",
+    defeatQuote: "Memoization cache... reduced my operations from billions to O(N)... Impossible!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Tame Exponential Recursion with Memoization",
+        bossDialogue: "Calculating fibonacci(50) naively takes 2^50 operations! Your CPU will melt before completing!",
+        prompt: "Add a memoization cache map to fibonacci so repeated subproblems return in O(1) time.",
+        initialCode: `const memo = new Map<number, number>();\n\nfunction fib(n: number): number {\n  if (n <= 1) return n;\n  // Check if memo has n; if so, return it\n  // Otherwise calculate, store in memo, and return\n}`,
+        language: "typescript",
+        solutionKeywords: ["memo.has", "memo.get", "memo.set"],
+        testCondition: (code: string) => {
+          const hasGet = /memo\.(has|get)/i.test(code);
+          const hasSet = /memo\.set/i.test(code);
+          if (hasGet && hasSet) {
+            return { passed: true, message: "Dynamic programming strike landed! Exponential branch pruned to linear O(N) perfection!" };
+          }
+          return { passed: false, message: "Check memo.has(n) ? memo.get(n) : calculate, memo.set(n, val), return val." };
+        },
+        hint: "if (memo.has(n)) return memo.get(n)!;\nconst res = fib(n - 1) + fib(n - 2);\nmemo.set(n, res);\nreturn res;",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  security: {
+    id: "security_boss",
+    realmId: "security",
+    name: "The XSS Phantom",
+    title: "Shadow of Malicious Scripts",
+    maxHp: 100,
+    xpReward: 950,
+    badge: {
+      id: "slayer_of_xss",
+      name: "Aegis Sentinel",
+      icon: "ShieldAlert",
+      description: "Secured web applications against Cross-Site Scripting with Content-Security-Policy headers.",
+    },
+    introLore: "A shadowy spectre that lurks inside innerHTML injections, attempting to exfiltrate session cookies!",
+    defeatQuote: "Content-Security-Policy: default-src 'self'... My injected script refused to execute!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Strike 1: Enforce Strict Content-Security-Policy",
+        bossDialogue: "I can execute inline scripts from anywhere on the internet! You cannot stop eval()!",
+        prompt: "Construct a CSP header string restricting default-src to 'self' and script-src to 'self'.",
+        initialCode: `// Configure strict CSP header value\nconst cspHeader = "default-src 'self'; script-src 'self';";`,
+        language: "typescript",
+        solutionKeywords: ["default-src 'self'", "script-src 'self'"],
+        testCondition: (code: string) => {
+          const hasDefaultSrc = /default-src\s+['"]self['"]/i.test(code);
+          const hasScriptSrc = /script-src\s+['"]self['"]/i.test(code);
+          if (hasDefaultSrc && hasScriptSrc) {
+            return { passed: true, message: "Content Security Policy erected! Inline malicious scripts are blocked by the browser engine!" };
+          }
+          return { passed: false, message: "Ensure default-src 'self' and script-src 'self' are declared." };
+        },
+        hint: "const cspHeader = \"default-src 'self'; script-src 'self';\";",
+        damageToBoss: 100,
+        damageToPlayer: 30,
+      },
+    ],
+  },
+
+  capstone: {
+    id: "final_boss",
+    realmId: "capstone",
+    name: "The Null Void",
+    title: "Source of the Web Matrix Corruption",
+    maxHp: 150,
+    xpReward: 1500,
+    badge: {
+      id: "master_of_the_matrix",
+      name: "Matrix Architect",
+      icon: "Trophy",
+      description: "Banished The Null Void and completed the Full-Stack Web Development Capstone Odyssey.",
+    },
+    introLore: "The ultimate void of unhandled rejections, race conditions, and corrupted architectures gathers into a towering cosmic anomaly!",
+    defeatQuote: "Full-stack mastery... from HTML structure to distributed production systems... The Web Matrix is whole once more!",
+    phases: [
+      {
+        phaseNumber: 1,
+        phaseTitle: "Phase 1: Assemble the Production Fullstack Engine",
+        bossDialogue: "You have conquered individual realms, but can your architecture withstand the totality of production scale?!",
+        prompt: "Implement an end-to-end healthcheck handler that queries the database, checks cache readiness, and returns status: 'operational'.",
+        initialCode: `async function systemHealthCheck(db: { ping: () => Promise<boolean> }, redis: { ping: () => Promise<boolean> }) {\n  // Await both db.ping() and redis.ping() concurrently\n  // Return { status: 'operational', timestamp: Date.now() }\n}`,
+        language: "typescript",
+        solutionKeywords: ["Promise.all", "db.ping", "redis.ping", "status: 'operational'"],
+        testCondition: (code: string) => {
+          const hasPromiseAll = /Promise\.all/i.test(code);
+          const hasPings = /db\.ping/i.test(code) && /redis\.ping/i.test(code);
+          const hasOperational = /status:\s*['"]operational['"]/i.test(code);
+          if (hasPromiseAll && hasPings && hasOperational) {
+            return { passed: true, message: "Production engine online! The Null Void shatters under the weight of flawless fullstack harmony!" };
+          }
+          return { passed: false, message: "Await Promise.all([db.ping(), redis.ping()]) and return { status: 'operational', timestamp: Date.now() }." };
+        },
+        hint: "await Promise.all([db.ping(), redis.ping()]);\nreturn { status: 'operational', timestamp: Date.now() };",
+        damageToBoss: 150,
+        damageToPlayer: 50,
+      },
+    ],
+  },
 };
