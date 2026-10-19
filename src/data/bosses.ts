@@ -64,7 +64,7 @@ export const BOSSES: Record<string, Boss> = {
           }
           return { passed: false, message: "Ensure you wrap the links inside a valid <nav> element with both links." };
         },
-        hint: "Use <nav> around the links instead of <b> tags.",
+        hint: "<nav><a href=\"/\">Home</a><a href=\"/about\">About</a></nav>",
         damageToBoss: 50,
         damageToPlayer: 25,
       },
@@ -86,7 +86,7 @@ export const BOSSES: Record<string, Boss> = {
           }
           return { passed: false, message: "Make sure <label for='user-email'> matches <input id='user-email' type='email' required>." };
         },
-        hint: "Add for='user-email' to <label>, id='user-email', type='email', and 'required' to <input>.",
+        hint: "<label for=\"user-email\">Email:</label><input id=\"user-email\" type=\"email\" required>",
         damageToBoss: 50,
         damageToPlayer: 25,
       },

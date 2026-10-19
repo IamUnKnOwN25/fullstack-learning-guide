@@ -18,7 +18,13 @@ const DOC_FILES = [
   { filename: "12-roadmap-capstone-and-resources.md", title: "12. Capstone Project & Roadmap" },
 ];
 
-export default async function CurriculumPage() {
+export default async function CurriculumPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ file?: string }>;
+}) {
+  const params = searchParams ? await searchParams : undefined;
+  const initialFile = params?.file;
   const docs: DocFile[] = [];
 
   for (const doc of DOC_FILES) {
@@ -39,5 +45,5 @@ export default async function CurriculumPage() {
     }
   }
 
-  return <CurriculumViewer docs={docs} />;
+  return <CurriculumViewer docs={docs} initialFile={initialFile} />;
 }

@@ -16,7 +16,9 @@ import {
   AlertTriangle,
   Award,
   Zap,
+  BookOpen,
 } from "lucide-react";
+import { REALMS } from "@/data/realms";
 
 interface Props {
   boss: Boss;
@@ -25,6 +27,7 @@ interface Props {
 
 export function BossBattleArena({ boss, realmId }: Props) {
   const { hp, maxHp, takeDamage, defeatBoss, completedBosses } = useGameStore();
+  const realm = REALMS.find((r) => r.id === realmId);
 
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [bossHp, setBossHp] = useState(boss.maxHp);
@@ -98,9 +101,23 @@ export function BossBattleArena({ boss, realmId }: Props) {
           Retreat to World Map
         </Link>
 
-        <div className="font-mono text-xs text-matrix-neonRed font-bold flex items-center gap-1.5">
-          <Swords className="w-4 h-4 animate-pulse" />
-          BOSS ENCOUNTER • {boss.realmId.toUpperCase()}
+        <div className="flex items-center gap-3">
+          {realm && (
+            <Link
+              href={`/curriculum?file=${realm.fileRef}`}
+              target="_blank"
+              onClick={() => soundEngine.playSfx("click")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Grimoire Guide ({realm.fileRef})</span>
+            </Link>
+          )}
+
+          <div className="font-mono text-xs text-matrix-neonRed font-bold flex items-center gap-1.5">
+            <Swords className="w-4 h-4 animate-pulse" />
+            BOSS ENCOUNTER • {boss.realmId.toUpperCase()}
+          </div>
         </div>
       </div>
 

@@ -355,12 +355,31 @@ h1 { font-size: clamp(1.5rem, 4vw + 1rem, 3rem); }
 
 /* Logical properties work for any writing direction */
 .box { margin-inline: auto; padding-block: 1rem; }
+
+/* Subgrid: inherit parent track sizing into child components */
+.parent-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.card-subgrid { grid-column: span 3; display: grid; grid-template-columns: subgrid; }
+
+/* @starting-style: smooth entry transitions on mount without JavaScript */
+dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.3s ease, transform 0.3s ease, overlay 0.3s allow-discrete, display 0.3s allow-discrete;
+}
+@starting-style {
+  dialog[open] {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
 ```
 
 **Task:**
 
 - [ ] Build a card that stacks in narrow containers and goes side by side in wide ones, using a container query
 - [ ] Style a form field wrapper red when its input is invalid, using `:has()`
+- [ ] Create an accessible dialog with `@starting-style` that animates smoothly upon invocation
+- [ ] Align child header and body elements across card columns using `grid-template-columns: subgrid`
 
 ### 3.2 Animations
 

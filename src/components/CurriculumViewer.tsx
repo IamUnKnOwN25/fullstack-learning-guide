@@ -13,11 +13,305 @@ export interface DocFile {
 
 interface Props {
   docs: DocFile[];
+  initialFile?: string;
 }
 
-export function CurriculumViewer({ docs }: Props) {
-  const [selectedFile, setSelectedFile] = useState<string>(docs[0]?.filename || "");
+// Inline formatting helper for bold, inline code, and links
+function formatInlineText(text: string): React.ReactNode[] {
+  // Split tokens by code, bold, link
+  const parts: React.ReactNode[] = [];
+  // Regex to match `code`, **bold**, or [text](url)
+  const regex = /(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    const token = match[0];
+    if (token.startsWith("`") && token.endsWith("`")) {
+      parts.push(
+        <code
+          key={match.index}
+          className="px-1.5 py-0.5 mx-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-mono text-[11px]"
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    } else if (token.startsWith("**") && token.endsWith("**")) {
+      parts.push(
+        <strong key={match.index} className="text-white font-bold">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith("[") && token.includes("](")) {
+      const closingBracket = token.indexOf("]");
+      const linkText = token.slice(1, closingBracket);
+      const url = token.slice(closingBracket + 2, -1);
+      parts.push(
+        <a
+          key={match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-matrix-neonCyan hover:underline hover:text-white"
+        >
+          {linkText}
+        </a>
+      );
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+function RichMarkdownViewer({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeBlockLang = "";
+  let codeBlockLines: string[] = [];
+  let inTable = false;
+  let tableRows: string[][] = [];
+
+  const flushCodeBlock = (key: string | number) => {
+    if (codeBlockLines.length > 0) {
+      elements.push(
+        <div
+          key={`code-${key}`}
+          className="my-4 rounded-xl border border-matrix-border bg-matrix-dark overflow-hidden shadow-lg"
+        >
+          <div className="flex items-center justify-between px-4 py-2 border-b border-matrix-border bg-matrix-card/80 text-[11px] font-mono text-gray-400">
+            <span className="text-matrix-neonCyan uppercase font-bold">
+              {codeBlockLang || "CODE"}
+            </span>
+            <span className="text-gray-500 text-[10px]">TERMINAL SNIPPET</span>
+          </div>
+          <pre className="p-4 overflow-x-auto font-mono text-xs text-matrix-accent leading-relaxed select-text">
+            <code>{codeBlockLines.join("\n")}</code>
+          </pre>
+        </div>
+      );
+      codeBlockLines = [];
+    }
+  };
+
+  const flushTable = (key: string | number) => {
+    if (tableRows.length > 0) {
+      const headerRow = tableRows[0];
+      const dataRows = tableRows.slice(1).filter((r) => !r.every((c) => c.match(/^[ -:]+$/)));
+
+      elements.push(
+        <div
+          key={`table-${key}`}
+          className="my-4 overflow-x-auto rounded-xl border border-matrix-border shadow-md"
+        >
+          <table className="w-full text-left font-mono text-xs border-collapse">
+            <thead>
+              <tr className="bg-matrix-dark border-b border-matrix-border text-matrix-neonCyan font-bold">
+                {headerRow.map((col, idx) => (
+                  <th key={idx} className="p-3 border-r border-matrix-border/50 last:border-r-0">
+                    {formatInlineText(col.trim())}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-matrix-border/40">
+              {dataRows.map((row, rIdx) => (
+                <tr key={rIdx} className="hover:bg-matrix-cardHover/50 transition-colors">
+                  {row.map((cell, cIdx) => (
+                    <td
+                      key={cIdx}
+                      className="p-3 border-r border-matrix-border/30 last:border-r-0 text-gray-300"
+                    >
+                      {formatInlineText(cell.trim())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      tableRows = [];
+      inTable = false;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Fenced Code Block Toggle
+    if (line.trim().startsWith("```")) {
+      if (inCodeBlock) {
+        flushCodeBlock(i);
+        inCodeBlock = false;
+      } else {
+        if (inTable) flushTable(i);
+        inCodeBlock = true;
+        codeBlockLang = line.trim().slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockLines.push(line);
+      continue;
+    }
+
+    // Markdown Table Row
+    if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+      }
+      const cells = line
+        .trim()
+        .slice(1, -1)
+        .split("|")
+        .map((c) => c.trim());
+      tableRows.push(cells);
+      continue;
+    } else if (inTable) {
+      flushTable(i);
+    }
+
+    // Horizontal Rule
+    if (/^(\*\*\*|---|___)$/.test(line.trim())) {
+      elements.push(<hr key={i} className="my-6 border-matrix-border" />);
+      continue;
+    }
+
+    // Headings
+    if (line.startsWith("# ")) {
+      elements.push(
+        <h1
+          key={i}
+          className="text-2xl font-bold font-mono text-white mt-8 mb-4 pb-2 border-b border-matrix-border flex items-center gap-2"
+        >
+          <span className="text-matrix-neonCyan">#</span>
+          {formatInlineText(line.slice(2))}
+        </h1>
+      );
+      continue;
+    }
+
+    if (line.startsWith("## ")) {
+      elements.push(
+        <h2
+          key={i}
+          className="text-xl font-bold font-mono text-matrix-accent mt-6 mb-3 flex items-center gap-2"
+        >
+          <span className="text-matrix-accent/60">##</span>
+          {formatInlineText(line.slice(3))}
+        </h2>
+      );
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      elements.push(
+        <h3
+          key={i}
+          className="text-base font-bold font-mono text-matrix-neonCyan mt-5 mb-2 flex items-center gap-2"
+        >
+          <span className="text-matrix-neonCyan/60">###</span>
+          {formatInlineText(line.slice(4))}
+        </h3>
+      );
+      continue;
+    }
+
+    if (line.startsWith("#### ")) {
+      elements.push(
+        <h4 key={i} className="text-sm font-bold font-mono text-gray-200 mt-4 mb-2">
+          {formatInlineText(line.slice(5))}
+        </h4>
+      );
+      continue;
+    }
+
+    // Blockquote
+    if (line.startsWith(">")) {
+      elements.push(
+        <blockquote
+          key={i}
+          className="my-3 pl-4 py-2 border-l-2 border-matrix-neonCyan bg-matrix-card/60 rounded-r-lg font-mono text-xs italic text-gray-300"
+        >
+          {formatInlineText(line.slice(1).trim())}
+        </blockquote>
+      );
+      continue;
+    }
+
+    // Unordered List item
+    if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
+      const bulletContent = line.trim().slice(2);
+      elements.push(
+        <li
+          key={i}
+          className="ml-5 list-disc text-xs sm:text-sm font-mono text-gray-300 my-1 leading-relaxed"
+        >
+          {formatInlineText(bulletContent)}
+        </li>
+      );
+      continue;
+    }
+
+    // Ordered List item
+    const orderedMatch = line.trim().match(/^(\d+)\.\s+(.*)$/);
+    if (orderedMatch) {
+      elements.push(
+        <div key={i} className="ml-4 flex items-start gap-2 text-xs sm:text-sm font-mono text-gray-300 my-1 leading-relaxed">
+          <span className="text-matrix-neonCyan font-bold">{orderedMatch[1]}.</span>
+          <span>{formatInlineText(orderedMatch[2])}</span>
+        </div>
+      );
+      continue;
+    }
+
+    // Empty line
+    if (!line.trim()) {
+      elements.push(<div key={i} className="h-3" />);
+      continue;
+    }
+
+    // Default paragraph
+    elements.push(
+      <p key={i} className="text-xs sm:text-sm font-mono leading-relaxed text-gray-300 my-2">
+        {formatInlineText(line)}
+      </p>
+    );
+  }
+
+  if (inCodeBlock) flushCodeBlock("end");
+  if (inTable) flushTable("end");
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
+export function CurriculumViewer({ docs, initialFile }: Props) {
+  const [selectedFile, setSelectedFile] = useState<string>(() => {
+    if (initialFile && docs.some((d) => d.filename === initialFile)) {
+      return initialFile;
+    }
+    return docs[0]?.filename || "";
+  });
   const [searchQuery, setSearchQuery] = useState("");
+
+  React.useEffect(() => {
+    if (initialFile && docs.some((d) => d.filename === initialFile)) {
+      setSelectedFile(initialFile);
+    }
+  }, [initialFile, docs]);
 
   const activeDoc = docs.find((d) => d.filename === selectedFile) || docs[0];
 
@@ -101,12 +395,19 @@ export function CurriculumViewer({ docs }: Props) {
         {/* Right Content: Document Reader */}
         <div className="md:col-span-3 bg-matrix-card border border-matrix-border rounded-xl p-6 sm:p-8 overflow-y-auto space-y-6">
           <div className="flex items-center justify-between pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
-            <span>FILE: {activeDoc.filename}</span>
-            <span className="text-matrix-neonCyan">READ-ONLY CURRICULUM ARCHIVE</span>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
+                {activeDoc.filename}
+              </span>
+              <span>{activeDoc.title}</span>
+            </div>
+            <span className="text-matrix-neonCyan text-[11px] hidden sm:inline">
+              READ-ONLY CURRICULUM ARCHIVE
+            </span>
           </div>
 
-          <div className="prose prose-invert max-w-none text-xs sm:text-sm font-mono whitespace-pre-wrap leading-relaxed text-gray-300 select-text">
-            {activeDoc.content}
+          <div className="text-xs sm:text-sm select-text">
+            <RichMarkdownViewer content={activeDoc.content} />
           </div>
         </div>
       </div>

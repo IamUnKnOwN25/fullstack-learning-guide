@@ -19,7 +19,9 @@ import {
   ArrowLeft,
   ArrowRight,
   ShieldAlert,
+  BookOpen,
 } from "lucide-react";
+import { REALMS } from "@/data/realms";
 
 interface Props {
   quest: Quest;
@@ -29,6 +31,7 @@ interface Props {
 
 export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
   const { completeQuest, completedQuests, stars } = useGameStore();
+  const realm = REALMS.find((r) => r.id === realmId);
 
   const [code, setCode] = useState(quest.starterCode);
   const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal">("editor");
@@ -111,6 +114,18 @@ export function DualPaneWorkspace({ quest, nextQuestId, realmId }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
+          {realm && (
+            <Link
+              href={`/curriculum?file=${realm.fileRef}`}
+              target="_blank"
+              onClick={() => soundEngine.playSfx("click")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Curriculum Reference</span>
+            </Link>
+          )}
+
           <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30">
             +{quest.xpReward} XP
           </span>

@@ -76,9 +76,15 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Hardened quest starter codes and boss initial codes across all realms so learners must actively solve tasks rather than passing immediately.
   - Verified with `npm run validate` (16/16 tests passing, 0 TypeScript errors, 100% clean Next.js build).
 
-- **[2026-10-19 14:16] Cycle 8: Master Documentation & 12-Realm Guardian Roster Synchronization (Tests: PASS)**
-  - Updated `00-README.md` with the full 12-realm boss battle roster and badge achievements table.
-  - Added dedicated documentation for running Vitest unit test suites (`npm run test`) and deterministic CI verification gates (`npm run validate`).
-  - Verified with `npm run validate` (16/16 unit tests passing, 0 TypeScript errors, 100% clean Next.js build).
+- **[2026-10-19 14:40] Cycle 9: Curriculum Deep Linking, Rich Grimoire Terminal Viewer & Canonical Solutions Suite (Tests: PASS)**
+  - Added `src/__tests__/solutions.test.ts` providing canonical solutions proving all 24 interactive quests and all 24 boss phases are 100% mathematically and syntactically solvable.
+  - Enhanced `src/components/CurriculumViewer.tsx` with rich terminal styling: headings, fenced code blocks with language badges, blockquotes, interactive tables, bullet points, and inline syntax styling.
+  - Added Next.js 15 async `searchParams` query param handling (`?file=...`) for direct deep-linking into curriculum chapters.
+  - Added direct "Read Chapter Guide" action button in `QuestMap.tsx`.
+  - Added "Curriculum Reference" action button in `DualPaneWorkspace.tsx`.
+  - Added "Grimoire Guide" action button in `BossBattleArena.tsx`.
+  - Enriched `02-css.md` with modern CSS subgrid track alignment and zero-JS `@starting-style` entry transitions.
+  - Fixed HTML boss hints with complete solution snippets.
+  - Verified with `npm run validate` (18/18 unit tests passing, 0 TypeScript errors, 100% clean Next.js build).
 
 

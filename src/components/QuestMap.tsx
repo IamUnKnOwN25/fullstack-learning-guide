@@ -161,9 +161,18 @@ export function QuestMap() {
                   <span>{selectedRealm.realmName}</span>
                 </div>
                 <h2 className="text-xl font-bold text-white mb-2">{selectedRealm.title}</h2>
-                <p className="text-xs text-gray-300 leading-relaxed italic bg-matrix-dark/60 p-3 rounded-lg border border-matrix-border/80">
+                <p className="text-xs text-gray-300 leading-relaxed italic bg-matrix-dark/60 p-3 rounded-lg border border-matrix-border/80 mb-3">
                   &ldquo;{selectedRealm.lore}&rdquo;
                 </p>
+
+                <Link
+                  href={`/curriculum?file=${selectedRealm.fileRef}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className="w-full py-2 px-3 rounded-lg bg-matrix-dark hover:bg-matrix-card border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Read Chapter Guide ({selectedRealm.fileRef})
+                </Link>
               </div>
 
               {/* Quests in this Realm */}
