@@ -36,7 +36,7 @@ export function DualPaneWorkspace({
   nextQuestId: propNextQuestId,
   realmId,
 }: Props) {
-  const { completeQuest, completedQuests, stars } = useGameStore();
+  const { completeQuest, completedQuests, stars, unlockedSkills } = useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
   const realmQuests = QUESTS[realmId] || [];
   const questIndex = questId ? realmQuests.findIndex((q) => q.id === questId) : -1;
@@ -56,6 +56,24 @@ export function DualPaneWorkspace({
   } | null>(null);
 
   const isCompleted = quest ? completedQuests.includes(quest.id) : false;
+  const isReactBonus = unlockedSkills.includes("reactive_flow") && quest?.realmId === "react";
+  const isAsyncBonus = unlockedSkills.includes("async_teleport") && (quest?.realmId === "backend" || quest?.realmId === "databases");
+  const isDevopsBonus = unlockedSkills.includes("container_forge") && quest?.realmId === "devops";
+
+  let bonusMultiplier = 1.0;
+  let bonusLabel = "";
+  if (isReactBonus) {
+    bonusMultiplier = 1.25;
+    bonusLabel = "(+25% Reactive Flow)";
+  } else if (isAsyncBonus) {
+    bonusMultiplier = 1.25;
+    bonusLabel = "(+25% Async Teleport)";
+  } else if (isDevopsBonus) {
+    bonusMultiplier = 1.25;
+    bonusLabel = "(+25% Container Forge)";
+  }
+
+  const finalXp = quest ? Math.round(quest.xpReward * bonusMultiplier) : 0;
 
   // Sync state if quest changes
   useEffect(() => {
@@ -91,7 +109,7 @@ export function DualPaneWorkspace({
       soundEngine.playSfx("correct");
       // Calculate stars: 3 stars if 0 hints, 2 if 1 hint, 1 if multiple hints
       const earnedStars = showHintIndex === -1 ? 3 : showHintIndex === 0 ? 2 : 1;
-      completeQuest(quest.id, quest.realmId, earnedStars, quest.xpReward);
+      completeQuest(quest.id, quest.realmId, earnedStars, finalXp);
 
       // Trigger victory fanfare confetti
       confetti({
@@ -157,8 +175,13 @@ export function DualPaneWorkspace({
             </Link>
           )}
 
-          <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30">
-            +{quest.xpReward} XP
+          <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center gap-1.5">
+            +{finalXp} XP
+            {bonusLabel && (
+              <span className="text-[10px] text-matrix-neonCyan font-bold">
+                {bonusLabel}
+              </span>
+            )}
           </span>
 
           {nextQuestId && isCompleted && (

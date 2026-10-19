@@ -15,6 +15,7 @@ import {
   BookOpen,
   MapPin,
   Heart,
+  Crown,
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { InventoryModal } from "./InventoryModal";
@@ -32,7 +33,10 @@ export function HUD() {
     toggleAudio,
     toggleBgm,
     badges,
+    unlockedSkills,
   } = useGameStore();
+
+  const isGrandmaster = unlockedSkills.includes("matrix_grandmaster");
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -98,14 +102,27 @@ export function HUD() {
           <div className="flex items-center gap-3 sm:gap-6">
             {/* Rank & Level */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-matrix-card border-2 border-matrix-accent flex items-center justify-center text-matrix-accent font-mono font-bold text-xs shadow-md shadow-matrix-accent/20">
+              <div
+                className={`w-9 h-9 rounded-full bg-matrix-card border-2 flex items-center justify-center font-mono font-bold text-xs shadow-md transition-all ${
+                  isGrandmaster
+                    ? "border-matrix-neonGold text-matrix-neonGold shadow-matrix-neonGold/40 animate-pulse"
+                    : "border-matrix-accent text-matrix-accent shadow-matrix-accent/20"
+                }`}
+              >
                 L{level}
               </div>
               <div className="hidden sm:block">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-matrix-accent font-mono">
-                    {rankTitle}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    {isGrandmaster && <Crown className="w-3.5 h-3.5 text-matrix-neonGold animate-bounce" />}
+                    <span
+                      className={`text-xs font-bold font-mono ${
+                        isGrandmaster ? "text-matrix-neonGold" : "text-matrix-accent"
+                      }`}
+                    >
+                      {isGrandmaster ? "Full-Stack Archmage" : rankTitle}
+                    </span>
+                  </div>
                   <span className="text-[10px] text-gray-400 font-mono">
                     {xp} XP
                   </span>

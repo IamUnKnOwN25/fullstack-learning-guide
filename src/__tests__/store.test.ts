@@ -74,17 +74,32 @@ describe("DevQuest Game Store", () => {
     expect(useGameStore.getState().hp).toBe(store.maxHp);
   });
 
-  it("guards skill point expenditure", () => {
+  it("guards skill point expenditure and prevents duplicate unlocks", () => {
     const store = useGameStore.getState();
     // Level 1 player has 0 or 1 point available, cannot afford 5 SP skill
     const success = store.unlockSkill("matrix_grandmaster", 5);
     expect(success).toBe(false);
 
     // Level up player by adding XP
-    store.addXp(2500); // High level
-    const affordable = useGameStore.getState().unlockSkill("lint_shield", 2);
+    store.addXp(5000); // High level
+    const state = useGameStore.getState();
+    expect(state.level).toBeGreaterThanOrEqual(15);
+
+    const affordable = state.unlockSkill("lint_shield", 2);
     expect(affordable).toBe(true);
     expect(useGameStore.getState().unlockedSkills).toContain("lint_shield");
+
+    // Duplicate unlock should fail and not double-spend or duplicate
+    const duplicate = useGameStore.getState().unlockSkill("lint_shield", 2);
+    expect(duplicate).toBe(false);
+    expect(
+      useGameStore.getState().unlockedSkills.filter((s) => s === "lint_shield")
+    ).toHaveLength(1);
+
+    // Unlock grandmaster
+    const grandmaster = useGameStore.getState().unlockSkill("matrix_grandmaster", 5);
+    expect(grandmaster).toBe(true);
+    expect(useGameStore.getState().unlockedSkills).toContain("matrix_grandmaster");
   });
 
   it("safely invokes all sound engine sound effects and BGM toggles in test environment", () => {

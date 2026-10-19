@@ -16,6 +16,7 @@ import {
   Award,
   Zap,
   BookOpen,
+  Shield,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { BOSSES, Boss } from "@/data/bosses";
@@ -27,13 +28,14 @@ interface Props {
 
 export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const boss = initialBoss || BOSSES[realmId];
-  const { hp, maxHp, takeDamage, defeatBoss, completedBosses } = useGameStore();
+  const { hp, maxHp, takeDamage, defeatBoss, completedBosses, unlockedSkills } = useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
 
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [bossHp, setBossHp] = useState(boss?.maxHp || 100);
   const [code, setCode] = useState(boss?.phases[0]?.initialCode || "");
   const [isHit, setIsHit] = useState(false);
+  const [shieldUsed, setShieldUsed] = useState(false);
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [battleWon, setBattleWon] = useState(completedBosses.includes(realmId));
   const [battleLost, setBattleLost] = useState(false);
@@ -90,16 +92,26 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
         setCode(boss.phases[nextIdx].initialCode);
       }
     } else {
-      // Counter-attack by Boss!
-      soundEngine.playSfx("error");
-      const remainingHp = takeDamage(phase.damageToPlayer);
-      setCombatLog((prev) => [
-        `[SYNTAX COUNTER] ${result.message} ${boss.name} struck you for ${phase.damageToPlayer} damage!`,
-        ...prev,
-      ]);
+      // Check if Lint Barrier skill absorbs the counter-attack
+      if (unlockedSkills.includes("lint_shield") && !shieldUsed) {
+        setShieldUsed(true);
+        soundEngine.playSfx("skill-unlock");
+        setCombatLog((prev) => [
+          `[LINT BARRIER DEFLECTION] Your Lint Barrier absorbed the syntax counter-strike! 0 damage taken!`,
+          ...prev,
+        ]);
+      } else {
+        // Counter-attack by Boss!
+        soundEngine.playSfx("error");
+        const remainingHp = takeDamage(phase.damageToPlayer);
+        setCombatLog((prev) => [
+          `[SYNTAX COUNTER] ${result.message} ${boss.name} struck you for ${phase.damageToPlayer} damage!`,
+          ...prev,
+        ]);
 
-      if (remainingHp <= 0) {
-        setBattleLost(true);
+        if (remainingHp <= 0) {
+          setBattleLost(true);
+        }
       }
     }
   };
@@ -193,6 +205,19 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                   style={{ width: `${(hp / maxHp) * 100}%` }}
                 />
               </div>
+
+              {unlockedSkills.includes("lint_shield") && (
+                <div
+                  className={`mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border transition-colors ${
+                    !shieldUsed
+                      ? "bg-matrix-neonPurple/20 border-matrix-neonPurple/50 text-matrix-neonPurple shadow-sm shadow-matrix-neonPurple/20"
+                      : "bg-gray-800/40 border-gray-700 text-gray-500"
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Lint Barrier: {!shieldUsed ? "Charged (1 Absorption Ready)" : "Discharged"}</span>
+                </div>
+              )}
             </div>
 
             {/* Boss Dialogue Speech Bubble */}
@@ -243,6 +268,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               setCurrentPhaseIndex(0);
               setCode(boss.phases[0].initialCode);
               setBattleLost(false);
+              setShieldUsed(false);
             }}
             className="px-6 py-2.5 rounded-xl bg-matrix-neonRed text-white font-mono text-xs font-bold hover:scale-105 transition-all cursor-pointer"
           >
