@@ -6,7 +6,7 @@ export interface Quest {
   storyIntro: string;
   conceptSummary: string;
   starterCode: string;
-  language: "html" | "css" | "javascript" | "typescript" | "sql";
+  language: "html" | "css" | "javascript" | "typescript" | "sql" | "dockerfile" | "yaml" | "bash";
   previewType: "html" | "console";
   tasks: string[];
   testRunner: (code: string) => { passed: boolean; message: string; output?: string };
@@ -367,6 +367,294 @@ const cadet: MatrixOperator = {
         "const cadet: MatrixOperator = {\n  id: 'op-01',\n  name: 'Cipher',\n  level: 10,\n  isOnline: true\n};",
       ],
       xpReward: 150,
+    },
+  ],
+
+  react: [
+    {
+      id: "react_1_hooks",
+      realmId: "react",
+      order: 1,
+      title: "The Reactive State Conduit",
+      storyIntro: "Byte speaks: 'The UI components have lost their reactive pulse! We must implement a stateful counter that increments cleanly on button click!'",
+      conceptSummary: "React components re-render when state changes. useState returns [value, setter]. Always use the functional updater form `setCount(c => c + 1)` when new state depends on previous state.",
+      starterCode: `import React, { useState } from "react";
+
+export function Counter() {
+  // Initialize count state to 0
+  const [count, setCount] = useState(0);
+
+  // Return button that increments count on click
+  return (
+    <button onClick={() => setCount(c => c + 1)}>
+      Count: {count}
+    </button>
+  );
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Initialize useState with 0",
+        "Render a <button> element",
+        "Attach an onClick handler calling setCount(c => c + 1)",
+      ],
+      testRunner: (code: string) => {
+        const hasUseState = /useState\s*\(\s*0\s*\)/i.test(code);
+        const hasOnClick = /onClick\s*=\s*\{[\s\S]*?setCount/i.test(code);
+        const hasButton = /<button[\s\S]*?>[\s\S]*?<\/button>/i.test(code);
+
+        if (!hasUseState) return { passed: false, message: "Use useState(0) to hold the counter state." };
+        if (!hasOnClick || !hasButton) return { passed: false, message: "Render a <button> with an onClick calling setCount." };
+
+        return {
+          passed: true,
+          message: "State conduit energized! The component pulses with clean reactive renders.",
+        };
+      },
+      hints: [
+        "const [count, setCount] = useState(0);\nreturn <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>;",
+      ],
+      xpReward: 180,
+    },
+    {
+      id: "react_2_server_actions",
+      realmId: "react",
+      order: 2,
+      title: "Next.js Server Action Invocation",
+      storyIntro: "Byte explains: 'In modern Next.js 15, we can execute secure server mutations directly from forms without writing boilerplate REST endpoints!'",
+      conceptSummary: "Server Actions are marked with 'use server'. They accept form data, mutate the database, and trigger cache revalidation via revalidatePath.",
+      starterCode: `// app/actions.ts
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function addQuestAction(formData: FormData) {
+  const title = formData.get("title") as string;
+  // Verify title exists, revalidate '/quests' path, and return { success: true }
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Include 'use server' directive",
+        "Extract 'title' from formData",
+        "Call revalidatePath('/quests')",
+        "Return { success: true }",
+      ],
+      testRunner: (code: string) => {
+        const hasUseServer = /['"]use server['"]/i.test(code);
+        const hasFormData = /formData\.get\s*\(\s*['"]title['"]\s*\)/i.test(code);
+        const hasRevalidate = /revalidatePath\s*\(\s*['"]\/quests['"]\s*\)/i.test(code);
+
+        if (!hasUseServer) return { passed: false, message: "Declare 'use server' at the top of the action." };
+        if (!hasFormData) return { passed: false, message: "Extract title using formData.get('title')." };
+        if (!hasRevalidate) return { passed: false, message: "Revalidate the path with revalidatePath('/quests')." };
+
+        return {
+          passed: true,
+          message: "Server action dispatched! The server executes seamlessly without client bundle bloat.",
+        };
+      },
+      hints: [
+        "if (!title) throw new Error('Missing title');\nrevalidatePath('/quests');\nreturn { success: true };",
+      ],
+      xpReward: 200,
+    },
+  ],
+
+  backend: [
+    {
+      id: "backend_1_express_rest",
+      realmId: "backend",
+      order: 1,
+      title: "Constructing the REST Citadel",
+      storyIntro: "Byte signals: 'The server endpoints have disconnected. We must route incoming HTTP traffic with Express and return formatted JSON with appropriate 200/201 status codes!'",
+      conceptSummary: "Express routes map HTTP verbs (GET, POST, PUT, DELETE) and URL paths to request handlers. Always set status codes explicitly (`res.status(201).json(...)`).",
+      starterCode: `import express from "express";
+const app = express();
+app.use(express.json());
+
+// Implement GET /api/health returning status 200 and { status: "healthy" }
+// Implement POST /api/tasks returning status 201 and { id: "task-1", ...req.body }
+`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Define app.get('/api/health')",
+        "Return res.status(200).json({ status: 'healthy' })",
+        "Define app.post('/api/tasks')",
+        "Return res.status(201).json(...)",
+      ],
+      testRunner: (code: string) => {
+        const hasGet = /app\.get\s*\(\s*['"]\/api\/health['"]/i.test(code);
+        const hasStatus200 = /res\.status\s*\(\s*200\s*\)\.json/i.test(code);
+        const hasPost = /app\.post\s*\(\s*['"]\/api\/tasks['"]/i.test(code);
+        const hasStatus201 = /res\.status\s*\(\s*201\s*\)\.json/i.test(code);
+
+        if (!hasGet || !hasStatus200) return { passed: false, message: "Implement GET /api/health with status 200." };
+        if (!hasPost || !hasStatus201) return { passed: false, message: "Implement POST /api/tasks with status 201." };
+
+        return {
+          passed: true,
+          message: "REST Citadel online! HTTP requests are processed with pristine status codes.",
+        };
+      },
+      hints: [
+        "app.get('/api/health', (req, res) => res.status(200).json({ status: 'healthy' }));\napp.post('/api/tasks', (req, res) => res.status(201).json({ id: 'task-1', ...req.body }));",
+      ],
+      xpReward: 200,
+    },
+    {
+      id: "backend_2_jwt_auth",
+      realmId: "backend",
+      order: 2,
+      title: "The Cryptographic JWT Ward",
+      storyIntro: "Byte warns: 'Unauthenticated requests are breaching the inner sanctum. We need middleware to verify JSON Web Tokens from the Authorization header!'",
+      conceptSummary: "Authentication middleware extracts `Bearer <token>` from req.headers.authorization, verifies it with `jwt.verify(token, secret)`, and stores payload in `res.locals.user`.",
+      starterCode: `import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
+
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Extract token from Authorization header: "Bearer <token>"
+  // Verify token using process.env.JWT_SECRET!
+  // If valid: attach decoded to res.locals.user and call next()
+  // If invalid or missing: return res.status(401).json({ error: "Unauthorized" })
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Extract Bearer token from req.headers.authorization",
+        "Verify token with jwt.verify",
+        "Set res.locals.user = decoded and call next()",
+        "Return status 401 on error",
+      ],
+      testRunner: (code: string) => {
+        const hasAuthHeader = /req\.headers\.authorization/i.test(code);
+        const hasVerify = /jwt\.verify\s*\(/i.test(code);
+        const hasResLocals = /res\.locals\.user\s*=/i.test(code);
+        const has401 = /res\.status\s*\(\s*401\s*\)/i.test(code);
+
+        if (!hasAuthHeader) return { passed: false, message: "Check req.headers.authorization for Bearer token." };
+        if (!hasVerify) return { passed: false, message: "Call jwt.verify(token, secret)." };
+        if (!hasResLocals) return { passed: false, message: "Store decoded payload in res.locals.user." };
+        if (!has401) return { passed: false, message: "Return status 401 when verification fails." };
+
+        return {
+          passed: true,
+          message: "Cryptographic ward active! Unauthorized intruders are repelled.",
+        };
+      },
+      hints: [
+        "const auth = req.headers.authorization;\nif (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });\nconst token = auth.split(' ')[1];\ntry {\n  res.locals.user = jwt.verify(token, process.env.JWT_SECRET!);\n  next();\n} catch {\n  res.status(401).json({ error: 'Unauthorized' });\n}",
+      ],
+      xpReward: 220,
+    },
+  ],
+
+  databases: [
+    {
+      id: "db_1_postgres",
+      realmId: "databases",
+      order: 1,
+      title: "Architecting the Relational Schema",
+      storyIntro: "Byte descends into the vault: 'Scattered unindexed data is decaying. We must forge a PostgreSQL schema with primary keys, foreign key constraints, and timestamps!'",
+      conceptSummary: "Relational schemas guarantee data integrity through types, PRIMARY KEYs, and FOREIGN KEY constraints with referential actions (e.g. ON DELETE CASCADE).",
+      starterCode: `-- Create the users table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create the tasks table linked to users
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);`,
+      language: "sql",
+      previewType: "console",
+      tasks: [
+        "Define users table with UUID primary key and UNIQUE email",
+        "Define tasks table with FOREIGN KEY referencing users(id)",
+        "Add ON DELETE CASCADE to foreign key",
+      ],
+      testRunner: (code: string) => {
+        const hasCreateUsers = /create\s+table\s+users/i.test(code);
+        const hasCreateTasks = /create\s+table\s+tasks/i.test(code);
+        const hasReferences = /references\s+users\s*\(\s*id\s*\)/i.test(code);
+        const hasOnDelete = /on\s+delete\s+cascade/i.test(code);
+
+        if (!hasCreateUsers) return { passed: false, message: "Create the users table with id and email." };
+        if (!hasCreateTasks) return { passed: false, message: "Create the tasks table." };
+        if (!hasReferences || !hasOnDelete) return { passed: false, message: "Add foreign key REFERENCES users(id) ON DELETE CASCADE." };
+
+        return {
+          passed: true,
+          message: "Relational schema verified! Referential integrity is permanently enforced.",
+        };
+      },
+      hints: [
+        "CREATE TABLE tasks (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  title TEXT NOT NULL\n);",
+      ],
+      xpReward: 220,
+    },
+  ],
+
+  devops: [
+    {
+      id: "devops_1_docker",
+      realmId: "devops",
+      order: 1,
+      title: "The Multi-Stage Docker Vessel",
+      storyIntro: "Byte prepares the launch bay: 'Deploying bloated 1GB Node.js images wastes bandwidth and exposes build tools. We must forge a lightweight multi-stage Dockerfile!'",
+      conceptSummary: "Multi-stage Docker builds separate the build environment (compilation, devDependencies) from the lean production runtime, slashing image sizes and attack surfaces.",
+      starterCode: `# Stage 1: Build environment
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Production runtime
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+USER node
+EXPOSE 3000
+CMD ["node", "dist/server.js"]`,
+      language: "dockerfile",
+      previewType: "console",
+      tasks: [
+        "Create build stage AS build",
+        "Compile assets with RUN npm run build",
+        "Create runner stage FROM node:22-alpine",
+        "Copy build artifacts with COPY --from=build",
+        "Run as non-root with USER node",
+      ],
+      testRunner: (code: string) => {
+        const hasBuildStage = /FROM\s+node:[\w.-]+\s+AS\s+build/i.test(code);
+        const hasRunnerStage = /FROM\s+node:[\w.-]+(\s+AS\s+runner)?/i.test(code);
+        const hasCopyFrom = /COPY\s+--from=build/i.test(code);
+        const hasUserNode = /USER\s+node/i.test(code);
+
+        if (!hasBuildStage) return { passed: false, message: "Define the first stage with AS build." };
+        if (!hasCopyFrom) return { passed: false, message: "Copy compiled assets using COPY --from=build." };
+        if (!hasUserNode) return { passed: false, message: "Enforce security by setting USER node." };
+
+        return {
+          passed: true,
+          message: "Multi-stage vessel forged! Container image compressed to minimal production footprint.",
+        };
+      },
+      hints: [
+        "FROM node:22-alpine AS build\n...\nFROM node:22-alpine AS runner\nCOPY --from=build /app/dist ./dist\nUSER node",
+      ],
+      xpReward: 240,
     },
   ],
 };
