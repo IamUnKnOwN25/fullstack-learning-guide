@@ -368,6 +368,52 @@ const cadet: MatrixOperator = {
       ],
       xpReward: 150,
     },
+    {
+      id: "ts_2_generics",
+      realmId: "typescript",
+      order: 2,
+      title: "The Universal Generic Catalyst",
+      storyIntro: "Byte explains: 'Hardcoding data types for every API payload causes endless duplication. We must craft generic type parameters <T> to construct reusable response wrappers!'",
+      conceptSummary: "Generics allow types to be parameterized. An `ApiResponse<T>` wrapper encapsulates status, data, and metadata while preserving exact typing for payload `T`.",
+      starterCode: `// Define a generic ApiResponse<T> interface
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  timestamp: number;
+}
+
+// Implement a generic helper function that wraps data
+export function wrapResponse<T>(payload: T): ApiResponse<T> {
+  return {
+    success: true,
+    data: payload,
+    timestamp: Date.now(),
+  };
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Define interface ApiResponse<T> with success, data: T, and timestamp",
+        "Implement wrapResponse<T>(payload: T): ApiResponse<T>",
+      ],
+      testRunner: (code: string) => {
+        const hasInterface = /interface\s+ApiResponse\s*<\s*T\s*>/i.test(code);
+        const hasDataT = /data\s*:\s*T/i.test(code);
+        const hasWrapFn = /function\s+wrapResponse\s*<\s*T\s*>\s*\(\s*payload\s*:\s*T\s*\)/i.test(code);
+
+        if (!hasInterface || !hasDataT) return { passed: false, message: "Define interface ApiResponse<T> with data: T." };
+        if (!hasWrapFn) return { passed: false, message: "Implement function wrapResponse<T>(payload: T): ApiResponse<T>." };
+
+        return {
+          passed: true,
+          message: "Generic catalyst forged! Reusable type safety unlocked across all API streams.",
+        };
+      },
+      hints: [
+        "interface ApiResponse<T> { success: boolean; data: T; timestamp: number; }\nfunction wrapResponse<T>(payload: T): ApiResponse<T> { ... }",
+      ],
+      xpReward: 180,
+    },
   ],
 
   react: [
@@ -599,6 +645,41 @@ CREATE TABLE tasks (
       ],
       xpReward: 220,
     },
+    {
+      id: "db_2_indexes_prisma",
+      realmId: "databases",
+      order: 2,
+      title: "The B-Tree Index Accelerator",
+      storyIntro: "Byte analyzes database metrics: 'Queries filtering by user_id are performing painful full-table sequential scans! We must forge a B-tree index to accelerate lookups!'",
+      conceptSummary: "Indexes create ordered lookup trees (typically B-Tree) on specified columns. Adding an index on foreign keys (e.g. `CREATE INDEX idx_tasks_user_id ON tasks(user_id)`) converts O(N) scans into O(log N) index seeks.",
+      starterCode: `-- Create an index on tasks(user_id) to optimize foreign key queries
+CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+
+-- Create a composite index on tasks(user_id, created_at DESC) for user feeds
+CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);`,
+      language: "sql",
+      previewType: "console",
+      tasks: [
+        "Create index idx_tasks_user_id ON tasks(user_id)",
+        "Create composite index idx_tasks_user_created ON tasks(user_id, created_at DESC)",
+      ],
+      testRunner: (code: string) => {
+        const hasIdxUser = /create\s+index\s+idx_tasks_user_id\s+on\s+tasks\s*\(\s*user_id\s*\)/i.test(code);
+        const hasComposite = /create\s+index\s+idx_tasks_user_created\s+on\s+tasks\s*\(\s*user_id\s*,\s*created_at(\s+desc)?\s*\)/i.test(code);
+
+        if (!hasIdxUser) return { passed: false, message: "Create index idx_tasks_user_id on tasks(user_id)." };
+        if (!hasComposite) return { passed: false, message: "Create composite index on tasks(user_id, created_at DESC)." };
+
+        return {
+          passed: true,
+          message: "B-Tree index active! Query planner switches from sequential scan to lightning-fast index seek.",
+        };
+      },
+      hints: [
+        "CREATE INDEX idx_tasks_user_id ON tasks(user_id);\nCREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);",
+      ],
+      xpReward: 240,
+    },
   ],
 
   devops: [
@@ -655,6 +736,64 @@ CMD ["node", "dist/server.js"]`,
         "FROM node:22-alpine AS build\n...\nFROM node:22-alpine AS runner\nCOPY --from=build /app/dist ./dist\nUSER node",
       ],
       xpReward: 240,
+    },
+    {
+      id: "devops_2_github_actions",
+      realmId: "devops",
+      order: 2,
+      title: "The Automated CI Pipeline Conduit",
+      storyIntro: "Byte configures the automated fleet: 'Every pull request must be validated by GitHub Actions before merging to main. We must construct a continuous integration workflow!'",
+      conceptSummary: "GitHub Actions automates testing and deployment on events (`on: [push, pull_request]`). Jobs run on virtual runners (e.g. `ubuntu-latest`) and execute sequenced steps.",
+      starterCode: `name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci
+      - run: npm test
+      - run: npm run build`,
+      language: "yaml",
+      previewType: "console",
+      tasks: [
+        "Trigger on push and pull_request to main",
+        "Run on ubuntu-latest",
+        "Checkout repo with actions/checkout@v4",
+        "Setup Node.js with actions/setup-node@v4",
+        "Execute npm ci, npm test, and npm run build",
+      ],
+      testRunner: (code: string) => {
+        const hasTrigger = /on:\s*(\[\s*push|\bpush:)/i.test(code);
+        const hasUbuntu = /runs-on:\s*ubuntu-latest/i.test(code);
+        const hasCheckout = /actions\/checkout/i.test(code);
+        const hasSetupNode = /actions\/setup-node/i.test(code);
+        const hasNpmTest = /npm\s+test/i.test(code);
+
+        if (!hasTrigger || !hasUbuntu) return { passed: false, message: "Specify push/pull_request trigger and runs-on: ubuntu-latest." };
+        if (!hasCheckout || !hasSetupNode) return { passed: false, message: "Include checkout and setup-node action steps." };
+        if (!hasNpmTest) return { passed: false, message: "Execute 'npm test' in the workflow steps." };
+
+        return {
+          passed: true,
+          message: "CI pipeline active! Every commit is automatically tested and gated in the cloud.",
+        };
+      },
+      hints: [
+        "name: CI\non: [push, pull_request]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n      - run: npm ci\n      - run: npm test",
+      ],
+      xpReward: 250,
     },
   ],
 
@@ -715,6 +854,52 @@ describe("calculateTotal", () => {
       ],
       xpReward: 250,
     },
+    {
+      id: "testing_2_mocking",
+      realmId: "testing",
+      order: 2,
+      title: "The Mocking & Spy Barrier",
+      storyIntro: "Byte points to external dependencies: 'Never hit live payment APIs or send real emails in test suites! We must use Vitest spies and mocks with vi.fn()!'",
+      conceptSummary: "Mocks replace real implementations with test doubles. `vi.fn()` records calls and arguments, while `.mockResolvedValue()` stubs asynchronous promises deterministically.",
+      starterCode: `import { vi, expect, it } from "vitest";
+
+// Dependency under test
+const sendNotification = vi.fn().mockResolvedValue({ delivered: true });
+
+it("dispatches notification with recipient email", async () => {
+  await sendNotification("user@example.com", "Quest completed!");
+
+  // Assert spy was called 1 time
+  expect(sendNotification).toHaveBeenCalledTimes(1);
+  // Assert spy was called with expected arguments
+  expect(sendNotification).toHaveBeenCalledWith("user@example.com", "Quest completed!");
+});`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Create spy with vi.fn().mockResolvedValue(...)",
+        "Call the mocked function",
+        "Assert toHaveBeenCalledTimes(1)",
+        "Assert toHaveBeenCalledWith(...)",
+      ],
+      testRunner: (code: string) => {
+        const hasViFn = /vi\.fn\s*\(/i.test(code);
+        const hasTimes = /toHaveBeenCalledTimes\s*\(\s*1\s*\)/i.test(code);
+        const hasWith = /toHaveBeenCalledWith\s*\(/i.test(code);
+
+        if (!hasViFn) return { passed: false, message: "Create a mock function using vi.fn()." };
+        if (!hasTimes || !hasWith) return { passed: false, message: "Assert toHaveBeenCalledTimes(1) and toHaveBeenCalledWith(...)." };
+
+        return {
+          passed: true,
+          message: "Mock barrier erected! Test suite runs with 100% deterministic speed in isolation.",
+        };
+      },
+      hints: [
+        "const mock = vi.fn().mockResolvedValue(true);\nexpect(mock).toHaveBeenCalledTimes(1);",
+      ],
+      xpReward: 260,
+    },
   ],
 
   cs: [
@@ -772,6 +957,56 @@ describe("calculateTotal", () => {
       ],
       xpReward: 260,
     },
+    {
+      id: "cs_2_hashmap_frequency",
+      realmId: "cs",
+      order: 2,
+      title: "Hash Map Frequency & Counting",
+      storyIntro: "Byte tracks telemetry logs: 'Finding the most common error code with nested loops takes quadratic O(N²) time. Use a Hash Map for linear O(N) frequency counting!'",
+      conceptSummary: "Hash tables provide average O(1) time complexity for insertions and lookups. Counting elements with a Map converts quadratic algorithms into linear O(N) operations.",
+      starterCode: `export function getTopElement<T extends string | number>(items: T[]): T | null {
+  if (items.length === 0) return null;
+  const counts = new Map<T, number>();
+  let topItem: T = items[0];
+  let maxCount = 0;
+
+  for (const item of items) {
+    const count = (counts.get(item) || 0) + 1;
+    counts.set(item, count);
+    if (count > maxCount) {
+      maxCount = count;
+      topItem = item;
+    }
+  }
+
+  return topItem;
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Create Map<T, number>()",
+        "Iterate over items and increment counts.get(item)",
+        "Track topItem and maxCount",
+        "Return topItem",
+      ],
+      testRunner: (code: string) => {
+        const hasMap = /new\s+Map/i.test(code);
+        const hasCountsGet = /counts\.(get|set)/i.test(code);
+        const hasForLoop = /for\s*\([\s\S]*?of\s+items\)/i.test(code);
+
+        if (!hasMap) return { passed: false, message: "Instantiate a new Map to store counts." };
+        if (!hasCountsGet || !hasForLoop) return { passed: false, message: "Iterate through items and update Map counts." };
+
+        return {
+          passed: true,
+          message: "O(N) frequency algorithm verified! Complexity reduced from quadratic to linear speed.",
+        };
+      },
+      hints: [
+        "const counts = new Map<T, number>();\nfor (const item of items) {\n  counts.set(item, (counts.get(item) || 0) + 1);\n}",
+      ],
+      xpReward: 270,
+    },
   ],
 
   security: [
@@ -817,6 +1052,44 @@ describe("calculateTotal", () => {
         "return unsafe.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');",
       ],
       xpReward: 280,
+    },
+    {
+      id: "security_2_jwt_verification",
+      realmId: "security",
+      order: 2,
+      title: "Hardened Algorithm Whitelisting",
+      storyIntro: "Byte inspects auth headers: 'Attackers are forging tokens with alg: \"none\" to bypass signature checks! We must strictly whitelist cryptographic algorithms!'",
+      conceptSummary: "Vulnerabilities occur when JWT libraries accept unsigned tokens with alg: 'none'. Always explicitly whitelist allowed algorithms, e.g. `{ algorithms: ['HS256'] }`.",
+      starterCode: `import jwt from "jsonwebtoken";
+
+export function verifyStrictToken(token: string, secret: string) {
+  // Verify token explicitly whitelisting algorithms: ['HS256']
+  return jwt.verify(token, secret, {
+    algorithms: ["HS256"],
+  });
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Call jwt.verify(token, secret, options)",
+        "Pass algorithms: ['HS256'] in options to prevent 'none' bypass",
+      ],
+      testRunner: (code: string) => {
+        const hasVerify = /jwt\.verify\s*\(/i.test(code);
+        const hasAlgorithms = /algorithms\s*:\s*\[\s*['"]HS256['"]\s*\]/i.test(code);
+
+        if (!hasVerify) return { passed: false, message: "Call jwt.verify(token, secret, options)." };
+        if (!hasAlgorithms) return { passed: false, message: "Enforce strict algorithm whitelisting with algorithms: ['HS256']." };
+
+        return {
+          passed: true,
+          message: "Algorithm whitelisting enforced! 'none' exploit vectors permanently eliminated.",
+        };
+      },
+      hints: [
+        "return jwt.verify(token, secret, { algorithms: ['HS256'] });",
+      ],
+      xpReward: 300,
     },
   ],
 
@@ -873,6 +1146,61 @@ export function validateTask(task: Partial<TeamTask>): boolean {
         "status: 'TODO' | 'IN_PROGRESS' | 'DONE';\npriority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';",
       ],
       xpReward: 350,
+    },
+    {
+      id: "capstone_2_health_probe",
+      realmId: "capstone",
+      order: 2,
+      title: "Production System Health Probe",
+      storyIntro: "Byte initiates final countdown: 'Before opening the gateways to live users, our load balancers need an endpoint to verify database and cache readiness!'",
+      conceptSummary: "Healthcheck probes inspect connectivity to databases and dependent services, returning HTTP 200 when ready or HTTP 503 Service Unavailable when degraded.",
+      starterCode: `export async function checkSystemReadiness(
+  db: { isConnected: () => Promise<boolean> },
+  cache: { ping: () => Promise<string> }
+): Promise<{ status: "healthy" | "degraded"; timestamp: number }> {
+  try {
+    const [dbOk, cacheOk] = await Promise.all([
+      db.isConnected(),
+      cache.ping().then(res => res === "PONG"),
+    ]);
+
+    if (dbOk && cacheOk) {
+      return { status: "healthy", timestamp: Date.now() };
+    }
+    return { status: "degraded", timestamp: Date.now() };
+  } catch {
+    return { status: "degraded", timestamp: Date.now() };
+  }
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Concurrently query db.isConnected() and cache.ping() with Promise.all",
+        "Return status: 'healthy' when both services respond",
+        "Return status: 'degraded' when any dependency fails",
+      ],
+      testRunner: (code: string) => {
+        const hasPromiseAll = /Promise\.all/i.test(code);
+        const hasDb = /db\.isConnected\s*\(/i.test(code);
+        const hasCache = /cache\.ping\s*\(/i.test(code);
+        const hasHealthy = /status:\s*['"]healthy['"]/i.test(code);
+
+        if (!hasPromiseAll || !hasDb || !hasCache) {
+          return { passed: false, message: "Execute both health checks concurrently using Promise.all." };
+        }
+        if (!hasHealthy) {
+          return { passed: false, message: "Return status: 'healthy' when all subsystems respond." };
+        }
+
+        return {
+          passed: true,
+          message: "Production readiness verified! Capstone Team Task Manager is fully deployed and resilient.",
+        };
+      },
+      hints: [
+        "const [dbOk, cacheOk] = await Promise.all([db.isConnected(), cache.ping()]);\nreturn { status: dbOk && cacheOk ? 'healthy' : 'degraded', timestamp: Date.now() };",
+      ],
+      xpReward: 400,
     },
   ],
 };
