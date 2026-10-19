@@ -20,13 +20,48 @@ import {
   MapPin,
   Trophy,
   Flame,
+  Search,
+  Filter,
 } from "lucide-react";
+
+type RealmCategory = "all" | "frontend" | "backend" | "devops" | "theory";
+
+const REALM_CATEGORIES: Record<string, RealmCategory> = {
+  html: "frontend",
+  css: "frontend",
+  javascript: "frontend",
+  typescript: "frontend",
+  react: "frontend",
+  backend: "backend",
+  databases: "backend",
+  devops: "devops",
+  testing: "devops",
+  cs: "theory",
+  security: "theory",
+  capstone: "theory",
+};
 
 export function QuestMap() {
   const { unlockedRealms, completedQuests, completedBosses, level, rankTitle, stars } = useGameStore();
   const [selectedRealm, setSelectedRealm] = useState<Realm | null>(REALMS[0]);
+  const [activeCategory, setActiveCategory] = useState<RealmCategory>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const totalStars = Object.values(stars).reduce((sum, s) => sum + s, 0);
+
+  const filteredRealms = REALMS.filter((realm) => {
+    const category = REALM_CATEGORIES[realm.id] || "theory";
+    const matchesCategory = activeCategory === "all" || category === activeCategory;
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch =
+      query === "" ||
+      realm.title.toLowerCase().includes(query) ||
+      realm.realmName.toLowerCase().includes(query) ||
+      realm.description.toLowerCase().includes(query) ||
+      realm.id.toLowerCase().includes(query);
+
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
@@ -78,22 +113,85 @@ export function QuestMap() {
         </div>
       </div>
 
+      {/* Realm Filter & Search Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-matrix-card/60 p-3.5 rounded-xl border border-matrix-border">
+        {/* Category Filter Pills */}
+        <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
+          {(
+            [
+              { id: "all", label: "All Realms (12)" },
+              { id: "frontend", label: "Frontend" },
+              { id: "backend", label: "Backend & DB" },
+              { id: "devops", label: "DevOps & QA" },
+              { id: "theory", label: "CS & Capstone" },
+            ] as const
+          ).map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setActiveCategory(cat.id);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                activeCategory === cat.id
+                  ? "bg-matrix-neonCyan/20 border border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/20"
+                  : "bg-matrix-dark border border-matrix-border text-gray-400 hover:text-white"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Quick Search Input */}
+        <div className="relative sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search realms, skills..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
+          />
+        </div>
+      </div>
+
       {/* Main Realm Grid & Detail Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: 12 Realm Cards Grid (2 cols) */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {REALMS.map((realm) => {
-            const isUnlocked = unlockedRealms.includes(realm.id) || level >= realm.requiredLevel;
-            const isCompleted = completedBosses.includes(realm.id);
-            const isSelected = selectedRealm?.id === realm.id;
-            const realmQuests = QUESTS[realm.id] || [];
-            const completedCount = realmQuests.filter((q) =>
-              completedQuests.includes(q.id)
-            ).length;
+        <div className="lg:col-span-2">
+          {filteredRealms.length === 0 ? (
+            <div className="p-12 rounded-2xl bg-matrix-card/50 border border-dashed border-matrix-border text-center space-y-3 font-mono">
+              <Search className="w-8 h-8 text-gray-600 mx-auto" />
+              <h3 className="text-sm font-bold text-gray-300">No realms found</h3>
+              <p className="text-xs text-gray-500">
+                No campaign realms match &ldquo;{searchQuery}&rdquo; in the selected category.
+              </p>
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className="px-3 py-1.5 rounded-lg bg-matrix-accent/10 border border-matrix-accent/30 text-matrix-accent text-xs font-bold hover:bg-matrix-accent/20 transition-all"
+              >
+                Reset Search Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {filteredRealms.map((realm) => {
+                const isUnlocked = unlockedRealms.includes(realm.id) || level >= realm.requiredLevel;
+                const isCompleted = completedBosses.includes(realm.id);
+                const isSelected = selectedRealm?.id === realm.id;
+                const realmQuests = QUESTS[realm.id] || [];
+                const completedCount = realmQuests.filter((q) =>
+                  completedQuests.includes(q.id)
+                ).length;
 
-            return (
-              <div
-                key={realm.id}
+                return (
+                  <div
+                    key={realm.id}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setSelectedRealm(realm);
@@ -174,6 +272,8 @@ export function QuestMap() {
               </div>
             );
           })}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Selected Realm Detail & Action Launcher */}
