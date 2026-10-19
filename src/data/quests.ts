@@ -657,4 +657,222 @@ CMD ["node", "dist/server.js"]`,
       xpReward: 240,
     },
   ],
+
+  testing: [
+    {
+      id: "testing_1_unit_vitest",
+      realmId: "testing",
+      order: 1,
+      title: "The Automated Assertion Ward",
+      storyIntro: "Byte enters the proving grounds: 'Manual QA cannot scale across dozens of deployments. We must forge a Vitest unit test suite with describe, it, and expect assertions!'",
+      conceptSummary: "Automated unit tests execute code in isolation and verify output invariants with assertions. Following AAA (Arrange, Act, Assert) keeps test cases readable and maintainable.",
+      starterCode: `import { describe, it, expect } from "vitest";
+
+// Function under test
+export function calculateTotal(price: number, taxRate: number, discount: number = 0): number {
+  if (price < 0 || taxRate < 0 || discount < 0) throw new Error("Invalid parameters");
+  return Number(((price - discount) * (1 + taxRate)).toFixed(2));
+}
+
+// Write the test suite verifying calculations and error throws
+describe("calculateTotal", () => {
+  it("calculates total with tax correctly", () => {
+    // Arrange & Act
+    const total = calculateTotal(100, 0.1, 10); // (100 - 10) * 1.1 = 99
+    // Assert using expect
+    expect(total).toBe(99);
+  });
+
+  it("throws an error for negative prices", () => {
+    // Assert error throw
+    expect(() => calculateTotal(-50, 0.1)).toThrow("Invalid parameters");
+  });
+});`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Import describe, it, and expect from vitest",
+        "Assert happy path calculation with expect(total).toBe(99)",
+        "Assert error handling with expect(...).toThrow()",
+      ],
+      testRunner: (code: string) => {
+        const hasDescribe = /describe\s*\(\s*['"]calculateTotal['"]/i.test(code);
+        const hasIt = /it\s*\(/i.test(code);
+        const hasExpectToBe = /expect\s*\([\s\S]*?\)\.toBe\s*\(/i.test(code);
+        const hasExpectToThrow = /expect\s*\([\s\S]*?\)\.toThrow/i.test(code);
+
+        if (!hasDescribe || !hasIt) return { passed: false, message: "Structure your test with describe and it blocks." };
+        if (!hasExpectToBe) return { passed: false, message: "Assert calculation values with expect(...).toBe(...)." };
+        if (!hasExpectToThrow) return { passed: false, message: "Assert invalid parameter rejection with expect(...).toThrow()." };
+
+        return {
+          passed: true,
+          message: "Unit test suite verified! Regressions are intercepted before reaching production.",
+        };
+      },
+      hints: [
+        "describe('calculateTotal', () => {\n  it('works', () => {\n    expect(calculateTotal(100, 0.1, 10)).toBe(99);\n  });\n});",
+      ],
+      xpReward: 250,
+    },
+  ],
+
+  cs: [
+    {
+      id: "cs_1_binary_search",
+      realmId: "cs",
+      order: 1,
+      title: "Algorithmic Precision: Binary Search",
+      storyIntro: "Byte climbs the Spire: 'Linear search through 10,000,000 records takes O(N) operations. The Spire demands logarithmic O(log N) binary search mastery!'",
+      conceptSummary: "Binary search finds the position of a target value within a sorted array by comparing the target to the middle element and halving the search space each step.",
+      starterCode: `export function binarySearch(arr: number[], target: number): number {
+  let left = 0;
+  let right = arr.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+
+    if (arr[mid] === target) {
+      return mid; // Target found
+    } else if (arr[mid] < target) {
+      left = mid + 1; // Search right half
+    } else {
+      right = mid - 1; // Search left half
+    }
+  }
+
+  return -1; // Target not found
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Initialize left = 0 and right = arr.length - 1",
+        "Compute middle index with Math.floor((left + right) / 2)",
+        "Adjust left or right pointers based on comparison",
+        "Return index or -1 if not found",
+      ],
+      testRunner: (code: string) => {
+        const hasWhile = /while\s*\(\s*left\s*<=\s*right\s*\)/i.test(code);
+        const hasMid = /const\s+mid\s*=\s*Math\.floor/i.test(code);
+        const hasLeftAdjust = /left\s*=\s*mid\s*\+\s*1/i.test(code);
+        const hasRightAdjust = /right\s*=\s*mid\s*-\s*1/i.test(code);
+        const hasReturnMinusOne = /return\s+-1/i.test(code);
+
+        if (!hasWhile || !hasMid) return { passed: false, message: "Implement the while (left <= right) loop with mid calculation." };
+        if (!hasLeftAdjust || !hasRightAdjust) return { passed: false, message: "Update left = mid + 1 and right = mid - 1 appropriately." };
+        if (!hasReturnMinusOne) return { passed: false, message: "Return -1 when target is absent." };
+
+        return {
+          passed: true,
+          message: "Logarithmic efficiency unlocked! Target located in O(log N) operations.",
+        };
+      },
+      hints: [
+        "while (left <= right) {\n  const mid = Math.floor((left + right) / 2);\n  if (arr[mid] === target) return mid;\n  if (arr[mid] < target) left = mid + 1;\n  else right = mid - 1;\n}\nreturn -1;",
+      ],
+      xpReward: 260,
+    },
+  ],
+
+  security: [
+    {
+      id: "security_1_xss_sanitize",
+      realmId: "security",
+      order: 1,
+      title: "The Cross-Site Scripting (XSS) Shield",
+      storyIntro: "Byte raises the shields: 'Malicious operators are injecting unescaped <script> payloads into user profiles. We must sanitize untrusted HTML strings!'",
+      conceptSummary: "XSS occurs when malicious scripts are injected into benign websites. Defend by escaping HTML entities (&, <, >, \", ') or using sanitized DOM parsers before rendering.",
+      starterCode: `export function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Replace '&' with '&amp;'",
+        "Replace '<' with '&lt;'",
+        "Replace '>' with '&gt;'",
+        "Replace '\"' with '&quot;'",
+        "Replace ''' with '&#039;'",
+      ],
+      testRunner: (code: string) => {
+        const hasAmp = /replace\s*\(\s*\/&\/g\s*,\s*["']&amp;["']\s*\)/i.test(code);
+        const hasLt = /replace\s*\(\s*\/<\s*\/g\s*,\s*["']&lt;["']\s*\)/i.test(code) || /&lt;/i.test(code);
+        const hasGt = /replace\s*\(\s*\/>\/g\s*,\s*["']&gt;["']\s*\)/i.test(code) || /&gt;/i.test(code);
+
+        if (!hasAmp || !hasLt || !hasGt) {
+          return { passed: false, message: "Ensure all dangerous HTML entities (&, <, >, \", ') are escaped." };
+        }
+
+        return {
+          passed: true,
+          message: "XSS shield active! Untrusted injection payloads neutralized into harmless display strings.",
+        };
+      },
+      hints: [
+        "return unsafe.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');",
+      ],
+      xpReward: 280,
+    },
+  ],
+
+  capstone: [
+    {
+      id: "capstone_1_architecture",
+      realmId: "capstone",
+      order: 1,
+      title: "The Capstone Blueprint: Team Task Manager",
+      storyIntro: "Byte illuminates the Matrix Core: 'This is the moment of truth. You must define the full-stack schema contract for the Team Task Manager platform!'",
+      conceptSummary: "The Capstone synthesizes Next.js, Node.js, PostgreSQL, and TypeScript into a production-grade application featuring authentication, task queues, and real-time updates.",
+      starterCode: `export interface TeamTask {
+  id: string;
+  title: string;
+  description: string;
+  status: "TODO" | "IN_PROGRESS" | "DONE";
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  assignedUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function validateTask(task: Partial<TeamTask>): boolean {
+  return Boolean(
+    task.title &&
+    task.status &&
+    ["TODO", "IN_PROGRESS", "DONE"].includes(task.status) &&
+    task.priority &&
+    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(task.priority)
+  );
+}`,
+      language: "typescript",
+      previewType: "console",
+      tasks: [
+        "Define status union 'TODO' | 'IN_PROGRESS' | 'DONE'",
+        "Define priority union 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'",
+        "Validate required title, status, and priority fields",
+      ],
+      testRunner: (code: string) => {
+        const hasStatus = /["']TODO["']\s*\|\s*["']IN_PROGRESS["']\s*\|\s*["']DONE["']/i.test(code);
+        const hasPriority = /["']LOW["']\s*\|\s*["']MEDIUM["']\s*\|\s*["']HIGH["']\s*\|\s*["']URGENT["']/i.test(code);
+        const hasValidate = /function\s+validateTask/i.test(code);
+
+        if (!hasStatus) return { passed: false, message: "Declare status union: 'TODO' | 'IN_PROGRESS' | 'DONE'." };
+        if (!hasPriority) return { passed: false, message: "Declare priority union: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'." };
+        if (!hasValidate) return { passed: false, message: "Implement validateTask function." };
+
+        return {
+          passed: true,
+          message: "Capstone blueprint approved! The Matrix Core recognizes your full-stack architectural mastery.",
+        };
+      },
+      hints: [
+        "status: 'TODO' | 'IN_PROGRESS' | 'DONE';\npriority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';",
+      ],
+      xpReward: 350,
+    },
+  ],
 };
