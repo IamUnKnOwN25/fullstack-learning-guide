@@ -113,6 +113,33 @@ export function QuestMap() {
         </div>
       </div>
 
+      {/* Full Campaign Grandmaster Banner (if all 12 bosses are cleared) */}
+      {completedBosses.length === 12 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-matrix-neonGold/20 via-matrix-accent/15 to-matrix-neonCyan/20 border-2 border-matrix-neonGold/60 shadow-xl shadow-matrix-neonGold/20 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-matrix-neonGold/20 border border-matrix-neonGold/50 flex items-center justify-center text-matrix-neonGold text-2xl shadow-md">
+              👑
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-matrix-neonGold flex items-center gap-2">
+                Full-Stack Matrix Restored!
+              </h4>
+              <p className="text-xs text-gray-300 mt-0.5">
+                All 12 Realm Bug Guardians have been vanquished. You have achieved true full-stack engineering transcendence!
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              soundEngine.playSfx("victory");
+            }}
+            className="px-4 py-2.5 rounded-xl bg-matrix-neonGold hover:bg-yellow-400 text-matrix-dark font-mono text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer"
+          >
+            Play Victory Fanfare
+          </button>
+        </div>
+      )}
+
       {/* Realm Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-matrix-card/60 p-3.5 rounded-xl border border-matrix-border">
         {/* Category Filter Pills */}

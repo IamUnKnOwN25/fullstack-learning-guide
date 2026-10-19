@@ -145,3 +145,14 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Integrated `matrix_grandmaster` into `HUD.tsx`: renders golden neon level styling, a pulsing crown icon, and displays the legendary rank title "Full-Stack Archmage".
   - Extended unit tests in `src/__tests__/store.test.ts` verifying duplicate skill unlock defense and multi-tier skill acquisitions.
   - Verified with `tsc --noEmit` and `vitest run` (19/19 tests passing, 0 TypeScript errors).
+
+- **[2026-10-19 16:59] Cycle 17: Campaign Grandmaster Citadel, Milestone Achievements & Trophy Artistry (Tests: PASS)**
+  - Enhanced `QuestMap.tsx` with celebratory Full-Stack Matrix Restored grandmaster banner displayed upon clearing all 12 realm guardians, featuring victory fanfare trigger and ascension messaging.
+  - Expanded badge milestone rewards in `src/lib/store.ts`:
+    - `speed_coder` ("Flawless Syntax"): Awarded upon earning a perfect 3-star rating on a coding trial without hints.
+    - `skill_pioneer` ("Cybernetic Pioneer"): Awarded upon unlocking any talent tree ability.
+    - `grandmaster_matrix` ("Grandmaster Ascendant"): Awarded upon unlocking the ultimate Matrix Grandmaster perk.
+    - `master_of_the_matrix` ("Matrix Architect"): Automatically awarded upon vanquishing all 12 realm guardians.
+  - Upgraded `InventoryModal.tsx` badge showcase with custom reactive iconography (`Crown`, `Star`, `Zap`, `Trophy`, `ShieldAlert`, `Sparkles`, `Award`) and gold glow backdrops.
+  - Expanded unit test suite in `src/__tests__/store.test.ts` to 20 tests verifying all milestone badge triggers and campaign completion states.
+  - Verified with `tsc --noEmit` and `vitest run` (20/20 tests passing, 0 TypeScript errors).

@@ -31,7 +31,7 @@ describe("DevQuest Game Store", () => {
     expect(updated.maxHp).toBe(120); // 100 + (3 - 1) * 10
   });
 
-  it("tracks quest completions, rewards XP, and stores star ratings", () => {
+  it("tracks quest completions, rewards XP, stores star ratings, and awards speed_coder badge", () => {
     const store = useGameStore.getState();
     store.completeQuest("html_1_skeleton", "html", 3, 100);
 
@@ -39,6 +39,7 @@ describe("DevQuest Game Store", () => {
     expect(state.completedQuests).toContain("html_1_skeleton");
     expect(state.stars["html_1_skeleton"]).toBe(3);
     expect(state.xp).toBe(100);
+    expect(state.badges).toContain("speed_coder");
 
     // Duplicate completion should not award duplicate XP
     store.completeQuest("html_1_skeleton", "html", 2, 100);
@@ -58,6 +59,22 @@ describe("DevQuest Game Store", () => {
     expect(state.badges).toContain("slayer_of_divs");
     expect(state.unlockedRealms).toContain("css");
     expect(state.xp).toBe(350);
+  });
+
+  it("awards master_of_the_matrix upon vanquishing all 12 realm guardians", () => {
+    const store = useGameStore.getState();
+    const realms = [
+      "html", "css", "javascript", "typescript", "react", "backend",
+      "databases", "devops", "testing", "cs", "security", "capstone"
+    ];
+
+    realms.forEach((r) => {
+      store.defeatBoss(r, `slayer_${r}`, 100);
+    });
+
+    const state = useGameStore.getState();
+    expect(state.completedBosses).toHaveLength(12);
+    expect(state.badges).toContain("master_of_the_matrix");
   });
 
   it("handles damage, healing, and bounds", () => {
@@ -88,6 +105,7 @@ describe("DevQuest Game Store", () => {
     const affordable = state.unlockSkill("lint_shield", 2);
     expect(affordable).toBe(true);
     expect(useGameStore.getState().unlockedSkills).toContain("lint_shield");
+    expect(useGameStore.getState().badges).toContain("skill_pioneer");
 
     // Duplicate unlock should fail and not double-spend or duplicate
     const duplicate = useGameStore.getState().unlockSkill("lint_shield", 2);
@@ -100,6 +118,7 @@ describe("DevQuest Game Store", () => {
     const grandmaster = useGameStore.getState().unlockSkill("matrix_grandmaster", 5);
     expect(grandmaster).toBe(true);
     expect(useGameStore.getState().unlockedSkills).toContain("matrix_grandmaster");
+    expect(useGameStore.getState().badges).toContain("grandmaster_matrix");
   });
 
   it("safely invokes all sound engine sound effects and BGM toggles in test environment", () => {

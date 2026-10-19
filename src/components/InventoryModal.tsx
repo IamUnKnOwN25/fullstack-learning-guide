@@ -3,7 +3,18 @@
 import React from "react";
 import { useGameStore } from "@/lib/store";
 import { soundEngine } from "@/lib/audio";
-import { X, Trophy, Award, ShieldAlert, Sparkles, CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  X,
+  Trophy,
+  Award,
+  ShieldAlert,
+  Sparkles,
+  CheckCircle2,
+  RotateCcw,
+  Star,
+  Zap,
+  Crown,
+} from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -15,6 +26,16 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
     name: "Matrix Initiate",
     description: "Plugged into DevQuest and began your journey to full-stack mastery.",
     icon: "Sparkles",
+  },
+  speed_coder: {
+    name: "Flawless Syntax",
+    description: "Achieved a perfect 3-star rating on a coding trial without relying on hints.",
+    icon: "Star",
+  },
+  skill_pioneer: {
+    name: "Cybernetic Pioneer",
+    description: "Unlocked your first talent tree ability and augmented your coding powers.",
+    icon: "Zap",
   },
   slayer_of_divs: {
     name: "Semantic Warden",
@@ -34,37 +55,37 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
   slayer_of_any: {
     name: "Discriminated Champion",
     description: "Banished type 'any' and enforced strict compile-time discriminated unions.",
-    icon: "ShieldCheck",
+    icon: "ShieldAlert",
   },
   slayer_of_rerenders: {
     name: "Master of Pure Renders",
     description: "Defeated the Infinite Re-Render Fiend using stable state dependencies.",
-    icon: "Atom",
+    icon: "Sparkles",
   },
   slayer_of_blocker: {
     name: "Non-Blocking Architect",
     description: "Protected Node.js single-threaded event loop from synchronous CPU stalls.",
-    icon: "Server",
+    icon: "Zap",
   },
   slayer_of_injection: {
     name: "Guardian of the Schema",
     description: "Eradicated SQL injection vulnerabilities using parameterized prepared statements.",
-    icon: "Database",
+    icon: "ShieldAlert",
   },
   slayer_of_conflict: {
     name: "DevOps Fleet Admiral",
     description: "Resolved intractable Git merge conflicts and automated container pipelines.",
-    icon: "Cpu",
+    icon: "Zap",
   },
   slayer_of_flakiness: {
     name: "TDD Purist",
     description: "Exorcised asynchronous timing race conditions with deterministic mock clocks.",
-    icon: "CheckCircle",
+    icon: "Award",
   },
   slayer_of_goliath: {
     name: "Algorithmic Grandmaster",
     description: "Tamed factorial algorithmic complexity with dynamic programming memoization.",
-    icon: "Network",
+    icon: "Trophy",
   },
   slayer_of_xss: {
     name: "Aegis Sentinel",
@@ -75,6 +96,11 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
     name: "Matrix Architect",
     description: "Banished The Null Void and completed the Full-Stack Web Development Capstone Odyssey.",
     icon: "Trophy",
+  },
+  grandmaster_matrix: {
+    name: "Grandmaster Ascendant",
+    description: "Attained the pinnacle Matrix Grandmaster skill and unlocked the Full-Stack Archmage rank.",
+    icon: "Crown",
   },
 };
 
@@ -157,11 +183,25 @@ export function InventoryModal({ isOpen, onClose }: Props) {
                   <div
                     className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                       isEarned
-                        ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/50"
+                        ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/50 shadow-sm shadow-matrix-neonGold/20"
                         : "bg-gray-800 text-gray-500"
                     }`}
                   >
-                    <Award className="w-5 h-5" />
+                    {badge.icon === "Trophy" ? (
+                      <Trophy className="w-5 h-5" />
+                    ) : badge.icon === "Crown" ? (
+                      <Crown className="w-5 h-5" />
+                    ) : badge.icon === "Star" ? (
+                      <Star className="w-5 h-5 fill-current" />
+                    ) : badge.icon === "Zap" ? (
+                      <Zap className="w-5 h-5" />
+                    ) : badge.icon === "ShieldAlert" ? (
+                      <ShieldAlert className="w-5 h-5" />
+                    ) : badge.icon === "Sparkles" ? (
+                      <Sparkles className="w-5 h-5" />
+                    ) : (
+                      <Award className="w-5 h-5" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">

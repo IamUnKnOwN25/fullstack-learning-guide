@@ -119,9 +119,15 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         const currentStars = state.stars[questId] || 0;
         const newStars = { ...state.stars, [questId]: Math.max(currentStars, stars) };
 
+        const badges = new Set(state.badges);
+        if (stars === 3) {
+          badges.add("speed_coder");
+        }
+
         set({
           completedQuests: Array.from(completed),
           stars: newStars,
+          badges: Array.from(badges),
         });
 
         if (isNewCompletion) {
@@ -138,6 +144,9 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
         const badges = new Set(state.badges);
         if (badgeId) badges.add(badgeId);
+        if (bosses.size === 12) {
+          badges.add("master_of_the_matrix");
+        }
 
         // Unlock next realm in sequence
         const REALM_ORDER = [
@@ -182,8 +191,15 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           return false;
         }
 
+        const badges = new Set(state.badges);
+        badges.add("skill_pioneer");
+        if (skillId === "matrix_grandmaster") {
+          badges.add("grandmaster_matrix");
+        }
+
         set({
           unlockedSkills: [...state.unlockedSkills, skillId],
+          badges: Array.from(badges),
         });
         soundEngine.playSfx("skill-unlock");
         return true;
