@@ -377,18 +377,13 @@ const cadet: MatrixOperator = {
       conceptSummary: "Generics allow types to be parameterized. An `ApiResponse<T>` wrapper encapsulates status, data, and metadata while preserving exact typing for payload `T`.",
       starterCode: `// Define a generic ApiResponse<T> interface
 export interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  timestamp: number;
+  // TODO: Add success boolean, data of type T, and timestamp number
 }
 
 // Implement a generic helper function that wraps data
 export function wrapResponse<T>(payload: T): ApiResponse<T> {
-  return {
-    success: true,
-    data: payload,
-    timestamp: Date.now(),
-  };
+  // TODO: Return an ApiResponse<T> object containing success: true, data: payload, and timestamp
+  return null as any;
 }`,
       language: "typescript",
       previewType: "console",
@@ -427,14 +422,13 @@ export function wrapResponse<T>(payload: T): ApiResponse<T> {
       starterCode: `import React, { useState } from "react";
 
 export function Counter() {
-  // Initialize count state to 0
-  const [count, setCount] = useState(0);
+  // TODO: Initialize count state to 0 with useState
 
-  // Return button that increments count on click
+  // TODO: Render a <button> that shows count and calls setCount(c => c + 1) on click
   return (
-    <button onClick={() => setCount(c => c + 1)}>
-      Count: {count}
-    </button>
+    <div>
+      {/* Add counter button here */}
+    </div>
   );
 }`,
       language: "typescript",
@@ -606,14 +600,14 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
       starterCode: `-- Create the users table
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
+  -- TODO: Add email TEXT UNIQUE NOT NULL
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Create the tasks table linked to users
 CREATE TABLE tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- TODO: Add user_id UUID NOT NULL referencing users(id) ON DELETE CASCADE
   title TEXT NOT NULL,
   is_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -652,11 +646,11 @@ CREATE TABLE tasks (
       title: "The B-Tree Index Accelerator",
       storyIntro: "Byte analyzes database metrics: 'Queries filtering by user_id are performing painful full-table sequential scans! We must forge a B-tree index to accelerate lookups!'",
       conceptSummary: "Indexes create ordered lookup trees (typically B-Tree) on specified columns. Adding an index on foreign keys (e.g. `CREATE INDEX idx_tasks_user_id ON tasks(user_id)`) converts O(N) scans into O(log N) index seeks.",
-      starterCode: `-- Create an index on tasks(user_id) to optimize foreign key queries
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+      starterCode: `-- TODO: Create an index named idx_tasks_user_id on tasks(user_id)
 
--- Create a composite index on tasks(user_id, created_at DESC) for user feeds
-CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);`,
+
+-- TODO: Create a composite index named idx_tasks_user_created on tasks(user_id, created_at DESC)
+`,
       language: "sql",
       previewType: "console",
       tasks: [
@@ -691,7 +685,7 @@ CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);`,
       storyIntro: "Byte prepares the launch bay: 'Deploying bloated 1GB Node.js images wastes bandwidth and exposes build tools. We must forge a lightweight multi-stage Dockerfile!'",
       conceptSummary: "Multi-stage Docker builds separate the build environment (compilation, devDependencies) from the lean production runtime, slashing image sizes and attack surfaces.",
       starterCode: `# Stage 1: Build environment
-FROM node:22-alpine AS build
+# TODO: Define stage 1 starting with FROM node:22-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -699,13 +693,13 @@ COPY . .
 RUN npm run build
 
 # Stage 2: Production runtime
-FROM node:22-alpine AS runner
+# TODO: Define stage 2 starting with FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=build /app/dist ./dist
-USER node
+# TODO: Copy build assets from stage 1 into ./dist
+# TODO: Enforce least privilege by running as node user
 EXPOSE 3000
 CMD ["node", "dist/server.js"]`,
       language: "dockerfile",
@@ -746,24 +740,16 @@ CMD ["node", "dist/server.js"]`,
       conceptSummary: "GitHub Actions automates testing and deployment on events (`on: [push, pull_request]`). Jobs run on virtual runners (e.g. `ubuntu-latest`) and execute sequenced steps.",
       starterCode: `name: CI Pipeline
 
+# TODO: Add trigger for push and pull_request to main branch
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # TODO: Set runs-on to ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: "npm"
+      # TODO: Include actions/checkout@v4 and actions/setup-node@v4
       - run: npm ci
-      - run: npm test
+      # TODO: Add npm test step
       - run: npm run build`,
       language: "yaml",
       previewType: "console",
@@ -813,20 +799,10 @@ export function calculateTotal(price: number, taxRate: number, discount: number 
   return Number(((price - discount) * (1 + taxRate)).toFixed(2));
 }
 
-// Write the test suite verifying calculations and error throws
-describe("calculateTotal", () => {
-  it("calculates total with tax correctly", () => {
-    // Arrange & Act
-    const total = calculateTotal(100, 0.1, 10); // (100 - 10) * 1.1 = 99
-    // Assert using expect
-    expect(total).toBe(99);
-  });
-
-  it("throws an error for negative prices", () => {
-    // Assert error throw
-    expect(() => calculateTotal(-50, 0.1)).toThrow("Invalid parameters");
-  });
-});`,
+// TODO: Structure your test suite for 'calculateTotal'
+// TODO: Assert total price calculation equals 99
+// TODO: Assert negative prices throw an error
+`,
       language: "typescript",
       previewType: "console",
       tasks: [
@@ -864,15 +840,12 @@ describe("calculateTotal", () => {
       starterCode: `import { vi, expect, it } from "vitest";
 
 // Dependency under test
-const sendNotification = vi.fn().mockResolvedValue({ delivered: true });
+// TODO: Mock function with vi.fn() returning { delivered: true }
+const sendNotification = null as any;
 
 it("dispatches notification with recipient email", async () => {
-  await sendNotification("user@example.com", "Quest completed!");
-
-  // Assert spy was called 1 time
-  expect(sendNotification).toHaveBeenCalledTimes(1);
-  // Assert spy was called with expected arguments
-  expect(sendNotification).toHaveBeenCalledWith("user@example.com", "Quest completed!");
+  // TODO: Call sendNotification("user@example.com", "Quest completed!")
+  // TODO: Assert spy was invoked once with recipient and message
 });`,
       language: "typescript",
       previewType: "console",
@@ -914,17 +887,9 @@ it("dispatches notification with recipient email", async () => {
   let left = 0;
   let right = arr.length - 1;
 
-  while (left <= right) {
-    const mid = Math.floor((left + right) / 2);
-
-    if (arr[mid] === target) {
-      return mid; // Target found
-    } else if (arr[mid] < target) {
-      left = mid + 1; // Search right half
-    } else {
-      right = mid - 1; // Search left half
-    }
-  }
+  // TODO: Implement binary search while (left <= right)
+  // TODO: Calculate mid using Math.floor
+  // TODO: Adjust left or right pointers and return target index
 
   return -1; // Target not found
 }`,
@@ -966,20 +931,12 @@ it("dispatches notification with recipient email", async () => {
       conceptSummary: "Hash tables provide average O(1) time complexity for insertions and lookups. Counting elements with a Map converts quadratic algorithms into linear O(N) operations.",
       starterCode: `export function getTopElement<T extends string | number>(items: T[]): T | null {
   if (items.length === 0) return null;
-  const counts = new Map<T, number>();
-  let topItem: T = items[0];
-  let maxCount = 0;
 
-  for (const item of items) {
-    const count = (counts.get(item) || 0) + 1;
-    counts.set(item, count);
-    if (count > maxCount) {
-      maxCount = count;
-      topItem = item;
-    }
-  }
+  // TODO: Create a new Map to track frequencies
+  // TODO: Loop through items and update Map counts
+  // TODO: Return the item with maximum frequency
 
-  return topItem;
+  return items[0];
 }`,
       language: "typescript",
       previewType: "console",
@@ -1018,12 +975,12 @@ it("dispatches notification with recipient email", async () => {
       storyIntro: "Byte raises the shields: 'Malicious operators are injecting unescaped <script> payloads into user profiles. We must sanitize untrusted HTML strings!'",
       conceptSummary: "XSS occurs when malicious scripts are injected into benign websites. Defend by escaping HTML entities (&, <, >, \", ') or using sanitized DOM parsers before rendering.",
       starterCode: `export function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  // TODO: Replace '&' with '&amp;'
+  // TODO: Replace '<' with '&lt;'
+  // TODO: Replace '>' with '&gt;'
+  // TODO: Replace '"' with '&quot;'
+  // TODO: Replace "'" with '&#039;'
+  return unsafe;
 }`,
       language: "typescript",
       previewType: "console",
@@ -1063,10 +1020,7 @@ it("dispatches notification with recipient email", async () => {
       starterCode: `import jwt from "jsonwebtoken";
 
 export function verifyStrictToken(token: string, secret: string) {
-  // Verify token explicitly whitelisting algorithms: ['HS256']
-  return jwt.verify(token, secret, {
-    algorithms: ["HS256"],
-  });
+  // TODO: Call jwt.verify with secret and whitelist algorithms: ['HS256']
 }`,
       language: "typescript",
       previewType: "console",
@@ -1105,21 +1059,16 @@ export function verifyStrictToken(token: string, secret: string) {
   id: string;
   title: string;
   description: string;
-  status: "TODO" | "IN_PROGRESS" | "DONE";
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  // TODO: Add status property with union of 'TODO' | 'IN_PROGRESS' | 'DONE'
+  // TODO: Add priority property with union of 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
   assignedUserId: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export function validateTask(task: Partial<TeamTask>): boolean {
-  return Boolean(
-    task.title &&
-    task.status &&
-    ["TODO", "IN_PROGRESS", "DONE"].includes(task.status) &&
-    task.priority &&
-    ["LOW", "MEDIUM", "HIGH", "URGENT"].includes(task.priority)
-  );
+  // TODO: Return true only if title, valid status, and valid priority exist
+  return false;
 }`,
       language: "typescript",
       previewType: "console",
@@ -1129,8 +1078,8 @@ export function validateTask(task: Partial<TeamTask>): boolean {
         "Validate required title, status, and priority fields",
       ],
       testRunner: (code: string) => {
-        const hasStatus = /["']TODO["']\s*\|\s*["']IN_PROGRESS["']\s*\|\s*["']DONE["']/i.test(code);
-        const hasPriority = /["']LOW["']\s*\|\s*["']MEDIUM["']\s*\|\s*["']HIGH["']\s*\|\s*["']URGENT["']/i.test(code);
+        const hasStatus = /status\s*:\s*["']TODO["']\s*\|\s*["']IN_PROGRESS["']\s*\|\s*["']DONE["']/i.test(code);
+        const hasPriority = /priority\s*:\s*["']LOW["']\s*\|\s*["']MEDIUM["']\s*\|\s*["']HIGH["']\s*\|\s*["']URGENT["']/i.test(code);
         const hasValidate = /function\s+validateTask/i.test(code);
 
         if (!hasStatus) return { passed: false, message: "Declare status union: 'TODO' | 'IN_PROGRESS' | 'DONE'." };
@@ -1158,19 +1107,9 @@ export function validateTask(task: Partial<TeamTask>): boolean {
   db: { isConnected: () => Promise<boolean> },
   cache: { ping: () => Promise<string> }
 ): Promise<{ status: "healthy" | "degraded"; timestamp: number }> {
-  try {
-    const [dbOk, cacheOk] = await Promise.all([
-      db.isConnected(),
-      cache.ping().then(res => res === "PONG"),
-    ]);
-
-    if (dbOk && cacheOk) {
-      return { status: "healthy", timestamp: Date.now() };
-    }
-    return { status: "degraded", timestamp: Date.now() };
-  } catch {
-    return { status: "degraded", timestamp: Date.now() };
-  }
+  // TODO: Concurrently check database and cache readiness
+  // Return healthy status when both respond, or degraded if either fails
+  return { status: "degraded", timestamp: Date.now() };
 }`,
       language: "typescript",
       previewType: "console",

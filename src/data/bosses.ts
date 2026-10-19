@@ -249,8 +249,28 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Declare NetworkState as a discriminated union containing status: 'loading', 'success', and 'error'." };
         },
         hint: "type NetworkState = { status: 'loading' } | { status: 'success'; data: string } | { status: 'error'; error: Error };",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Forge Type-Safe Narrowing Guard",
+        bossDialogue: "Even with unions, your runtime checks are blind! A rogue object will slip past your switch statements!",
+        prompt: "Create a custom type predicate function `isString(val: unknown): val is string` returning `typeof val === 'string'`.",
+        initialCode: `// Implement type predicate to safely narrow unknown values\nfunction isString(val: unknown): boolean {\n  // Change return type to 'val is string' and check typeof\n  return false;\n}`,
+        language: "typescript",
+        solutionKeywords: ["val is string", "typeof val === 'string'"],
+        testCondition: (code: string) => {
+          const hasPredicate = /function\s+isString\s*\(\s*val\s*:\s*unknown\s*\)\s*:\s*val\s+is\s+string/i.test(code);
+          const hasTypeof = /typeof\s+val\s*===?\s*['"]string['"]/i.test(code);
+          if (hasPredicate && hasTypeof) {
+            return { passed: true, message: "Type narrowing ward erected! Unknown data narrowed with complete compiler certainty!" };
+          }
+          return { passed: false, message: "Declare function isString(val: unknown): val is string { return typeof val === 'string'; }" };
+        },
+        hint: "function isString(val: unknown): val is string {\n  return typeof val === 'string';\n}",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -287,8 +307,27 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Add an empty dependency array [] as the second argument to useEffect." };
         },
         hint: "useEffect(() => { ... }, []);",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Slay Unnecessary Re-Renders with useCallback",
+        bossDialogue: "Every time parent state updates, child components recreate inline handlers and re-render the whole subtree! Meltdown!",
+        prompt: "Wrap the handleClick function with useCallback(() => { ... }, []) to preserve reference identity across renders.",
+        initialCode: `import { useCallback } from "react";\n\nfunction ParentComponent() {\n  // Wrap with useCallback to prevent recreating on every render\n  const handleClick = () => {\n    console.log("Button clicked!");\n  };\n}`,
+        language: "typescript",
+        solutionKeywords: ["useCallback", "[]"],
+        testCondition: (code: string) => {
+          const hasUseCallback = /const\s+handleClick\s*=\s*useCallback\s*\(\s*\(\)\s*=>\s*\{[\s\S]*?\}\s*,\s*\[\s*\]\s*\)/i.test(code);
+          if (hasUseCallback) {
+            return { passed: true, message: "Callback memoized! Component tree renders only when relevant props mutate!" };
+          }
+          return { passed: false, message: "Wrap with const handleClick = useCallback(() => { console.log('Button clicked!'); }, []);" };
+        },
+        hint: "const handleClick = useCallback(() => {\n  console.log('Button clicked!');\n}, []);",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -326,8 +365,28 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Use 'await fs.promises.readFile(path, 'utf-8')' instead of readFileSync." };
         },
         hint: "return await fs.promises.readFile(path, 'utf-8');",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Enforce Centralized Express Error Handling",
+        bossDialogue: "Unhandled promise rejections crash the entire Node process! One bad request will take down your server cluster!",
+        prompt: "Implement an Express 4-parameter error handler (err, req, res, next) returning status 500 and { error: err.message }.",
+        initialCode: `// Implement Express error handling middleware with 4 parameters: (err, req, res, next)\nfunction errorHandler(err: any, req: any, res: any, next: any) {\n  // TODO: Send 500 status code and JSON object containing error message\n}`,
+        language: "typescript",
+        solutionKeywords: ["err", "req", "res", "next", "status(500)", "json"],
+        testCondition: (code: string) => {
+          const has4Params = /function\s+errorHandler\s*\(\s*err[\s\S]*?,\s*req[\s\S]*?,\s*res[\s\S]*?,\s*next[\s\S]*?\)/i.test(code);
+          const hasStatus500 = /res\.status\s*\(\s*500\s*\)\.json\s*\(\s*\{[\s\S]*?error/i.test(code);
+          if (has4Params && hasStatus500) {
+            return { passed: true, message: "Error boundary established! Uncaught exceptions caught cleanly without crashing Node." };
+          }
+          return { passed: false, message: "Implement function errorHandler(err, req, res, next) { res.status(500).json({ error: err.message }); }" };
+        },
+        hint: "function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {\n  res.status(500).json({ error: err.message });\n}",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -365,8 +424,29 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Use parameterized placeholder $1 and pass userInput in values: [userInput]." };
         },
         hint: "const query = { text: 'SELECT * FROM users WHERE email = $1', values: [userInput] };",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Enforce Atomicity with ACID Transactions",
+        bossDialogue: "Money was deducted from Account A, but the server crashed before Account B received it! Your ledger is ruined!",
+        prompt: "Wrap multiple database operations inside a BEGIN and COMMIT transaction block, adding ROLLBACK in case of failure.",
+        initialCode: `async function transferFunds(client: any, fromId: string, toId: string, amount: number) {\n  // Execute 'BEGIN'\n  // Update balances\n  // Execute 'COMMIT'\n  // On error execute 'ROLLBACK'\n}`,
+        language: "typescript",
+        solutionKeywords: ["BEGIN", "COMMIT", "ROLLBACK"],
+        testCondition: (code: string) => {
+          const hasBegin = /client\.query\s*\(\s*['"]BEGIN['"]\s*\)/i.test(code);
+          const hasCommit = /client\.query\s*\(\s*['"]COMMIT['"]\s*\)/i.test(code);
+          const hasRollback = /client\.query\s*\(\s*['"]ROLLBACK['"]\s*\)/i.test(code);
+          if (hasBegin && hasCommit && hasRollback) {
+            return { passed: true, message: "ACID transaction sealed! Data consistency is mathematically guaranteed." };
+          }
+          return { passed: false, message: "Call client.query('BEGIN'), client.query('COMMIT'), and client.query('ROLLBACK') in a try/catch block." };
+        },
+        hint: "try {\n  await client.query('BEGIN');\n  // ...\n  await client.query('COMMIT');\n} catch (err) {\n  await client.query('ROLLBACK');\n  throw err;\n}",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -404,8 +484,27 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Remove all conflict markers (<<<<, ====, >>>>) and preserve both port and host." };
         },
         hint: "const port = process.env.PORT || 3000;\nconst host = '0.0.0.0';",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Container Healthcheck Sentinel",
+        bossDialogue: "Your containers start, but the web service crashes silently 3 seconds later! The load balancer routes traffic to dead pods!",
+        prompt: "Add a Docker HEALTHCHECK instruction using curl to ping http://localhost:3000/api/health.",
+        initialCode: `FROM node:22-alpine\nWORKDIR /app\nCOPY . .\n# TODO: Add container HEALTHCHECK pinging http://localhost:3000/api/health\nCMD ["node", "server.js"]`,
+        language: "dockerfile",
+        solutionKeywords: ["HEALTHCHECK", "CMD curl -f http://localhost:3000/api/health"],
+        testCondition: (code: string) => {
+          const hasHealthcheck = /^[^#\n\r]*HEALTHCHECK[\s\S]+?CMD\s+curl\s+-f\s+http:\/\/localhost:3000\/api\/health/im.test(code);
+          if (hasHealthcheck) {
+            return { passed: true, message: "Healthcheck sentinel deployed! Unhealthy containers are automatically recycled." };
+          }
+          return { passed: false, message: "Add: HEALTHCHECK --interval=30s CMD curl -f http://localhost:3000/api/health || exit 1" };
+        },
+        hint: "HEALTHCHECK --interval=30s CMD curl -f http://localhost:3000/api/health || exit 1",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -443,8 +542,27 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Make the callback async: it('...', async () => { await createUser(...); expect(...); });" };
         },
         hint: "it('creates user successfully', async () => {\n  await createUser({ name: 'Alex' });\n  expect(getUserCount()).toBe(1);\n});",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Tame Asynchronous DOM State with waitFor",
+        bossDialogue: "The modal takes 200ms to animate into the DOM! Your assertions run immediately and fail every time!",
+        prompt: "Use await waitFor(() => { expect(screen.getByText('Saved')).toBeInTheDocument(); }); to wait for asynchronous UI changes.",
+        initialCode: `import { waitFor, screen, expect, it } from "@testing-library/react";\n\nit("shows success toast after save", async () => {\n  triggerSave();\n  // TODO: Wrap the expect assertion in an asynchronous waitFor block\n  expect(screen.getByText("Saved")).toBeInTheDocument();\n});`,
+        language: "typescript",
+        solutionKeywords: ["await waitFor", "expect(screen.getByText('Saved'))"],
+        testCondition: (code: string) => {
+          const hasWaitFor = /await\s+waitFor\s*\(\s*\(\)\s*=>\s*\{[\s\S]*?expect\s*\(\s*screen\.getByText\s*\(\s*['"]Saved['"]\s*\)/i.test(code);
+          if (hasWaitFor) {
+            return { passed: true, message: "Asynchronous UI mutation observed! DOM flakiness banished permanently." };
+          }
+          return { passed: false, message: "Wrap expect with await waitFor(() => { expect(screen.getByText('Saved')).toBeInTheDocument(); });" };
+        },
+        hint: "await waitFor(() => {\n  expect(screen.getByText('Saved')).toBeInTheDocument();\n});",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -482,8 +600,29 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Check memo.has(n) ? memo.get(n) : calculate, memo.set(n, val), return val." };
         },
         hint: "if (memo.has(n)) return memo.get(n)!;\nconst res = fib(n - 1) + fib(n - 2);\nmemo.set(n, res);\nreturn res;",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Level-Order Breadth-First Search (BFS)",
+        bossDialogue: "Traversing this massive dependency graph with deep recursion blows the call stack with Maximum call stack size exceeded!",
+        prompt: "Use an iterative BFS queue (const queue = [root]; while (queue.length > 0) ...) to traverse nodes level by level without blowing the stack.",
+        initialCode: `interface TreeNode { val: number; left?: TreeNode; right?: TreeNode; }\n\nfunction levelOrder(root: TreeNode | undefined): number[] {\n  if (!root) return [];\n  const result: number[] = [];\n  // TODO: Initialize const queue = [root]\n  // TODO: while (queue.length > 0) shift current, push val to result, push children\n  return result;\n}`,
+        language: "typescript",
+        solutionKeywords: ["queue = [root]", "queue.shift()", "while (queue.length > 0)"],
+        testCondition: (code: string) => {
+          const hasQueue = /const\s+queue\s*=\s*\[\s*root\s*\]/i.test(code);
+          const hasShift = /queue\.shift\s*\(\s*\)/i.test(code);
+          const hasWhile = /while\s*\(\s*queue\.length\s*>\s*0\s*\)/i.test(code);
+          if (hasQueue && hasShift && hasWhile) {
+            return { passed: true, message: "BFS queue traversal complete! Memory bounded and stack overflow averted!" };
+          }
+          return { passed: false, message: "Initialize const queue = [root]; while (queue.length > 0) { const curr = queue.shift()!; ... }" };
+        },
+        hint: "const queue = [root];\nwhile (queue.length > 0) {\n  const curr = queue.shift()!;\n  result.push(curr.val);\n  if (curr.left) queue.push(curr.left);\n  if (curr.right) queue.push(curr.right);\n}",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -509,7 +648,7 @@ export const BOSSES: Record<string, Boss> = {
         phaseTitle: "Strike 1: Enforce Strict Content-Security-Policy",
         bossDialogue: "I can execute inline scripts from anywhere on the internet! You cannot stop eval()!",
         prompt: "Construct a CSP header string restricting default-src to 'self' and script-src to 'self'.",
-        initialCode: `// Configure strict CSP header value\nconst cspHeader = "default-src 'self'; script-src 'self';";`,
+        initialCode: `// Configure strict CSP header value\nconst cspHeader = "default-src *; script-src 'unsafe-inline' *;"; // Replace dangerous wildcard with 'self'`,
         language: "typescript",
         solutionKeywords: ["default-src 'self'", "script-src 'self'"],
         testCondition: (code: string) => {
@@ -521,8 +660,28 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Ensure default-src 'self' and script-src 'self' are declared." };
         },
         hint: "const cspHeader = \"default-src 'self'; script-src 'self';\";",
-        damageToBoss: 100,
-        damageToPlayer: 30,
+        damageToBoss: 50,
+        damageToPlayer: 25,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Strike 2: Cross-Origin Resource Sharing (CORS) Whitelist",
+        bossDialogue: "Any random rogue domain can issue credentialed fetch requests to your API! Origin header spoofing will bleed your session data!",
+        prompt: "Configure CORS options to only allow origin 'https://app.devquest.io' and set credentials to true.",
+        initialCode: `// Configure secure CORS options\nexport const corsOptions = {\n  origin: "*", // Dangerous! Fix to specific origin 'https://app.devquest.io'\n  credentials: false, // Fix to true\n};`,
+        language: "typescript",
+        solutionKeywords: ["https://app.devquest.io", "credentials: true"],
+        testCondition: (code: string) => {
+          const hasOrigin = /origin\s*:\s*['"]https:\/\/app\.devquest\.io['"]/i.test(code);
+          const hasCreds = /credentials\s*:\s*true/i.test(code);
+          if (hasOrigin && hasCreds) {
+            return { passed: true, message: "CORS perimeter locked down! Unauthorized origins rejected at the HTTP gateway!" };
+          }
+          return { passed: false, message: "Set origin to 'https://app.devquest.io' and credentials to true." };
+        },
+        hint: "export const corsOptions = {\n  origin: 'https://app.devquest.io',\n  credentials: true,\n};",
+        damageToBoss: 50,
+        damageToPlayer: 25,
       },
     ],
   },
@@ -561,8 +720,28 @@ export const BOSSES: Record<string, Boss> = {
           return { passed: false, message: "Await Promise.all([db.ping(), redis.ping()]) and return { status: 'operational', timestamp: Date.now() }." };
         },
         hint: "await Promise.all([db.ping(), redis.ping()]);\nreturn { status: 'operational', timestamp: Date.now() };",
-        damageToBoss: 150,
-        damageToPlayer: 50,
+        damageToBoss: 75,
+        damageToPlayer: 35,
+      },
+      {
+        phaseNumber: 2,
+        phaseTitle: "Phase 2: Resilient Distributed Retry with Exponential Backoff",
+        bossDialogue: "Network partitions! Upstream microservices will drop 5% of requests! Your users will see blank 500 error screens!",
+        prompt: "Implement retry logic with exponential backoff: compute delay with Math.pow(2, attempt), catch errors, and retry.",
+        initialCode: `// Implement retry with exponential backoff\nasync function retryWithBackoff<T>(\n  fn: () => Promise<T>,\n  maxRetries: number = 3,\n  baseDelay: number = 100\n): Promise<T> {\n  // TODO: Loop through attempts up to maxRetries\n  // TODO: Wrap fn() in try/catch and delay retries exponentially: baseDelay * 2^attempt\n  return fn();\n}`,
+        language: "typescript",
+        solutionKeywords: ["Math.pow", "catch", "attempt"],
+        testCondition: (code: string) => {
+          const hasPow = /Math\.pow\s*\(\s*2\s*,\s*attempt\s*\)/i.test(code) || /2\s*\*\*\s*attempt/i.test(code);
+          const hasCatch = /catch/i.test(code);
+          if (hasPow && hasCatch) {
+            return { passed: true, message: "Distributed resiliency achieved! Transient failures swallowed and resolved in microseconds!" };
+          }
+          return { passed: false, message: "Implement retry loop with catch handler calculating delay using Math.pow(2, attempt)." };
+        },
+        hint: "for (let attempt = 0; attempt < maxRetries; attempt++) {\n  try { return await fn(); }\n  catch (err) { if (attempt === maxRetries - 1) throw err; await sleep(baseDelay * Math.pow(2, attempt)); }\n}",
+        damageToBoss: 75,
+        damageToPlayer: 40,
       },
     ],
   },
