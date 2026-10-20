@@ -179,9 +179,9 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto py-3 px-3 sm:px-6 space-y-4">
+    <div className="w-full max-w-6xl mx-auto py-6 px-4 space-y-6">
       {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-matrix-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border">
         <Link
           href="/"
           className="flex items-center gap-2 text-xs font-mono text-gray-400 hover:text-white transition-colors whitespace-nowrap shrink-0"
@@ -239,7 +239,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
       {/* Arena Stage: Monster Graphic + Health Gauges */}
       <div
-        className={`relative rounded-2xl bg-gradient-to-b from-red-950/20 via-matrix-card to-matrix-dark border border-matrix-neonRed/40 p-4 sm:p-6 overflow-hidden shadow-2xl transition-all ${
+        className={`relative rounded-2xl bg-gradient-to-b from-red-950/20 via-matrix-card to-matrix-dark border border-matrix-neonRed/40 p-6 sm:p-8 overflow-hidden shadow-2xl transition-all ${
           arenaShaking ? "animate-shake" : ""
         }`}
       >
@@ -270,9 +270,9 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           ))}
         </div>
 
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Boss Sprite & Avatar */}
-          <div className="flex flex-col items-center text-center space-y-2.5 shrink-0">
+          <div className="flex flex-col items-center text-center space-y-4">
             <BossMonsterSprite
               realmId={boss.realmId}
               isHit={isHit}
@@ -286,7 +286,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           </div>
 
           {/* Health Bars: Boss vs Player */}
-          <div className="flex-1 w-full max-w-4xl space-y-4">
+          <div className="flex-1 w-full max-w-lg space-y-5">
             {/* Boss HP */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs font-mono font-bold tabular-nums">
@@ -484,11 +484,11 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
       {/* Combat Coding Workspace */}
       {!battleWon && !battleLost && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Phase Prompt & Objective */}
           <div
             key={currentPhaseIndex}
-            className="lg:col-span-5 bg-matrix-card border border-matrix-border rounded-xl p-5 space-y-4 flex flex-col justify-between animate-fadeIn"
+            className="bg-matrix-card border border-matrix-border rounded-xl p-5 space-y-4 flex flex-col justify-between animate-fadeIn"
           >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -565,7 +565,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           </div>
 
           {/* Code Editor */}
-          <div className="lg:col-span-7 bg-matrix-card border border-matrix-border rounded-xl flex flex-col overflow-hidden shadow-lg">
+          <div className="bg-matrix-card border border-matrix-border rounded-xl flex flex-col overflow-hidden shadow-lg">
             <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-gray-400">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="whitespace-nowrap shrink-0">DEBUG WORKBENCH</span>
@@ -584,7 +584,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               </button>
             </div>
 
-            <div className="bg-matrix-dark flex-1 min-h-[320px] flex overflow-hidden">
+            <div className="bg-matrix-dark flex-1 min-h-[240px] flex overflow-hidden">
               <div
                 ref={gutterRef}
                 aria-hidden="true"

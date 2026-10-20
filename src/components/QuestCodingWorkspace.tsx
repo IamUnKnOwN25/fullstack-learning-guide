@@ -256,7 +256,7 @@ export function QuestCodingWorkspace({
     .replace(/['"]$/, "");
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto py-2.5 px-3 sm:px-5 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-3 px-4 sm:px-6 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)]">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3 min-w-0">
@@ -382,12 +382,12 @@ export function QuestCodingWorkspace({
         </div>
       </div>
 
-      {/* Dual Pane Grid: Left Briefing (5 cols), Right Coding Workbench (7 cols or 12 cols in Focus Mode) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
+      {/* Dual Pane Grid: Left Briefing, Right Coding Workbench */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 min-h-0">
         {/* Left Pane: Story, Concepts, Checklist, Hints */}
         <div
           className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0 ${
-            focusWorkbench ? "lg:hidden" : "lg:col-span-5"
+            focusWorkbench ? "lg:hidden" : ""
           }`}
         >
           {/* Left Pane Sub-Tabs */}
@@ -884,7 +884,7 @@ export function QuestCodingWorkspace({
         {/* Right Pane: Code Editor + Live Preview + Terminal */}
         <div
           className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0 ${
-            focusWorkbench ? "lg:col-span-12" : "lg:col-span-7"
+            focusWorkbench ? "lg:col-span-2" : ""
           }`}
         >
           {/* Workspace Tab Header */}

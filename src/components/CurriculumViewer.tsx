@@ -503,7 +503,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   );
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto py-3 px-3 sm:px-5 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-4 px-4 sm:px-6 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3">
@@ -541,7 +541,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         {/* Left Sidebar: File List */}
         <div
           className={`bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex flex-col gap-3 overflow-hidden ${
-            focusReader ? "md:hidden" : "md:col-span-3 xl:col-span-2"
+            focusReader ? "md:hidden" : "md:col-span-4 lg:col-span-3"
           }`}
         >
           <div className="relative">
@@ -589,7 +589,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         <div
           key={activeDoc.filename}
           className={`bg-matrix-card border border-matrix-border rounded-xl p-5 sm:p-7 overflow-y-auto space-y-5 animate-fadeIn ${
-            focusReader ? "md:col-span-12" : "md:col-span-9 xl:col-span-10"
+            focusReader ? "md:col-span-12" : "md:col-span-8 lg:col-span-9"
           }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">

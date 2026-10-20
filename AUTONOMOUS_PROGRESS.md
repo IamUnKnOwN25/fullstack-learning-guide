@@ -400,3 +400,16 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Integrated Warm-Up Drills into `src/components/OnlineMatrixIde.tsx` with a dedicated 12-realm dropdown selector, automated starter workspace file generator (`warmup-<realm>`), live validator testing (+15 XP award), and a `drill <realm>` command in the `matrix-sh` interactive terminal.
     - Updated `src/__tests__/questPedagogy.test.ts` to assert all 12 boss post-mortems meet strict structure, severity, and length invariants.
   - Verified with `tsc --noEmit` (0 errors) and `vitest run` (43/43 tests passing across 9 test suites).
+
+- **[2026-10-20 14:02] Cycle 49: Retain Maximized Header & Restore Comfortable Human Proportions to All View Containers (Tests: PASS)**
+  - Retained the maximized top navigation header (`max-w-[1920px] px-3 sm:px-5 py-2`) in `NavigationHud.tsx` per user instruction.
+  - Reverted excessive 1920px container stretching across all view pages and modals to restore comfortable, human-proportioned layouts:
+    - `WorldCampaignMap.tsx`: Restored `max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8`, `max-w-2xl` hero briefing, `grid-cols-1 lg:grid-cols-3 gap-8` (`lg:col-span-2` map / `lg:col-span-1` inspector), and `sm:grid-cols-2 gap-4` 2-column cards.
+    - `ConstellationWorldMap.tsx`: Restored standard aspect ratio and height (`aspect-[16/10] sm:aspect-[16/9] min-h-[460px] md:min-h-[560px]`).
+    - `BossBattleArena.tsx`: Restored `max-w-6xl mx-auto py-6 px-4 space-y-6`, `p-6 sm:p-8` arena stage, `max-w-lg` health gauges, and balanced `grid-cols-1 lg:grid-cols-2 gap-6`.
+    - `CurriculumViewer.tsx`: Restored `max-w-7xl mx-auto py-4 px-4 sm:px-6`, `md:col-span-4 lg:col-span-3` chapter navigation, and `md:col-span-8 lg:col-span-9` documentation reader.
+    - `QuestCodingWorkspace.tsx`: Restored `max-w-7xl mx-auto py-3 px-4 sm:px-6`, and balanced 50%/50% `grid-cols-1 lg:grid-cols-2 gap-5` dual-pane split.
+    - `OnlineMatrixIde.tsx`: Restored `max-w-7xl mx-auto px-2 sm:px-4 py-3`.
+    - `AchievementsModal.tsx` & `SkillTreeModal.tsx`: Restored `max-w-2xl` modal boundary with 2-column card grids (`sm:grid-cols-2`).
+  - Added layout invariant regression tests in `src/__tests__/uiLayoutGuard.test.ts`.
+  - Verified with `tsc --noEmit` (0 errors) and `vitest run` (44/44 tests passing across 9 test suites).

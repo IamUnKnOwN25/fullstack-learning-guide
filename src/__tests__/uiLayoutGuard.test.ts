@@ -39,4 +39,37 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(content).toContain("flex flex-col items-end");
     expect(content).toContain("absolute bottom-full right-0 mb-3");
   });
+
+  it("keeps top header maximized at max-w-[1920px] while view containers use human-proportioned max widths", () => {
+    const hudPath = path.join(process.cwd(), "src/components/NavigationHud.tsx");
+    const mapPath = path.join(process.cwd(), "src/components/WorldCampaignMap.tsx");
+    const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+    const achievePath = path.join(process.cwd(), "src/components/AchievementsModal.tsx");
+    const skillPath = path.join(process.cwd(), "src/components/SkillTreeModal.tsx");
+
+    const hudContent = fs.readFileSync(hudPath, "utf-8");
+    expect(hudContent).toContain("max-w-[1920px]");
+
+    const mapContent = fs.readFileSync(mapPath, "utf-8");
+    expect(mapContent).toContain("max-w-7xl");
+    expect(mapContent).not.toContain("max-w-[1920px]");
+
+    const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+    expect(curriculumContent).toContain("max-w-7xl");
+    expect(curriculumContent).not.toContain("max-w-[1920px]");
+
+    const workspaceContent = fs.readFileSync(workspacePath, "utf-8");
+    expect(workspaceContent).toContain("max-w-7xl");
+    expect(workspaceContent).not.toContain("max-w-[1920px]");
+
+    const bossContent = fs.readFileSync(bossPath, "utf-8");
+    expect(bossContent).toContain("max-w-6xl");
+    expect(bossContent).not.toContain("max-w-[1920px]");
+
+    const achieveContent = fs.readFileSync(achievePath, "utf-8");
+    expect(achieveContent).toContain("max-w-2xl");
+
+    const skillContent = fs.readFileSync(skillPath, "utf-8");
+    expect(skillContent).toContain("max-w-2xl");
+  });
 });

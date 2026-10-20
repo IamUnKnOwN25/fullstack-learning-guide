@@ -638,7 +638,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-none mx-auto px-2 sm:px-3 py-2 flex flex-col gap-2 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col gap-2 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none">
       {/* Top VS Code Title & Action Bar */}
       <div className="bg-matrix-card border border-matrix-border rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-lg">
         <div className="flex flex-wrap items-center gap-2.5">
