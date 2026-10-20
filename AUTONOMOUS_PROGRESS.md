@@ -377,3 +377,16 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Added a **Split (`Editor + Preview`)** tab in `src/components/QuestCodingWorkspace.tsx` (`activeTab === "split"`) so learners can edit code and see their live sandboxed output side-by-side in `xl:flex-row` (and combine it with the **Maximize** button for a full 12-column dual-pane coding studio inside every quest).
   - Added a **Maximize / Chapters** toggle button (`focusReader`) in `src/components/CurriculumViewer.tsx` so learners can collapse the left chapter sidebar and expand the Markdown Document Reader to 100% full width (`md:col-span-12`).
   - Verified with `tsc --noEmit` and `vitest run` (38/38 tests passing across 8 suites).
+
+- **[2026-10-20 13:25] Cycle 47: Beginner Warm-Up Drills, Senior Invariant Assertions Matrix & Interactive Concept Quizzes (Tests: PASS)**
+  - Implemented the Beginner & Senior pedagogical upgrade system bridging introductory step-by-step guidance and senior-level architectural intuition:
+    - Created `src/data/questPedagogy.ts` featuring:
+      - `QUEST_DEEP_DIVES`: 24 full-coverage deep dives covering "Why It Works" (browser/node internals, DOM standards, event loop mechanics), real-world production gotchas, and senior engineering advice.
+      - **Interactive Mini-Quizzes**: 24 concept-check questions with instant feedback, explanations, and +15 XP bonus awards via `awardXp(15)` in the game store.
+      - `REALM_WARMUP_DRILLS`: 12 realm micro-drills with starter code, hints, and automated regex/logic validators giving beginners a safe sandbox drill before tackling complex trials.
+      - `generateQuestAssertions`: Automated contract engine evaluating invariants (`Invariant | Expected Contract | Observed State | Status | Senior Notes`).
+    - Upgraded `src/components/QuestCodingWorkspace.tsx`:
+      - Added Left-Pane sub-tabs: `Directive & Tasks`, `Warm-Up Drill` (with interactive code runner, hint toggle, and "Apply in Trial Code" helper), and `Senior Deep Dive` (with architectural breakdown, production pitfalls, and the interactive concept check quiz).
+      - Added the **Senior Invariant Contract Matrix** table and the "Trial Mastered" celebration card to the Terminal runner tab.
+    - Added unit test suite `src/__tests__/questPedagogy.test.ts` verifying all 24 quest deep dives, 12 realm drills, and invariant contracts.
+  - Verified with `tsc --noEmit` (0 errors) and `vitest run` (42/42 tests passing across 9 test suites).

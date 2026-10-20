@@ -29,12 +29,19 @@ import {
   Maximize2,
   Minimize2,
   Columns,
+  GraduationCap,
+  Dumbbell,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
 import { RealmConceptVisualizer } from "./RealmConceptVisualizer";
 import { buildSandboxSrcDoc } from "@/lib/sandboxBuilder";
 import { evaluateQuestTasks, getQuestTaskDiagnostics } from "@/lib/questTaskEvaluator";
+import {
+  QUEST_DEEP_DIVES,
+  REALM_WARMUP_DRILLS,
+  generateQuestAssertions,
+} from "@/data/questPedagogy";
 
 interface Props {
   quest?: Quest;
@@ -60,8 +67,17 @@ export function QuestCodingWorkspace({
       ? realmQuests[questIndex + 1].id
       : undefined);
 
+  const deepDive = quest ? QUEST_DEEP_DIVES[quest.id] : undefined;
+  const warmupDrill = REALM_WARMUP_DRILLS[realmId];
+
   const [code, setCode] = useState(quest?.starterCode || "");
   const [activeTab, setActiveTab] = useState<"editor" | "split" | "preview" | "terminal" | "visualizer">("editor");
+  const [directiveTab, setDirectiveTab] = useState<"directive" | "warmup" | "deepdive">("directive");
+  const [warmupCode, setWarmupCode] = useState<string>(warmupDrill?.starterCode || "");
+  const [warmupResult, setWarmupResult] = useState<{ passed: boolean; message: string } | null>(null);
+  const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+  const [quizBonusAwarded, setQuizBonusAwarded] = useState<boolean>(false);
   const [showHintIndex, setShowHintIndex] = useState<number>(-1);
   const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
   const [copiedCode, setCopiedCode] = useState(false);
@@ -107,8 +123,15 @@ export function QuestCodingWorkspace({
       setShowMentorGuide(false);
       setElapsedSeconds(0);
       setActiveTab("editor");
+      setSelectedQuizAnswer(null);
+      setQuizSubmitted(false);
+      setQuizBonusAwarded(false);
     }
-  }, [quest]);
+    if (warmupDrill) {
+      setWarmupCode(warmupDrill.starterCode);
+      setWarmupResult(null);
+    }
+  }, [quest, warmupDrill]);
 
   // Increment trial timer every second until solved
   useEffect(() => {
@@ -176,6 +199,45 @@ export function QuestCodingWorkspace({
     }
 
     setActiveTab("terminal");
+  };
+
+  const handleRunWarmup = () => {
+    if (!warmupDrill) return;
+    soundEngine.playSfx("attack");
+    const res = warmupDrill.validator(warmupCode);
+    setWarmupResult(res);
+    if (res.passed) {
+      soundEngine.playSfx("correct");
+      confetti({
+        particleCount: 50,
+        spread: 60,
+        origin: { y: 0.7 },
+        colors: ["#00ff9d", "#00e5ff"],
+      });
+    } else {
+      soundEngine.playSfx("error");
+    }
+  };
+
+  const handleAnswerQuiz = (index: number) => {
+    if (quizSubmitted || !deepDive) return;
+    setSelectedQuizAnswer(index);
+    setQuizSubmitted(true);
+    if (index === deepDive.quiz.correctIndex) {
+      soundEngine.playSfx("correct");
+      if (!quizBonusAwarded) {
+        useGameStore.getState().addXp(15);
+        setQuizBonusAwarded(true);
+        confetti({
+          particleCount: 45,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ["#00ff9d", "#f59e0b", "#00e5ff"],
+        });
+      }
+    } else {
+      soundEngine.playSfx("error");
+    }
   };
 
   const formattedStoryIntro = quest.storyIntro
@@ -317,13 +379,81 @@ export function QuestCodingWorkspace({
             focusWorkbench ? "lg:hidden" : "lg:col-span-5"
           }`}
         >
-          <div className="p-3.5 border-b border-matrix-border bg-matrix-dark/50 flex items-center gap-2 font-mono text-xs text-gray-300">
-            <Terminal className="w-4 h-4 text-matrix-accent shrink-0" />
-            <span>MISSION DIRECTIVE</span>
+          {/* Left Pane Sub-Tabs */}
+          <div className="p-2 border-b border-matrix-border bg-matrix-dark/80 flex items-center justify-between gap-1 overflow-x-auto">
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setDirectiveTab("directive");
+                }}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 ${
+                  directiveTab === "directive"
+                    ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Terminal className="w-3.5 h-3.5 text-matrix-accent shrink-0" />
+                <span>Directive</span>
+              </button>
+
+              {warmupDrill && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setDirectiveTab("warmup");
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 ${
+                    directiveTab === "warmup"
+                      ? "bg-matrix-neonPurple/20 border border-matrix-neonPurple text-matrix-neonPurple"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                  title="Warm-up Practice Drill"
+                >
+                  <Dumbbell className="w-3.5 h-3.5 text-matrix-neonPurple shrink-0" />
+                  <span>Warm-Up</span>
+                  <span className="text-[9px] px-1 rounded bg-matrix-neonPurple/20 text-matrix-neonPurple font-normal hidden sm:inline">
+                    Drill
+                  </span>
+                </button>
+              )}
+
+              {deepDive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setDirectiveTab("deepdive");
+                  }}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 ${
+                    directiveTab === "deepdive"
+                      ? "bg-matrix-neonCyan/20 border border-matrix-neonCyan text-matrix-neonCyan"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                  title="Senior Concept Deep-Dive & Quiz"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
+                  <span>Deep Dive</span>
+                  {quizBonusAwarded && (
+                    <span className="text-[9px] px-1 rounded bg-matrix-accent/20 text-matrix-accent font-bold">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <span className="text-[10px] font-mono text-gray-500 uppercase px-2 shrink-0">
+              {directiveTab === "directive" ? "Core Trial" : directiveTab === "warmup" ? "Skill Drill" : "Mentorship"}
+            </span>
           </div>
 
-          <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-200">
-            {/* Story Dialogue */}
+          {/* Tab 1: Directive & Tasks */}
+          {directiveTab === "directive" && (
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-200 animate-fadeIn">
+              {/* Story Dialogue */}
             <div className="p-4 rounded-xl bg-gradient-to-r from-matrix-neonCyan/10 to-matrix-dark border border-matrix-neonCyan/30 space-y-2 shadow-sm">
               <div className="flex items-center gap-2 font-mono text-xs text-matrix-neonCyan font-bold">
                 <Sparkles className="w-3.5 h-3.5 shrink-0" />
@@ -502,32 +632,241 @@ export function QuestCodingWorkspace({
               )}
             </div>
           </div>
+          )}
+
+          {/* Tab 2: Warm-Up Drill */}
+          {directiveTab === "warmup" && warmupDrill && (
+            <div className="p-5 overflow-y-auto space-y-4 flex-1 text-sm text-gray-200 animate-fadeIn font-sans">
+              <div className="flex items-center justify-between gap-2">
+                <span className="px-2 py-0.5 rounded bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 text-matrix-neonPurple font-mono text-[10px] font-bold uppercase">
+                  {warmupDrill.difficulty}
+                </span>
+                <span className="text-xs font-mono text-gray-400">
+                  Realm Warm-Up Drill
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight font-sans">
+                  {warmupDrill.title}
+                </h3>
+                <p className="text-xs text-gray-300 leading-relaxed mt-1 font-sans">
+                  {warmupDrill.prompt}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-matrix-border overflow-hidden bg-matrix-dark flex flex-col font-mono text-xs">
+                <div className="px-3 py-1.5 bg-matrix-card/80 border-b border-matrix-border flex items-center justify-between text-[11px] text-gray-400">
+                  <span>Drill Scratchpad</span>
+                  <button
+                    type="button"
+                    onClick={() => setWarmupCode(warmupDrill.solutionSnippet)}
+                    className="text-matrix-neonCyan hover:underline text-[10px]"
+                  >
+                    Load Solution Pattern
+                  </button>
+                </div>
+                <textarea
+                  value={warmupCode}
+                  onChange={(e) => setWarmupCode(e.target.value)}
+                  spellCheck={false}
+                  rows={6}
+                  className="w-full p-3 bg-transparent text-gray-200 outline-none resize-none font-mono text-xs leading-5"
+                />
+              </div>
+
+              <div className="p-3 rounded-lg bg-matrix-neonPurple/10 border border-matrix-neonPurple/30 text-xs font-mono text-gray-300">
+                <span className="text-matrix-neonPurple font-bold mr-1">Tip:</span>
+                {warmupDrill.hint}
+              </div>
+
+              {warmupResult && (
+                <div
+                  className={`p-3 rounded-xl border flex items-start gap-2.5 text-xs font-mono ${
+                    warmupResult.passed
+                      ? "bg-matrix-accent/15 border-matrix-accent text-matrix-accent"
+                      : "bg-matrix-neonRed/15 border-matrix-neonRed text-matrix-neonRed"
+                  }`}
+                >
+                  {warmupResult.passed ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  )}
+                  <span>{warmupResult.message}</span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleRunWarmup}
+                className="w-full py-2.5 rounded-xl bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md shadow-matrix-neonPurple/20 cursor-pointer"
+              >
+                <Dumbbell className="w-4 h-4" />
+                <span>Verify Warm-Up Drill</span>
+              </button>
+            </div>
+          )}
+
+          {/* Tab 3: Senior Deep Dive & Interactive Mini-Quiz */}
+          {directiveTab === "deepdive" && deepDive && (
+            <div className="p-5 overflow-y-auto space-y-5 flex-1 text-xs text-gray-200 animate-fadeIn font-sans">
+              <div className="space-y-1.5">
+                <span className="px-2 py-0.5 rounded bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 text-matrix-neonCyan font-mono text-[10px] font-bold uppercase">
+                  Senior Engineering Mental Model
+                </span>
+                <h3 className="text-base font-bold text-white font-sans tracking-tight">
+                  Why This Works in Production
+                </h3>
+                <p className="text-xs text-gray-200 leading-relaxed bg-matrix-dark/60 p-3.5 rounded-xl border border-matrix-border">
+                  {deepDive.whyItWorks}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-mono text-xs font-bold text-matrix-neonGold uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-matrix-neonGold" />
+                  <span>Production Gotchas & Failure Modes</span>
+                </h4>
+                <div className="space-y-1.5">
+                  {deepDive.productionGotchas.map((gotcha, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2.5 rounded-lg bg-matrix-card border border-matrix-border/80 text-gray-300 flex items-start gap-2"
+                    >
+                      <span className="text-matrix-neonGold font-mono font-bold shrink-0">⚠</span>
+                      <span>{gotcha}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-matrix-accent/10 to-transparent border border-matrix-accent/30 text-gray-200 space-y-1">
+                <span className="font-mono text-[11px] font-bold text-matrix-accent block uppercase">
+                  Senior Advice
+                </span>
+                <p className="italic text-gray-300">{deepDive.seniorAdvice}</p>
+              </div>
+
+              {/* Interactive Concept Check Mini-Quiz */}
+              <div className="pt-3 border-t border-matrix-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold text-matrix-neonCyan uppercase tracking-wider flex items-center gap-1.5">
+                    <GraduationCap className="w-4 h-4 text-matrix-neonCyan" />
+                    <span>Concept Check (+15 XP)</span>
+                  </span>
+                  {quizBonusAwarded && (
+                    <span className="px-2 py-0.5 rounded bg-matrix-accent/20 border border-matrix-accent/50 text-matrix-accent font-mono text-[10px] font-bold">
+                      +15 XP Earned ✓
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs font-bold text-white leading-relaxed">
+                  {deepDive.quiz.question}
+                </p>
+
+                <div className="space-y-2">
+                  {deepDive.quiz.options.map((opt, idx) => {
+                    const isSelected = selectedQuizAnswer === idx;
+                    const isCorrect = idx === deepDive.quiz.correctIndex;
+                    let optionStyle = "bg-matrix-card hover:bg-matrix-cardHover border-matrix-border text-gray-200";
+
+                    if (quizSubmitted) {
+                      if (isCorrect) {
+                        optionStyle = "bg-matrix-accent/20 border-matrix-accent text-white font-bold";
+                      } else if (isSelected) {
+                        optionStyle = "bg-red-950/40 border-matrix-neonRed text-matrix-neonRed";
+                      } else {
+                        optionStyle = "bg-matrix-dark/40 border-matrix-border/40 text-gray-500 opacity-60";
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        disabled={quizSubmitted}
+                        onClick={() => handleAnswerQuiz(idx)}
+                        className={`w-full text-left p-2.5 rounded-xl border text-xs transition-all flex items-start gap-2.5 cursor-pointer ${optionStyle}`}
+                      >
+                        <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center font-mono text-[10px] shrink-0 mt-0.5">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span className="leading-relaxed">{opt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {quizSubmitted && (
+                  <div
+                    className={`p-3 rounded-xl border text-xs leading-relaxed animate-fadeIn ${
+                      selectedQuizAnswer === deepDive.quiz.correctIndex
+                        ? "bg-matrix-accent/10 border-matrix-accent text-gray-200"
+                        : "bg-amber-950/30 border-amber-800 text-amber-200"
+                    }`}
+                  >
+                    <strong>Explanation: </strong>
+                    {deepDive.quiz.explanation}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Cast Code Spell Action Bar */}
-          <div className="p-4 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-between">
+          <div className="p-3.5 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-between">
             <button
               onClick={() => {
                 soundEngine.playSfx("click");
-                setCode(quest.starterCode);
-                setTestResult(null);
+                if (directiveTab === "warmup" && warmupDrill) {
+                  setWarmupCode(warmupDrill.starterCode);
+                  setWarmupResult(null);
+                } else {
+                  setCode(quest.starterCode);
+                  setTestResult(null);
+                }
               }}
-              className="px-3 py-2 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1.5 transition-colors"
+              className="px-3 py-2 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-xs font-mono text-gray-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Reset code to starter template"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              Reset
+              <span>{directiveTab === "warmup" ? "Reset Drill" : "Reset Code"}</span>
             </button>
 
-            <button
-              onClick={handleRunCode}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-accent/20 hover:opacity-95 transition-all cursor-pointer"
-            >
-              <Play className="w-4 h-4 fill-matrix-dark" />
-              <span>Cast Spell & Verify</span>
-              <kbd className="hidden sm:inline-block text-[10px] bg-matrix-dark/30 px-1.5 py-0.5 rounded border border-matrix-dark/20 text-matrix-dark font-mono">
-                Ctrl+↵
-              </kbd>
-            </button>
+            {directiveTab === "warmup" ? (
+              <button
+                onClick={handleRunWarmup}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-neonPurple to-matrix-neonCyan text-white font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-neonPurple/20 hover:opacity-95 transition-all cursor-pointer"
+              >
+                <Dumbbell className="w-4 h-4" />
+                <span>Verify Warm-Up Drill</span>
+              </button>
+            ) : directiveTab === "deepdive" ? (
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setDirectiveTab("directive");
+                  setActiveTab("editor");
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-neonCyan to-matrix-accent text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-neonCyan/20 hover:opacity-95 transition-all cursor-pointer"
+              >
+                <Code className="w-4 h-4 fill-matrix-dark" />
+                <span>Apply in Trial Code</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleRunCode}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-accent/20 hover:opacity-95 transition-all cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-matrix-dark" />
+                <span>Cast Spell & Verify</span>
+                <kbd className="hidden sm:inline-block text-[10px] bg-matrix-dark/30 px-1.5 py-0.5 rounded border border-matrix-dark/20 text-matrix-dark font-mono">
+                  Ctrl+↵
+                </kbd>
+              </button>
+            )}
           </div>
         </div>
 
@@ -848,6 +1187,91 @@ export function QuestCodingWorkspace({
                   ))}
                 </div>
               </div>
+
+              {/* Senior-Grade Invariant Assertions Matrix */}
+              <div className="space-y-2 pt-3 border-t border-matrix-border/70">
+                <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <span className="uppercase tracking-wider font-bold text-matrix-neonCyan flex items-center gap-1.5">
+                    <GraduationCap className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                    <span>Senior Invariant Test Matrix</span>
+                  </span>
+                  <span className="text-[10px] text-gray-500 hidden sm:inline">
+                    Behavioral & Structural Verification
+                  </span>
+                </div>
+
+                <div className="rounded-xl border border-matrix-border overflow-hidden bg-black/40">
+                  <table className="w-full text-left font-mono text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-matrix-card/80 border-b border-matrix-border text-gray-400">
+                        <th className="p-2.5 font-bold">Invariant</th>
+                        <th className="p-2.5 font-bold hidden md:table-cell">Expected Contract</th>
+                        <th className="p-2.5 font-bold">Observed State</th>
+                        <th className="p-2.5 font-bold text-right">Result</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-matrix-border/40">
+                      {generateQuestAssertions(quest.id, code).map((ast, aIdx) => (
+                        <tr key={aIdx} className="hover:bg-matrix-card/30 transition-colors">
+                          <td className="p-2.5 text-gray-200">
+                            <div className="font-bold">{ast.name}</div>
+                            <div className="text-[10px] text-gray-500 italic mt-0.5">{ast.notes}</div>
+                          </td>
+                          <td className="p-2.5 text-gray-400 hidden md:table-cell">
+                            <code>{ast.expected}</code>
+                          </td>
+                          <td className="p-2.5 text-gray-300">
+                            <span className={ast.passed ? "text-matrix-accent" : "text-amber-400"}>
+                              {ast.actual}
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-right font-bold">
+                            <span
+                              className={`px-1.5 py-0.5 rounded text-[10px] ${
+                                ast.passed
+                                  ? "bg-matrix-accent/20 text-matrix-accent"
+                                  : "bg-red-950/60 text-matrix-neonRed"
+                              }`}
+                            >
+                              {ast.passed ? "PASS" : "FAIL"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Post-Solve Celebration & Deep Dive Prompt */}
+              {testResult?.passed && deepDive && (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-matrix-neonCyan/15 via-matrix-card to-matrix-accent/10 border border-matrix-neonCyan/50 space-y-2.5 animate-fadeIn">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+                      <span>Level Mastered! Cement Your Mental Model</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-matrix-neonGold/20 border border-matrix-neonGold text-matrix-neonGold text-[10px] font-bold">
+                      Quiz Available (+15 XP)
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed font-sans">
+                    Don&apos;t just stop at passing code! Senior engineers understand the production gotchas and failure modes. Read the deep-dive and take the concept quiz to solidify your understanding.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setDirectiveTab("deepdive");
+                      setFocusWorkbench(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer"
+                  >
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    <span>Open Senior Deep Dive & Take Quiz (+15 XP)</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
