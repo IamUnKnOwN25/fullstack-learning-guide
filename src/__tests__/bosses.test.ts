@@ -75,4 +75,15 @@ describe("DevQuest Bosses Matrix", () => {
       }
     }
   });
+
+  it("verifies all 12 realms have assigned boss sprite rendering targets", () => {
+    const realmIds = [
+      "html", "css", "javascript", "typescript", "react", "backend",
+      "databases", "devops", "testing", "cs", "security", "capstone"
+    ];
+    for (const id of realmIds) {
+      expect(REALMS.some((r) => r.id === id)).toBe(true);
+      expect(BOSSES[id]).toBeDefined();
+    }
+  });
 });

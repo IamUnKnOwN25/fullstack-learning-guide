@@ -17,13 +17,22 @@ import {
   Zap,
   BookOpen,
   Shield,
+  Crosshair,
+  Sparkles,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { BOSSES, Boss } from "@/data/bosses";
+import { BossMonsterSprite } from "./BossMonsterSprite";
 
 interface Props {
   boss?: Boss;
   realmId: string;
+}
+
+interface FloatingDamage {
+  id: number;
+  text: string;
+  type: "player-hit" | "boss-hit" | "shield-deflect";
 }
 
 export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
@@ -39,6 +48,10 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [battleWon, setBattleWon] = useState(completedBosses.includes(realmId));
   const [battleLost, setBattleLost] = useState(false);
+  const [floatingNumbers, setFloatingNumbers] = useState<FloatingDamage[]>([]);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [arenaShaking, setArenaShaking] = useState(false);
+  const [laserActive, setLaserActive] = useState(false);
 
   const phase = boss?.phases[currentPhaseIndex];
 
@@ -61,14 +74,27 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const handleAttack = () => {
     soundEngine.playSfx("attack");
     const result = phase.testCondition(code);
+    const newId = Date.now();
 
     if (result.passed) {
       soundEngine.playSfx("boss-hit");
       setIsHit(true);
-      setTimeout(() => setIsHit(false), 500);
+      setLaserActive(true);
+      setTimeout(() => {
+        setIsHit(false);
+        setLaserActive(false);
+      }, 500);
 
       const newBossHp = Math.max(0, bossHp - phase.damageToBoss);
       setBossHp(newBossHp);
+      setFloatingNumbers((prev) => [
+        ...prev,
+        { id: newId, text: `-${phase.damageToBoss} REFACTOR CRIT!`, type: "player-hit" },
+      ]);
+      setTimeout(() => {
+        setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
+      }, 1200);
+
       setCombatLog((prev) => [
         `[CRITICAL HIT] ${result.message} Dealt ${phase.damageToBoss} damage to ${boss.name}!`,
         ...prev,
@@ -92,10 +118,21 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
         setCode(boss.phases[nextIdx].initialCode);
       }
     } else {
+      setArenaShaking(true);
+      setTimeout(() => setArenaShaking(false), 500);
+
       // Check if Lint Barrier skill absorbs the counter-attack
       if (unlockedSkills.includes("lint_shield") && !shieldUsed) {
         setShieldUsed(true);
         soundEngine.playSfx("skill-unlock");
+        setFloatingNumbers((prev) => [
+          ...prev,
+          { id: newId, text: `🛡️ DEFLECTED! 0 DMG`, type: "shield-deflect" },
+        ]);
+        setTimeout(() => {
+          setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
+        }, 1200);
+
         setCombatLog((prev) => [
           `[LINT BARRIER DEFLECTION] Your Lint Barrier absorbed the syntax counter-strike! 0 damage taken!`,
           ...prev,
@@ -104,6 +141,14 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
         // Counter-attack by Boss!
         soundEngine.playSfx("error");
         const remainingHp = takeDamage(phase.damageToPlayer);
+        setFloatingNumbers((prev) => [
+          ...prev,
+          { id: newId, text: `-${phase.damageToPlayer} SYNTAX COUNTER!`, type: "boss-hit" },
+        ]);
+        setTimeout(() => {
+          setFloatingNumbers((prev) => prev.filter((item) => item.id !== newId));
+        }, 1200);
+
         setCombatLog((prev) => [
           `[SYNTAX COUNTER] ${result.message} ${boss.name} struck you for ${phase.damageToPlayer} damage!`,
           ...prev,
@@ -150,20 +195,46 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
       </div>
 
       {/* Arena Stage: Monster Graphic + Health Gauges */}
-      <div className="relative rounded-2xl bg-gradient-to-b from-red-950/20 via-matrix-card to-matrix-dark border border-matrix-neonRed/40 p-6 sm:p-8 overflow-hidden shadow-2xl">
+      <div
+        className={`relative rounded-2xl bg-gradient-to-b from-red-950/20 via-matrix-card to-matrix-dark border border-matrix-neonRed/40 p-6 sm:p-8 overflow-hidden shadow-2xl transition-all ${
+          arenaShaking ? "animate-shake" : ""
+        }`}
+      >
+        {/* Laser Refactor Strike Visual FX */}
+        {laserActive && (
+          <div className="absolute inset-0 bg-gradient-to-r from-matrix-accent/30 via-matrix-neonCyan/40 to-matrix-neonRed/20 pointer-events-none z-20 animate-pulse" />
+        )}
+
+        {/* Floating Combat Text Layer */}
+        <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
+          {floatingNumbers.map((item) => (
+            <div
+              key={item.id}
+              className={`absolute font-mono font-extrabold text-sm sm:text-base px-3 py-1 rounded-lg shadow-2xl animate-float-up ${
+                item.type === "player-hit"
+                  ? "bg-matrix-accent/90 text-matrix-dark border border-white"
+                  : item.type === "shield-deflect"
+                  ? "bg-matrix-neonPurple/90 text-white border border-matrix-neonPurple"
+                  : "bg-matrix-neonRed/90 text-white border border-red-300"
+              }`}
+              style={{
+                top: item.type === "player-hit" ? "25%" : "45%",
+                left: item.type === "player-hit" ? "20%" : "60%",
+              }}
+            >
+              {item.text}
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           {/* Boss Sprite & Avatar */}
           <div className="flex flex-col items-center text-center space-y-4">
-            <div
-              className={`relative w-36 h-36 rounded-2xl bg-gradient-to-br from-red-900/40 to-black border-2 border-matrix-neonRed flex items-center justify-center shadow-xl shadow-red-950/60 transition-transform ${
-                isHit ? "animate-boss-hit scale-95 brightness-150" : "animate-float"
-              }`}
-            >
-              <Swords className="w-16 h-16 text-matrix-neonRed animate-pulse" />
-              <div className="absolute -top-2 -right-2 px-2 py-0.5 rounded-full bg-matrix-neonRed text-white text-[10px] font-mono font-bold">
-                BOSS
-              </div>
-            </div>
+            <BossMonsterSprite
+              realmId={boss.realmId}
+              isHit={isHit}
+              bossHpPercent={(bossHp / boss.maxHp) * 100}
+            />
 
             <div>
               <h2 className="text-xl font-bold text-white font-mono">{boss.name}</h2>
@@ -297,9 +368,36 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                 {phase.prompt}
               </p>
 
-              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-xs font-mono text-yellow-300">
-                <span className="font-bold block mb-1">Tactical Intel:</span>
-                {phase.hint}
+              {/* Tactical Scanner Toggle */}
+              <div className="rounded-xl border border-yellow-500/30 overflow-hidden bg-yellow-500/5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setScanOpen(!scanOpen);
+                  }}
+                  className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-mono font-bold text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Crosshair className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: "8s" }} />
+                    Tactical Weakness Scanner
+                  </span>
+                  <span className="text-[10px] text-yellow-500">
+                    {scanOpen ? "Hide Scan ▲" : "Reveal Intel ▼"}
+                  </span>
+                </button>
+
+                {scanOpen && (
+                  <div className="p-3.5 border-t border-yellow-500/20 bg-matrix-dark/80 text-xs font-mono space-y-2 text-yellow-200 animate-fadeIn">
+                    <div className="flex items-center gap-1.5 text-matrix-neonCyan text-[11px] font-bold">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Target Vulnerability Signature:</span>
+                    </div>
+                    <p className="leading-relaxed text-gray-300 bg-black/40 p-2.5 rounded border border-matrix-border/50">
+                      {phase.hint}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

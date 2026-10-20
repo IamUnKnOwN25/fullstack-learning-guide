@@ -156,3 +156,10 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Upgraded `InventoryModal.tsx` badge showcase with custom reactive iconography (`Crown`, `Star`, `Zap`, `Trophy`, `ShieldAlert`, `Sparkles`, `Award`) and gold glow backdrops.
   - Expanded unit test suite in `src/__tests__/store.test.ts` to 20 tests verifying all milestone badge triggers and campaign completion states.
   - Verified with `tsc --noEmit` and `vitest run` (20/20 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 08:46] Cycle 18: Custom Boss Sprites, Floating Combat Numbers & VFX (Tests: PASS)**
+  - Created `BossMonsterSprite.tsx` rendering 12 unique hand-crafted SVG boss monster sprites (Broken Tag Abomination, Overflow Hydra, Callback Kraken, Any-Demon, Re-Render Fiend, Event Loop Blocker, SQL Injection Behemoth, Merge Conflict Chimera, Flaky Test Spectre, O(N!) Goliath, XSS Phantom, Null Void).
+  - Added dynamic floating combat text (`-50 REFACTOR CRIT!`, `-35 SYNTAX COUNTER!`, `🛡️ DEFLECTED!`) with float-up keyframe animations.
+  - Implemented laser refactor beam strike flash and screen shake on boss counter-attacks.
+  - Added interactive Tactical Weakness Scanner drawer with scanline effects and target vulnerability signatures.
+  - Added test coverage in `bosses.test.ts` (21/21 tests passing, 0 TypeScript errors).
