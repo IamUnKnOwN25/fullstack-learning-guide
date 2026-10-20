@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
 import { REALMS } from "@/data/realms";
@@ -45,7 +46,11 @@ export function NavigationHud() {
     completedBosses,
   } = useGameStore();
 
+  const pathname = usePathname() || "/";
   const isGrandmaster = unlockedSkills.includes("matrix_grandmaster");
+  const isMapActive = pathname === "/" || pathname === "/map" || pathname === "/world-map";
+  const isCurriculumActive = pathname.startsWith("/curriculum");
+  const isIdeActive = pathname.startsWith("/ide");
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -98,10 +103,14 @@ export function NavigationHud() {
               </div>
             </Link>
 
-            <div className="flex items-center gap-1 sm:gap-1.5 border-l border-matrix-border/80 pl-2.5 sm:pl-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 border-l border-matrix-border/80 pl-2.5 sm:pl-4">
               <Link
                 href="/"
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-accent hover:bg-matrix-card transition-colors"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 ${
+                  isMapActive
+                    ? "bg-matrix-accent/15 border border-matrix-accent/50 text-matrix-accent shadow-sm shadow-matrix-accent/20"
+                    : "text-gray-300 hover:text-matrix-accent hover:bg-matrix-card border border-transparent"
+                }`}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   if (typeof window !== "undefined" && window.location.pathname === "/") {
@@ -109,12 +118,16 @@ export function NavigationHud() {
                   }
                 }}
               >
-                <MapPin className="w-3.5 h-3.5 text-matrix-accent" />
+                <MapPin className="w-3.5 h-3.5 text-matrix-accent shrink-0" />
                 <span className="hidden sm:inline">World Map</span>
               </Link>
               <Link
                 href="/curriculum"
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card transition-colors whitespace-nowrap shrink-0"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 ${
+                  isCurriculumActive
+                    ? "bg-matrix-neonCyan/15 border border-matrix-neonCyan/50 text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/20"
+                    : "text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card border border-transparent"
+                }`}
                 onClick={() => soundEngine.playSfx("click")}
               >
                 <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
@@ -122,7 +135,11 @@ export function NavigationHud() {
               </Link>
               <Link
                 href="/ide"
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono bg-matrix-neonCyan/10 border border-matrix-neonCyan/40 text-matrix-neonCyan hover:bg-matrix-neonCyan hover:text-matrix-dark font-bold transition-all whitespace-nowrap shrink-0"
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all whitespace-nowrap shrink-0 ${
+                  isIdeActive
+                    ? "bg-matrix-neonCyan text-matrix-dark border border-matrix-neonCyan shadow-md shadow-matrix-neonCyan/30"
+                    : "bg-matrix-neonCyan/10 border border-matrix-neonCyan/40 text-matrix-neonCyan hover:bg-matrix-neonCyan hover:text-matrix-dark"
+                }`}
                 onClick={() => soundEngine.playSfx("click")}
                 title="Open Full Multi-File Online Matrix IDE (VS Code Mode)"
               >
@@ -291,6 +308,30 @@ export function NavigationHud() {
             </div>
 
             <div className="max-h-96 overflow-y-auto p-3 space-y-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 pb-1">
+                <Link
+                  href="/ide"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setCommandOpen(false);
+                  }}
+                  className="p-2.5 rounded-xl bg-matrix-neonCyan/10 hover:bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 text-matrix-neonCyan font-bold flex items-center gap-2 transition-all"
+                >
+                  <Code className="w-4 h-4 shrink-0" />
+                  <span>Open Matrix Studio IDE</span>
+                </Link>
+                <Link
+                  href="/curriculum"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setCommandOpen(false);
+                  }}
+                  className="p-2.5 rounded-xl bg-matrix-accent/10 hover:bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent font-bold flex items-center gap-2 transition-all"
+                >
+                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <span>Open Curriculum Vault</span>
+                </Link>
+              </div>
               {REALMS.filter((r) => {
                 const q = commandQuery.trim().toLowerCase();
                 if (!q) return true;

@@ -345,3 +345,10 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added `flex flex-col items-end` on the `fixed bottom-5 right-5` container and positioned the speech bubble drawer with `absolute bottom-full right-0 mb-3`.
     - Kept the status indicator dot (`w-2 h-2 rounded-full`) rendered in both open and closed states so the button width never changes by even 1px.
   - Added regression test in `src/__tests__/uiLayoutGuard.test.ts` (38/38 tests passing across 8 test suites).
+
+- **[2026-10-20 12:41] Cycle 42: Typography System (`Plus Jakarta Sans` + `JetBrains Mono`), Active HUD Route States, Keyframe Animations & Button Micro-Interactions (Tests: PASS)**
+  - Upgraded `src/app/layout.tsx` and `tailwind.config.ts` with `Plus_Jakarta_Sans` (`--font-sans`) and `JetBrains_Mono` (`--font-mono`, `tabular-nums`) via `next/font/google`.
+  - Added `fadeIn` and `slideUp` keyframe animations in `tailwind.config.ts` so modal, drawer, and combat banner transitions animate smoothly (`0.22s cubic-bezier(0.16, 1, 0.3, 1)`).
+  - Enhanced `src/app/globals.css` with tactile button press feedback (`button:active:not(:disabled) { transform: scale(0.97); }`), accessible `:focus-visible` cyan outlines, pill scrollbars, and radial ambient lighting on `.bg-cyber-grid`.
+  - Updated `src/components/NavigationHud.tsx` with route-aware active pill styling (`usePathname()`) for `World Map`, `Curriculum Vault`, and `Matrix IDE`, plus quick-launch IDE/Curriculum cards at the top of the `Ctrl+K` Command Palette.
+  - Verified with `tsc --noEmit`, `vitest run` (38/38 tests passing), and HTTP 200 across all routes.

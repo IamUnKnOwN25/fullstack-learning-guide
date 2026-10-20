@@ -7,18 +7,58 @@
   --foreground: #f8fafc;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+textarea,
+kbd,
+.font-mono {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tactile Interactive Button & Link Transitions */
+button,
+a {
+  transition:
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.2s ease,
+    opacity 0.18s ease;
+}
+
+button:active:not(:disabled),
+a:active {
+  transform: scale(0.97);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.65);
+  outline-offset: 2px;
 }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -27,17 +67,18 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #1f2e4d;
-  border-radius: 4px;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00ff9d;
+  background: #00e5ff;
 }
 
-/* Subtle Cybernetic Grid Pattern */
+/* Subtle Cybernetic Grid Pattern with Ambient Radial Glow */
 .bg-cyber-grid {
-  background-size: 40px 40px;
-  background-image: 
-    linear-gradient(to right, rgba(31, 46, 77, 0.25) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(31, 46, 77, 0.25) 1px, transparent 1px);
+  background-size: 100% 100%, 40px 40px, 40px 40px;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.07), transparent 60%),
+    linear-gradient(to right, rgba(31, 46, 77, 0.24) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 46, 77, 0.24) 1px, transparent 1px);
 }

@@ -24,14 +24,24 @@ const config: Config = {
         },
       },
       fontFamily: {
+        sans: [
+          "var(--font-sans)",
+          "Plus Jakarta Sans",
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif",
+        ],
         mono: [
+          "var(--font-mono)",
+          "JetBrains Mono",
           "ui-monospace",
           "SFMono-Regular",
           "Menlo",
           "Monaco",
           "Consolas",
-          "Liberation Mono",
-          "Courier New",
           "monospace",
         ],
       },
@@ -42,8 +52,18 @@ const config: Config = {
         "scanline": "scanline 8s linear infinite",
         "shake": "shake 0.4s cubic-bezier(.36,.07,.19,.97) both",
         "float-up": "floatUp 1.2s ease-out forwards",
+        "fadeIn": "fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "slideUp": "slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
       keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0", transform: "translateY(6px) scale(0.985)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         shake: {
           "10%, 90%": { transform: "translate3d(-2px, 0, 0)" },
           "20%, 80%": { transform: "translate3d(4px, 0, 0)" },
