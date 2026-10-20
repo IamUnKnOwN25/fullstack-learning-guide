@@ -164,4 +164,24 @@ describe("UI Layout & Overflow Regression Guards", () => {
     const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
     expect(curriculumContent).toContain("pb-24 md:pb-4");
   });
+
+  it("enforces collapsible files sidebar and collapsible live preview for maximized coding space", () => {
+    const idePath = path.join(process.cwd(), "src/components/OnlineMatrixIde.tsx");
+    const ideContent = fs.readFileSync(idePath, "utf-8");
+
+    // IDE container width maximizes space matching 1920px
+    expect(ideContent).toContain("max-w-[1920px]");
+
+    // Collapsible file explorer
+    expect(ideContent).toContain("Collapse File Explorer (Ctrl+B)");
+    expect(ideContent).toContain("Ctrl+B to toggle File Sidebar");
+    expect(ideContent).toContain("Hide Files");
+    expect(ideContent).toContain("Show Files");
+
+    // Collapsible live preview
+    expect(ideContent).toContain("Collapse Live Preview");
+    expect(ideContent).toContain("Hide Preview");
+    expect(ideContent).toContain("Show Preview");
+    expect(ideContent).toContain("PanelRightClose");
+  });
 });

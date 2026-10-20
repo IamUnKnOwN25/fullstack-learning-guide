@@ -489,3 +489,23 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Maintained `max-w-2xl` boundaries and `max-h-[92dvh] sm:max-h-[90vh]` dynamic viewport limits.
     - Added automated regression tests to `src/__tests__/uiLayoutGuard.test.ts` for modal padding and footer flexibility.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (48/48 tests passing across 9 test suites), and HTTP 200 checks on all routes.
+
+- **[2026-10-20 15:30] Cycle 56: Maximized Coding Space, Collapsible File Explorer & Collapsible Live Preview (`OnlineMatrixIde.tsx`) (Tests: PASS)**
+  - Addressed direct user feedback ("the space for coding is tooo small please improve, make the file collapsible too, same in preview"):
+    - **Maximized Desktop IDE Container**: Upgraded outer container from `max-w-7xl` (1280px) to `max-w-[1920px]` matching `NavigationHud.tsx`, eliminating huge black margins on widescreen monitors and dramatically widening the coding area.
+    - **Collapsible File Explorer**:
+      - Added a dedicated collapse button (`<ChevronLeft />`) directly to the Explorer, Search, and Snippets sidebar headers (`title="Collapse File Explorer (Ctrl+B)"`).
+      - Added a 1-click `[ Hide Files / Show Files ]` toggle button on the editor breadcrumb bar.
+      - Added global `Ctrl+B` (and `Cmd+B`) keyboard shortcut to collapse or expand the file tree instantly.
+    - **Collapsible Live Browser Preview ("same in preview")**:
+      - Added a dedicated collapse button (`<PanelRightClose />`) directly inside the simulated browser chrome header.
+      - Added a 1-click `[ Hide Preview / Show Preview ]` toggle button on the editor breadcrumb bar.
+      - Collapsing the preview automatically expands the code editor to full remaining workbench width.
+      - Collapsing both files and preview lets the code editor occupy 100% of the screen.
+    - **Maximized Vertical Space & Minimized Terminal**:
+      - Defaulted `bottomPanelOpen` to minimized (`false`), saving ~160px of vertical space on initial load while keeping the sleek 30px tab strip (`CONSOLE`, `TERMINAL`, `PROBLEMS`, `ChevronUp`) always accessible.
+      - Increased code editor textarea min-height from `min-h-[260px]` to `min-h-[340px] md:min-h-[420px]`.
+      - Added `max-w` bounds to top bar dropdowns to prevent two-row wrapping on desktop viewports.
+    - **UI Layout Invariant Regression Tests (`uiLayoutGuard.test.ts`)**:
+      - Added test suite coverage verifying `max-w-[1920px]`, collapsible explorer, collapsible preview, and breadcrumb quick-toggles (49/49 tests passing).
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (49/49 tests passing across 9 test suites), and HTTP 200 checks on all routes.

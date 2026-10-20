@@ -43,6 +43,10 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelRightClose,
   Dumbbell,
 } from "lucide-react";
 import { REALM_WARMUP_DRILLS, RealmWarmUpDrill } from "@/data/questPedagogy";
@@ -143,7 +147,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   const [previewVersion, setPreviewVersion] = useState(0);
 
   // Bottom Panel (Terminal / Console / Problems)
-  const [bottomPanelOpen, setBottomPanelOpen] = useState(true);
+  const [bottomPanelOpen, setBottomPanelOpen] = useState(false);
   const [bottomTab, setBottomTab] = useState<"console" | "terminal" | "problems">("console");
   const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([
     {
@@ -217,6 +221,19 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Global keyboard shortcut: Ctrl+B to toggle File Sidebar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        soundEngine.playSfx("click");
+        setSidebarTab((prev) => (prev ? null : "explorer"));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Persist workspace to localStorage whenever files change
@@ -753,7 +770,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col gap-2 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none pb-24 md:pb-3">
+    <div className="w-full max-w-[1920px] mx-auto px-2 sm:px-4 py-2 flex flex-col gap-2 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none pb-24 md:pb-3">
       {/* Hidden File Input for Workspace Import */}
       <input
         ref={fileInputRef}
@@ -902,7 +919,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
             aria-label="Select Project Template"
             value={activeTemplateId}
             onChange={(e) => loadTemplate(e.target.value)}
-            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none focus:border-matrix-neonCyan cursor-pointer"
+            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-gray-200 outline-none focus:border-matrix-neonCyan cursor-pointer max-w-[180px] truncate"
           >
             {IDE_PROJECT_TEMPLATES.map((tpl) => (
               <option key={tpl.id} value={tpl.id}>
@@ -919,7 +936,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               const q = allQuests.find((item) => item.id === e.target.value);
               if (q) loadQuestIntoIde(q);
             }}
-            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-matrix-neonCyan outline-none focus:border-matrix-neonCyan cursor-pointer"
+            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-matrix-neonCyan outline-none focus:border-matrix-neonCyan cursor-pointer max-w-[190px] truncate"
           >
             <option value="">Load a Quest Trial (24 Available)...</option>
             {allQuests.map((q) => (
@@ -937,7 +954,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               const d = REALM_WARMUP_DRILLS[e.target.value];
               if (d) loadWarmupDrillIntoIde(d);
             }}
-            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-amber-300 outline-none focus:border-amber-400 cursor-pointer"
+            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-amber-300 outline-none focus:border-amber-400 cursor-pointer max-w-[170px] truncate"
           >
             <option value="">Warm-Up Drill (12 Realms)...</option>
             {Object.values(REALM_WARMUP_DRILLS).map((drill) => (
@@ -1287,6 +1304,17 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playSfx("click");
+                          setSidebarTab(null);
+                        }}
+                        className="p-1 rounded hover:bg-matrix-card text-gray-400 hover:text-white transition-colors ml-0.5"
+                        title="Collapse File Explorer (Ctrl+B)"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 
@@ -1373,8 +1401,21 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
               {sidebarTab === "search" && (
                 <div className="flex-1 flex flex-col p-3 space-y-3 overflow-y-auto text-xs">
-                  <div className="text-[11px] font-bold text-gray-400 uppercase">
-                    Search & Replace
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-gray-400 uppercase">
+                      Search & Replace
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setSidebarTab(null);
+                      }}
+                      className="p-1 rounded hover:bg-matrix-card text-gray-400 hover:text-white transition-colors"
+                      title="Collapse Search (Ctrl+B)"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   <input
                     type="text"
@@ -1432,8 +1473,21 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
               {sidebarTab === "snippets" && (
                 <div className="flex-1 flex flex-col p-3 space-y-2.5 overflow-y-auto text-xs">
-                  <div className="text-[11px] font-bold text-gray-400 uppercase">
-                    1-Click Code Snippets
+                  <div className="flex items-center justify-between">
+                    <div className="text-[11px] font-bold text-gray-400 uppercase">
+                      1-Click Code Snippets
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setSidebarTab(null);
+                      }}
+                      className="p-1 rounded hover:bg-matrix-card text-gray-400 hover:text-white transition-colors"
+                      title="Collapse Snippets (Ctrl+B)"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   {CODE_SNIPPETS.map((snip, idx) => (
                     <div
@@ -1528,19 +1582,78 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               {/* Editor Breadcrumb & Settings Strip */}
               <div className="px-3 py-1.5 bg-matrix-card/70 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setSidebarTab((prev) => (prev ? null : "explorer"));
+                    }}
+                    className={`px-2 py-0.5 rounded border text-[10px] flex items-center gap-1 font-bold transition-all cursor-pointer ${
+                      sidebarTab
+                        ? "bg-matrix-dark hover:bg-matrix-card border-matrix-border text-gray-300 hover:text-white"
+                        : "bg-matrix-neonCyan/15 hover:bg-matrix-neonCyan/25 border-matrix-neonCyan/40 text-matrix-neonCyan shadow-sm"
+                    }`}
+                    title={
+                      sidebarTab
+                        ? "Collapse File Explorer (Ctrl+B)"
+                        : "Expand File Explorer (Ctrl+B)"
+                    }
+                  >
+                    {sidebarTab ? (
+                      <>
+                        <PanelLeftClose className="w-3 h-3 text-matrix-neonCyan" />
+                        <span className="hidden sm:inline">Hide Files</span>
+                      </>
+                    ) : (
+                      <>
+                        <FolderOpen className="w-3 h-3 text-matrix-neonCyan" />
+                        <span>Show Files</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="text-gray-600">|</span>
                   <span>workspace</span>
                   <span>›</span>
                   <span className="text-matrix-neonCyan font-bold">
                     {activeFile?.name}
                   </span>
                   {savedToast && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded bg-matrix-accent/20 text-matrix-accent text-[10px] font-bold">
+                    <span className="ml-1 px-1.5 py-0.5 rounded bg-matrix-accent/20 text-matrix-accent text-[10px] font-bold">
                       Saved ✓
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setViewMode((prev) => (prev === "editor" ? "split" : "editor"));
+                    }}
+                    className={`px-2 py-0.5 rounded border text-[10px] flex items-center gap-1 font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                      viewMode === "editor"
+                        ? "bg-matrix-accent/15 hover:bg-matrix-accent/25 border-matrix-accent/50 text-matrix-accent shadow-sm"
+                        : "bg-matrix-dark hover:bg-matrix-card border-matrix-border text-gray-300 hover:text-white"
+                    }`}
+                    title={
+                      viewMode === "editor"
+                        ? "Expand Live Browser Preview"
+                        : "Collapse Live Browser Preview (Full Editor Width)"
+                    }
+                  >
+                    {viewMode === "editor" ? (
+                      <>
+                        <Eye className="w-3 h-3 text-matrix-accent" />
+                        <span>Show Preview</span>
+                      </>
+                    ) : (
+                      <>
+                        <PanelRightClose className="w-3 h-3 text-matrix-neonCyan" />
+                        <span>Hide Preview</span>
+                      </>
+                    )}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setWordWrap((w) => !w)}
@@ -1611,7 +1724,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
               {/* Line-Numbered Code Surface (Single Scrollbar via Synchronized Gutter) */}
                 <div
-                  className={`flex-1 bg-matrix-dark flex overflow-hidden ${fontSize} min-h-[260px]`}
+                  className={`flex-1 bg-matrix-dark flex overflow-hidden ${fontSize} min-h-[340px] md:min-h-[420px]`}
                 >
                   <div
                     ref={gutterRef}
@@ -1702,7 +1815,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
             {/* Right Pane: Live Browser Preview */}
             <div
-              className={`flex-1 min-w-0 flex flex-col bg-matrix-dark overflow-hidden min-h-[260px] ${
+              className={`flex-1 min-w-0 flex flex-col bg-matrix-dark overflow-hidden min-h-[340px] md:min-h-[420px] ${
                 mobileIdeTab === "preview" ? "flex" : "hidden"
               } ${
                 viewMode !== "editor" ? "md:flex" : "md:hidden"
@@ -1762,6 +1875,19 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setViewMode("editor");
+                      }}
+                      className="px-2 py-1 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan flex items-center gap-1 text-[11px] ml-1.5 transition-colors cursor-pointer"
+                      title="Collapse Live Preview (Give full width to Editor)"
+                    >
+                      <PanelRightClose className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                      <span className="hidden xl:inline">Collapse</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1797,9 +1923,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         <div
           className={`border-t border-matrix-border bg-matrix-dark flex-col ${
             mobileIdeTab === "terminal" ? "flex flex-1" : "hidden"
-          } ${
-            bottomPanelOpen ? "md:flex" : "md:hidden"
-          }`}
+          } md:flex shrink-0`}
         >
           <div className="px-3 py-1.5 bg-matrix-card/90 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 overflow-x-auto">
