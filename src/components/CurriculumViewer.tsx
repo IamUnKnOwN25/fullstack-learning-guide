@@ -19,7 +19,9 @@ import {
   Award,
   Maximize2,
   Minimize2,
+  Terminal,
 } from "lucide-react";
+import { detectFileLanguage } from "@/lib/ideBundler";
 
 export interface DocFile {
   filename: string;
@@ -164,30 +166,80 @@ function RichMarkdownViewer({
             <span className="text-matrix-neonCyan uppercase font-bold">
               {codeBlockLang || "CODE"}
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                if (typeof navigator !== "undefined" && navigator.clipboard) {
-                  navigator.clipboard.writeText(snippetText);
-                }
-                soundEngine.playSfx("click");
-                setCopiedKey(blockId);
-                setTimeout(() => setCopiedKey(null), 1500);
-              }}
-              className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white text-[10px] transition-colors cursor-pointer"
-            >
-              {isCopied ? (
-                <>
-                  <Check className="w-3 h-3 text-matrix-accent" />
-                  <span className="text-matrix-accent font-bold">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3 h-3" />
-                  <span>Copy Snippet</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  try {
+                    const extMap: Record<string, string> = {
+                      html: "html",
+                      css: "css",
+                      js: "js",
+                      javascript: "js",
+                      ts: "ts",
+                      typescript: "ts",
+                      sql: "sql",
+                      json: "json",
+                      bash: "sh",
+                      sh: "sh",
+                    };
+                    const ext = extMap[(codeBlockLang || "").toLowerCase()] || "js";
+                    const fileName = `curriculum-${docId.replace(/\.md$/, "")}.${ext}`;
+                    const lang = detectFileLanguage(fileName);
+                    const raw = localStorage.getItem("devquest-online-ide-workspace-v1");
+                    let currentFiles = [];
+                    if (raw) {
+                      try {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed.files)) currentFiles = parsed.files;
+                      } catch {}
+                    }
+                    const updated = [
+                      { name: fileName, language: lang, content: snippetText },
+                      ...currentFiles.filter((f: { name: string }) => f.name !== fileName),
+                    ];
+                    localStorage.setItem(
+                      "devquest-online-ide-workspace-v1",
+                      JSON.stringify({ files: updated, activeFileName: fileName })
+                    );
+                    window.location.href = "/ide";
+                  } catch {
+                    window.location.href = "/ide";
+                  }
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-neonPurple/20 hover:bg-matrix-neonPurple/30 border border-matrix-neonPurple/40 text-matrix-neonPurple hover:text-white text-[10px] transition-colors cursor-pointer"
+                title="Load this snippet into Matrix Studio IDE and execute it"
+              >
+                <Terminal className="w-3 h-3" />
+                <span>Open in IDE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator !== "undefined" && navigator.clipboard) {
+                    navigator.clipboard.writeText(snippetText);
+                  }
+                  soundEngine.playSfx("click");
+                  setCopiedKey(blockId);
+                  setTimeout(() => setCopiedKey(null), 1500);
+                }}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white text-[10px] transition-colors cursor-pointer"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="w-3 h-3 text-matrix-accent" />
+                    <span className="text-matrix-accent font-bold">Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>Copy</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           <pre className="p-4 overflow-x-auto font-mono text-xs text-matrix-accent leading-relaxed select-text">
             <code>{snippetText}</code>
@@ -680,14 +732,14 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
 
           {/* Section Table of Contents Jump Bar */}
           {sectionHeadings.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px]">
-              <span className="text-gray-500 uppercase font-bold mr-1">Jump to:</span>
+            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px] overflow-x-auto scrollbar-none whitespace-nowrap select-none">
+              <span className="text-gray-500 uppercase font-bold mr-1 shrink-0">Jump to:</span>
               {sectionHeadings.map((sec) => (
                 <a
                   key={sec.id}
                   href={`#${sec.id}`}
                   onClick={() => soundEngine.playSfx("click")}
-                  className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors"
+                  className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors shrink-0"
                 >
                   {sec.title}
                 </a>

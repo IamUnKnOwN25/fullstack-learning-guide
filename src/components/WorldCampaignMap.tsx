@@ -25,6 +25,7 @@ import {
   Compass,
   LayoutGrid,
   Dumbbell,
+  X,
 } from "lucide-react";
 import { ConstellationWorldMap } from "./ConstellationWorldMap";
 
@@ -455,10 +456,23 @@ export function WorldCampaignMap() {
               className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6 scroll-mt-24 animate-fadeIn"
             >
               <div>
-                <div className="flex items-center gap-2 mb-2 font-mono text-xs text-matrix-neonCyan font-bold">
-                  <span>CHAPTER {String(selectedRealm.order).padStart(2, "0")}</span>
-                  <span>•</span>
-                  <span>{selectedRealm.realmName}</span>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2 font-mono text-xs text-matrix-neonCyan font-bold">
+                    <span>CHAPTER {String(selectedRealm.order).padStart(2, "0")}</span>
+                    <span>•</span>
+                    <span>{selectedRealm.realmName}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setSelectedRealm(null);
+                    }}
+                    className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-matrix-dark transition-colors cursor-pointer"
+                    title="Close Realm Inspector"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 tracking-tight">
                   {selectedRealm.title}

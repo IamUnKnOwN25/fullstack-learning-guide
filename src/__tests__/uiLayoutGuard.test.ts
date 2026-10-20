@@ -116,4 +116,30 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(bossContent).toContain("insertSymbolAtCursor");
     expect(bossContent).toContain("pb-24 md:pb-6");
   });
+
+  it("enforces Cycle 53 mobile usability & curriculum-to-ide bridge invariants", () => {
+    const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+    const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+    expect(curriculumContent).toContain("Open in IDE");
+    expect(curriculumContent).toContain("devquest-online-ide-workspace-v1");
+    expect(curriculumContent).toContain("overflow-x-auto scrollbar-none whitespace-nowrap");
+
+    const workspacePath = path.join(process.cwd(), "src/components/QuestCodingWorkspace.tsx");
+    const workspaceContent = fs.readFileSync(workspacePath, "utf-8");
+    expect(workspaceContent).toContain("flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0 overflow-x-auto");
+
+    const bossPath = path.join(process.cwd(), "src/components/BossBattleArena.tsx");
+    const bossContent = fs.readFileSync(bossPath, "utf-8");
+    expect(bossContent).toContain("flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0 overflow-x-auto");
+
+    const worldMapPath = path.join(process.cwd(), "src/components/WorldCampaignMap.tsx");
+    const worldMapContent = fs.readFileSync(worldMapPath, "utf-8");
+    expect(worldMapContent).toContain("Close Realm Inspector");
+
+    const idePath = path.join(process.cwd(), "src/components/OnlineMatrixIde.tsx");
+    const ideContent = fs.readFileSync(idePath, "utf-8");
+    expect(ideContent).toContain("handleExportWorkspace");
+    expect(ideContent).toContain("Export Entire Workspace (.json)");
+    expect(ideContent).toContain("devquest-workspace-");
+  });
 });

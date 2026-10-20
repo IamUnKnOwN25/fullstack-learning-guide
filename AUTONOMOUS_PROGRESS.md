@@ -449,3 +449,21 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **UI Layout Invariant Regression Tests (`uiLayoutGuard.test.ts`)**:
       - Added automated regression tests verifying the mobile segmented mode switcher, programmer symbol bars across all 3 coding surfaces (IDE, Quest, Boss Arena), and unified mobile loader.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (46/46 tests passing across 9 test suites), and HTTP 200 checks on `/`, `/ide`, `/curriculum`, `/quest/html/html-1`, and `/boss/html`.
+
+- **[2026-10-20 15:06] Cycle 53: Curriculum-to-IDE Bridge, Mobile Trial Switchers, Realm Inspector Dismiss & Workspace Exporter (Tests: PASS)**
+  - Enhanced mobile touch navigation, developer workflow continuity, and state management:
+    - **Curriculum-to-IDE Live Code Bridge (`CurriculumViewer.tsx`)**:
+      - Added an "Open in IDE" action button to every markdown code snippet block alongside the "Copy" button.
+      - Automatically detects language, formats filename (`curriculum-<chapter>.<ext>`), injects the code into `devquest-online-ide-workspace-v1` in `localStorage`, and seamlessly navigates to `/ide` with the new file active and ready to execute or preview.
+      - Converted the section jump bar into a touch-friendly horizontal swipe bar (`overflow-x-auto scrollbar-none whitespace-nowrap`).
+    - **Mobile Realm Trial & Boss Switcher (`QuestCodingWorkspace.tsx` & `BossBattleArena.tsx`)**:
+      - Unlocked the Realm Trial & Boss switcher for mobile viewports (`flex items-center gap-1 overflow-x-auto select-none`) removing the `hidden md:flex` restriction so phone and tablet users can switch between trials and boss battles without returning to the map.
+    - **Realm Inspector Dismiss Button (`WorldCampaignMap.tsx`)**:
+      - Added an `X` dismiss button to the `#realm-inspector` sticky card header (`setSelectedRealm(null)`), giving mobile users a simple one-tap way to dismiss the inspector and return to the map.
+    - **Matrix Studio IDE Workspace JSON Exporter (`OnlineMatrixIde.tsx`)**:
+      - Added `handleExportWorkspace` to download the entire workspace bundle as `devquest-workspace-<date>.json`.
+      - Added an "Export Workspace" button in the desktop toolbar.
+      - Added an `export` command to the `matrix-sh` interactive terminal shell.
+    - **UI Layout Invariant Tests (`uiLayoutGuard.test.ts`)**:
+      - Added test suite coverage verifying Curriculum "Open in IDE" bridge, mobile trial switchers on Quest and Boss views, Realm Inspector dismiss button, and workspace export capabilities.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (47/47 tests passing across 9 test suites), and HTTP 200 checks on all routes.

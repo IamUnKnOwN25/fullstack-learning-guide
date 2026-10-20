@@ -27,6 +27,7 @@ import {
   Copy,
   Check,
   Download,
+  FolderArchive,
   Sparkles,
   FileCode,
   Eye,
@@ -514,6 +515,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         "  drill <realm>      Load beginner warm-up drill into workspace",
         "  touch <filename>   Create a new file in workspace",
         "  rm <filename>      Remove a file from workspace",
+        "  export             Export entire workspace bundle as JSON",
         "  clear              Clear terminal output",
         "  whoami             Display current operator status"
       );
@@ -566,6 +568,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         handleDeleteFile(arg);
         out.push(`Removed '${arg}'`);
       }
+    } else if (cmd === "export") {
+      handleExportWorkspace();
+      out.push(`Exported ${files.length} workspace file(s) as JSON bundle.`);
     } else if (cmd === "node" || cmd === "run") {
       const targetFile =
         (arg && files.find((f) => f.name === arg)) ||
@@ -627,6 +632,27 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     const a = document.createElement("a");
     a.href = url;
     a.download = activeFile.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportWorkspace = () => {
+    soundEngine.playSfx("click");
+    const payload = {
+      app: "DevQuest Matrix Studio IDE",
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      activeFileName,
+      files,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.download = `devquest-workspace-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -923,6 +949,16 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           >
             <Download className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
             <span className="hidden xl:inline">Download</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportWorkspace}
+            className="px-2.5 py-1.5 rounded-lg bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white text-xs flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+            title="Export Entire Workspace (.json)"
+          >
+            <FolderArchive className="w-3.5 h-3.5 text-matrix-accent shrink-0" />
+            <span className="hidden 2xl:inline">Export Workspace</span>
           </button>
 
           <button

@@ -215,7 +215,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Realm Trial & Boss Quick Switcher */}
-          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0">
+          <div className="flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0 overflow-x-auto select-none">
             {realmQuests.map((rq) => {
               const solved = completedQuests.includes(rq.id);
               return (
