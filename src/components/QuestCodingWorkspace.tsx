@@ -24,11 +24,14 @@ import {
   Check,
   Swords,
   Lightbulb,
+  Timer,
+  Zap,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
 import { RealmConceptVisualizer } from "./RealmConceptVisualizer";
 import { buildSandboxSrcDoc } from "@/lib/sandboxBuilder";
+import { evaluateQuestTasks, getQuestTaskDiagnostics } from "@/lib/questTaskEvaluator";
 
 interface Props {
   quest?: Quest;
@@ -60,9 +63,11 @@ export function QuestCodingWorkspace({
   const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
   const [copiedCode, setCopiedCode] = useState(false);
   const [showMentorGuide, setShowMentorGuide] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [testResult, setTestResult] = useState<{
     passed?: boolean;
     message?: string;
+    speedrunBonusAwarded?: boolean;
   } | null>(null);
 
   const isCompleted = quest ? completedQuests.includes(quest.id) : false;
@@ -83,7 +88,9 @@ export function QuestCodingWorkspace({
     bonusLabel = "(+25% Container Forge)";
   }
 
-  const finalXp = quest ? Math.round(quest.xpReward * bonusMultiplier) : 0;
+  const speedrunEligible = elapsedSeconds < 90;
+  const speedrunBonusXp = speedrunEligible ? 25 : 0;
+  const finalXp = quest ? Math.round(quest.xpReward * bonusMultiplier) + speedrunBonusXp : 0;
 
   // Sync state if quest changes
   useEffect(() => {
@@ -93,9 +100,19 @@ export function QuestCodingWorkspace({
       setShowHintIndex(-1);
       setCheckedTasks({});
       setShowMentorGuide(false);
+      setElapsedSeconds(0);
       setActiveTab("editor");
     }
   }, [quest]);
+
+  // Increment trial timer every second until solved
+  useEffect(() => {
+    if (testResult?.passed) return;
+    const timer = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [testResult?.passed, quest?.id]);
 
   if (!quest) {
     return (
@@ -111,6 +128,15 @@ export function QuestCodingWorkspace({
       </div>
     );
   }
+
+  const autoVerifiedTasks = evaluateQuestTasks(quest.id, quest.tasks, code);
+  const taskDiagnostics = getQuestTaskDiagnostics(quest.id, quest.tasks, code);
+  const totalVerifiedCount = quest.tasks.filter(
+    (_, idx) => isCompleted || autoVerifiedTasks[idx] || !!checkedTasks[idx]
+  ).length;
+  const formattedTime = `${String(Math.floor(elapsedSeconds / 60)).padStart(2, "0")}:${String(
+    elapsedSeconds % 60
+  ).padStart(2, "0")}`;
 
   // Execute Code & Run Test Suite
   const handleRunCode = () => {
@@ -134,6 +160,7 @@ export function QuestCodingWorkspace({
       setTestResult({
         passed: true,
         message: result.message,
+        speedrunBonusAwarded: speedrunEligible,
       });
     } else {
       soundEngine.playSfx("error");
@@ -221,6 +248,26 @@ export function QuestCodingWorkspace({
             </Link>
           )}
 
+          {/* Speedrun Timer Badge */}
+          <div
+            className={`px-2.5 py-1 rounded-full border font-mono text-xs flex items-center gap-1.5 ${
+              speedrunEligible
+                ? "bg-matrix-accent/10 border-matrix-accent/30 text-matrix-accent"
+                : "bg-matrix-card border-matrix-border text-gray-400"
+            }`}
+            title={
+              speedrunEligible
+                ? "Speedrun Bonus Active: Solve within 01:30 for +25 XP!"
+                : "Trial Elapsed Time"
+            }
+          >
+            <Timer className="w-3.5 h-3.5" />
+            <span>{formattedTime}</span>
+            {speedrunEligible && (
+              <span className="hidden xl:inline text-[10px] font-bold">• +25 Speed XP</span>
+            )}
+          </div>
+
           <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center gap-1.5">
             +{finalXp} XP
             {bonusLabel && (
@@ -277,18 +324,33 @@ export function QuestCodingWorkspace({
             {/* Task Objectives Checklist */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-neonGold font-bold">
-                  Objectives Checklist (Click to Track)
+                <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-neonGold font-bold flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-matrix-accent" />
+                  <span>Live Objectives Checklist</span>
                 </h3>
-                <span className="font-mono text-[10px] text-gray-400">
-                  {isCompleted
-                    ? `${quest.tasks.length}/${quest.tasks.length} Verified`
-                    : `${Object.values(checkedTasks).filter(Boolean).length}/${quest.tasks.length} Checked`}
+                <span className="font-mono text-[10px] text-matrix-accent font-bold">
+                  {totalVerifiedCount}/{quest.tasks.length} Verified
                 </span>
               </div>
+
+              {/* Live Objective Completion Bar */}
+              <div className="w-full h-1.5 bg-matrix-dark rounded-full overflow-hidden border border-matrix-border">
+                <div
+                  className="h-full bg-gradient-to-r from-matrix-accent to-matrix-neonCyan transition-all duration-300"
+                  style={{
+                    width: `${
+                      quest.tasks.length > 0
+                        ? Math.round((totalVerifiedCount / quest.tasks.length) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
+              </div>
+
               <div className="space-y-2">
                 {quest.tasks.map((task, idx) => {
-                  const isTaskChecked = isCompleted || !!checkedTasks[idx];
+                  const isAutoDetected = Boolean(autoVerifiedTasks[idx]);
+                  const isTaskChecked = isCompleted || isAutoDetected || !!checkedTasks[idx];
                   return (
                     <button
                       type="button"
@@ -297,28 +359,35 @@ export function QuestCodingWorkspace({
                         soundEngine.playSfx("click");
                         setCheckedTasks((prev) => ({ ...prev, [idx]: !prev[idx] }));
                       }}
-                      className={`w-full text-left flex items-start gap-2.5 text-xs p-2.5 rounded-lg border transition-all cursor-pointer ${
+                      className={`w-full text-left flex items-start justify-between gap-2.5 text-xs p-2.5 rounded-lg border transition-all cursor-pointer ${
                         isTaskChecked
                           ? "bg-matrix-accent/10 border-matrix-accent/40 text-white"
                           : "bg-matrix-dark/30 border-matrix-border/70 hover:border-gray-600 text-gray-200"
                       }`}
                     >
-                      <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
-                          isTaskChecked
-                            ? "bg-matrix-accent border-matrix-accent text-matrix-dark font-bold"
-                            : "bg-matrix-card border-matrix-border text-matrix-accent"
-                        }`}
-                      >
-                        {isTaskChecked ? (
-                          <Check className="w-3 h-3" />
-                        ) : (
-                          <span className="text-[9px]">{idx + 1}</span>
-                        )}
+                      <div className="flex items-start gap-2.5">
+                        <div
+                          className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
+                            isTaskChecked
+                              ? "bg-matrix-accent border-matrix-accent text-matrix-dark font-bold"
+                              : "bg-matrix-card border-matrix-border text-matrix-accent"
+                          }`}
+                        >
+                          {isTaskChecked ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <span className="text-[9px]">{idx + 1}</span>
+                          )}
+                        </div>
+                        <span className={isTaskChecked ? "line-through text-gray-400" : "text-gray-200"}>
+                          {task}
+                        </span>
                       </div>
-                      <span className={isTaskChecked ? "line-through text-gray-400" : "text-gray-200"}>
-                        {task}
-                      </span>
+                      {isAutoDetected && (
+                        <span className="shrink-0 px-1.5 py-0.5 rounded bg-matrix-accent/20 border border-matrix-accent/40 text-[9px] font-mono text-matrix-accent font-bold">
+                          AUTO
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -607,9 +676,14 @@ export function QuestCodingWorkspace({
           {/* Tab 3: Matrix Terminal & Assertion Report */}
           {activeTab === "terminal" && (
             <div className="flex-1 p-6 bg-matrix-dark font-mono text-xs flex flex-col space-y-4 overflow-y-auto">
-              <div className="flex items-center gap-2 text-matrix-neonCyan pb-2 border-b border-matrix-border">
-                <Terminal className="w-4 h-4" />
-                <span>TERMINAL TEST RUNNER OUTPUT</span>
+              <div className="flex items-center justify-between text-matrix-neonCyan pb-2 border-b border-matrix-border">
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-4 h-4" />
+                  <span>TERMINAL TEST RUNNER OUTPUT</span>
+                </div>
+                <span className="text-[10px] text-gray-400">
+                  Elapsed: {formattedTime}
+                </span>
               </div>
 
               {testResult ? (
@@ -625,18 +699,63 @@ export function QuestCodingWorkspace({
                   ) : (
                     <AlertCircle className="w-5 h-5 shrink-0" />
                   )}
-                  <div>
-                    <h4 className="font-bold text-sm mb-1">
-                      {testResult.passed ? "TEST PASSED • LEVEL COMPLETED" : "TEST FAILED"}
-                    </h4>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-bold text-sm">
+                        {testResult.passed ? "TEST PASSED • LEVEL COMPLETED" : "TEST FAILED"}
+                      </h4>
+                      {testResult.passed && testResult.speedrunBonusAwarded && (
+                        <span className="px-2 py-0.5 rounded bg-matrix-neonGold/20 border border-matrix-neonGold text-matrix-neonGold text-[10px] font-bold">
+                          ⚡ SPEEDRUN BONUS (+25 XP)
+                        </span>
+                      )}
+                    </div>
                     <p className="text-gray-200 leading-relaxed">{testResult.message}</p>
                   </div>
                 </div>
               ) : (
-                <div className="text-gray-500 italic p-4 text-center">
-                  Press &ldquo;Cast Spell & Verify Code&rdquo; to execute assertions against your code.
+                <div className="text-gray-500 italic p-4 text-center border border-matrix-border/50 rounded-xl bg-matrix-card/30">
+                  Press &ldquo;Cast Spell & Verify&rdquo; (or Ctrl+Enter) to execute assertions against your code.
                 </div>
               )}
+
+              {/* Per-Objective Assertion Matrix */}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center justify-between text-[11px] text-gray-400">
+                  <span className="uppercase tracking-wider font-bold text-matrix-neonGold">
+                    Per-Objective Diagnostic Breakdown
+                  </span>
+                  <span>
+                    {taskDiagnostics.filter((d) => d.passed).length}/{taskDiagnostics.length} Passing
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {taskDiagnostics.map((diag) => (
+                    <div
+                      key={diag.index}
+                      className={`p-2.5 rounded-lg border flex items-center justify-between gap-3 ${
+                        diag.passed
+                          ? "bg-matrix-accent/5 border-matrix-accent/30 text-gray-200"
+                          : "bg-matrix-card/40 border-matrix-border text-gray-400"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-gray-500">#{diag.index + 1}</span>
+                        <span>{diag.task}</span>
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                          diag.passed
+                            ? "bg-matrix-accent/20 text-matrix-accent"
+                            : "bg-red-950/60 text-matrix-neonRed"
+                        }`}
+                      >
+                        {diag.passed ? "[PASS]" : "[PENDING]"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

@@ -259,3 +259,11 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Synchronized category pills and search input with `ConstellationWorldMap.tsx` via `highlightedRealmIds` so matching constellation nodes stay illuminated while non-matching nodes dim.
     - Added 3-star rating badges (`★★★`) on completed quests in the Realm Inspector.
   - Verified with `tsc --noEmit` and `vitest run` (26/26 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 09:42] Cycle 29: Live Real-Time Objective Auto-Detection, Per-Task Terminal Diagnostics & Speedrun Timer (Tests: PASS)**
+  - Created `src/lib/questTaskEvaluator.ts` with comment-safe live objective evaluation (`evaluateQuestTasks`) and diagnostic breakdown (`getQuestTaskDiagnostics`) across all 24 coding quests.
+  - Upgraded `src/components/QuestCodingWorkspace.tsx`:
+    - Objectives Checklist now automatically verifies and highlights individual tasks (`AUTO` badge) in real time as the learner writes matching code, accompanied by a live completion progress bar.
+    - Added a Speedrun Timer (`MM:SS`) in the top action bar that grants a `+25 Speedrun XP` bonus when a trial is solved within 90 seconds.
+    - Enhanced the Matrix Terminal tab with a Per-Objective Diagnostic Breakdown showing `[PASS]` / `[PENDING]` status for every task in the quest.
+  - Added `src/__tests__/questTaskEvaluator.test.ts` verifying starter code vs. canonical solutions across all 24 quests (28/28 tests passing).
