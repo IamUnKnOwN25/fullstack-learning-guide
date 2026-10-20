@@ -314,14 +314,14 @@ export function QuestCodingWorkspace({
             <span>MISSION DIRECTIVE</span>
           </div>
 
-          <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-300">
+          <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm text-gray-200">
             {/* Story Dialogue */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-matrix-neonCyan/10 to-matrix-dark border border-matrix-neonCyan/30 space-y-2">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-matrix-neonCyan/10 to-matrix-dark border border-matrix-neonCyan/30 space-y-2 shadow-sm">
               <div className="flex items-center gap-2 font-mono text-xs text-matrix-neonCyan font-bold">
                 <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 BYTE (AI COMPANION DROID)
               </div>
-              <p className="italic text-xs text-gray-200 leading-relaxed font-mono">
+              <p className="italic text-xs sm:text-sm text-gray-100 leading-relaxed font-mono">
                 &ldquo;{formattedStoryIntro}&rdquo;
               </p>
             </div>
@@ -331,7 +331,7 @@ export function QuestCodingWorkspace({
               <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-accent font-bold">
                 Core Concept
               </h3>
-              <p className="text-xs leading-relaxed text-gray-300 bg-matrix-dark/40 p-3.5 rounded-xl border border-matrix-border">
+              <p className="text-xs sm:text-sm leading-relaxed text-gray-200 bg-matrix-dark/50 p-4 rounded-xl border border-matrix-border">
                 {quest.conceptSummary}
               </p>
             </div>
@@ -603,7 +603,7 @@ export function QuestCodingWorkspace({
 
           {/* Tab 1: Code Editor */}
           {activeTab === "editor" && (
-            <div className="flex-1 bg-matrix-dark flex flex-col font-mono text-xs overflow-hidden">
+            <div className="flex-1 bg-matrix-dark flex flex-col font-mono text-xs sm:text-sm overflow-hidden animate-fadeIn">
               <div className="flex-1 flex overflow-hidden">
                 {/* Line Numbers Gutter */}
                 <div
@@ -685,7 +685,7 @@ export function QuestCodingWorkspace({
 
           {/* Tab 2: Sandboxed Live Preview */}
           {activeTab === "preview" && (
-            <div className="flex-1 bg-matrix-dark p-2 flex flex-col">
+            <div className="flex-1 bg-matrix-dark p-2 flex flex-col animate-fadeIn">
               <iframe
                 title="Live Sandboxed Output"
                 sandbox="allow-scripts"
@@ -697,7 +697,7 @@ export function QuestCodingWorkspace({
 
           {/* Tab 3: Matrix Terminal & Assertion Report */}
           {activeTab === "terminal" && (
-            <div className="flex-1 p-6 bg-matrix-dark font-mono text-xs flex flex-col space-y-4 overflow-y-auto">
+            <div className="flex-1 p-6 bg-matrix-dark font-mono text-xs sm:text-sm flex flex-col space-y-4 overflow-y-auto animate-fadeIn">
               <div className="flex items-center justify-between text-matrix-neonCyan pb-2 border-b border-matrix-border">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4" />
@@ -783,7 +783,7 @@ export function QuestCodingWorkspace({
 
           {/* Tab 4: Interactive Concept Visualizer */}
           {activeTab === "visualizer" && (
-            <div className="flex-1 bg-matrix-dark overflow-y-auto">
+            <div className="flex-1 bg-matrix-dark overflow-y-auto animate-fadeIn">
               <RealmConceptVisualizer realmId={realmId} />
             </div>
           )}

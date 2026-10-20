@@ -448,15 +448,21 @@ export function WorldCampaignMap() {
         {/* Right Column: Selected Realm Detail & Action Launcher */}
         <div className="lg:col-span-1">
           {selectedRealm ? (
-            <div id="realm-inspector" className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6 scroll-mt-24">
+            <div
+              key={selectedRealm.id}
+              id="realm-inspector"
+              className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6 scroll-mt-24 animate-fadeIn"
+            >
               <div>
-                <div className="flex items-center gap-2 mb-2 font-mono text-xs text-matrix-neonCyan">
+                <div className="flex items-center gap-2 mb-2 font-mono text-xs text-matrix-neonCyan font-bold">
                   <span>CHAPTER {String(selectedRealm.order).padStart(2, "0")}</span>
                   <span>•</span>
                   <span>{selectedRealm.realmName}</span>
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">{selectedRealm.title}</h2>
-                <p className="text-xs text-gray-300 leading-relaxed italic bg-matrix-dark/60 p-3 rounded-lg border border-matrix-border/80 mb-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 tracking-tight">
+                  {selectedRealm.title}
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-200 leading-relaxed italic bg-matrix-dark/70 p-3.5 rounded-xl border border-matrix-border/80 mb-3">
                   &ldquo;{selectedRealm.lore}&rdquo;
                 </p>
 
@@ -464,13 +470,13 @@ export function WorldCampaignMap() {
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs space-y-2 mb-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 font-bold">
-                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>Campaign Requirement: Level {selectedRealm.requiredLevel}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => unlockAllRealms()}
-                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold transition-colors cursor-pointer"
+                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
                       >
                         Unlock All Realms
                       </button>
@@ -481,23 +487,34 @@ export function WorldCampaignMap() {
                   </div>
                 )}
 
-                <Link
-                  href={`/curriculum?file=${selectedRealm.fileRef}`}
-                  onClick={() => soundEngine.playSfx("click")}
-                  className="w-full py-2 px-3 rounded-lg bg-matrix-dark hover:bg-matrix-card border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  Read Chapter Guide ({selectedRealm.fileRef})
-                </Link>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Link
+                    href={`/curriculum?file=${selectedRealm.fileRef}`}
+                    onClick={() => soundEngine.playSfx("click")}
+                    className="py-2 px-3 rounded-xl bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span>Chapter Guide</span>
+                  </Link>
+
+                  <Link
+                    href={`/ide?quest=${QUESTS[selectedRealm.id]?.[0]?.id || ""}`}
+                    onClick={() => soundEngine.playSfx("click")}
+                    className="py-2 px-3 rounded-xl bg-matrix-neonPurple/15 hover:bg-matrix-neonPurple/25 border border-matrix-neonPurple/50 text-matrix-neonPurple font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Terminal className="w-3.5 h-3.5 shrink-0" />
+                    <span>Open in IDE</span>
+                  </Link>
+                </div>
               </div>
 
               {/* Quests in this Realm */}
               <div className="space-y-3">
-                <h3 className="font-mono text-xs uppercase tracking-wider text-gray-400 font-bold">
+                <h3 className="font-mono text-xs uppercase tracking-wider text-gray-300 font-bold">
                   Quests & Trials ({QUESTS[selectedRealm.id]?.length || 0})
                 </h3>
 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {(QUESTS[selectedRealm.id] || []).map((quest) => {
                     const isQuestDone = completedQuests.includes(quest.id);
 
@@ -506,10 +523,10 @@ export function WorldCampaignMap() {
                         key={quest.id}
                         href={`/quest/${selectedRealm.id}/${quest.id}`}
                         onClick={() => soundEngine.playSfx("click")}
-                        className={`flex items-center justify-between p-3 rounded-xl border transition-all text-xs font-mono group ${
+                        className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-xs sm:text-sm font-mono group hover:-translate-y-0.5 ${
                           isQuestDone
-                            ? "bg-matrix-accent/5 border-matrix-accent/40 text-gray-200"
-                            : "bg-matrix-dark border-matrix-border hover:border-matrix-neonCyan text-white"
+                            ? "bg-matrix-accent/10 border-matrix-accent/40 text-gray-100 shadow-sm shadow-matrix-accent/10"
+                            : "bg-matrix-dark border-matrix-border hover:border-matrix-neonCyan text-white shadow-sm"
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
