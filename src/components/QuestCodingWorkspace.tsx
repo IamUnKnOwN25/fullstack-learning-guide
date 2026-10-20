@@ -173,37 +173,41 @@ export function QuestCodingWorkspace({
     setActiveTab("terminal");
   };
 
+  const formattedStoryIntro = quest.storyIntro
+    .replace(/^Byte\s+[^:]+:\s*['"]?/i, "")
+    .replace(/['"]$/, "");
+
   return (
-    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 flex flex-col gap-6 h-[calc(100vh-4.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 flex flex-col gap-6 min-h-[calc(100vh-4.5rem)] lg:h-[calc(100vh-4.5rem)]">
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex items-center justify-between gap-4 pb-2 border-b border-matrix-border">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-matrix-border">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/"
-            className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors shrink-0"
             onClick={() => soundEngine.playSfx("click")}
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
 
-          <div>
-            <span className="text-[10px] font-mono uppercase text-matrix-neonCyan tracking-wider">
+          <div className="min-w-0">
+            <span className="text-[10px] font-mono uppercase text-matrix-neonCyan tracking-wider block">
               {quest.realmId.toUpperCase()} REALM • TRIAL {quest.order}
             </span>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              {quest.title}
+            <h1 className="text-lg font-bold text-white flex flex-wrap items-center gap-2">
+              <span className="truncate">{quest.title}</span>
               {isCompleted && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-matrix-accent/20 text-matrix-accent flex items-center gap-1 font-bold">
-                  <CheckCircle2 className="w-3 h-3" /> Solved
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-matrix-accent/20 text-matrix-accent flex items-center gap-1 font-bold whitespace-nowrap shrink-0">
+                  <CheckCircle2 className="w-3 h-3 shrink-0" /> Solved
                 </span>
               )}
             </h1>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Realm Trial & Boss Quick Switcher */}
-          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs">
+          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0">
             {realmQuests.map((rq) => {
               const active = rq.id === quest.id;
               const solved = completedQuests.includes(rq.id);
@@ -212,7 +216,7 @@ export function QuestCodingWorkspace({
                   key={rq.id}
                   href={`/quest/${realmId}/${rq.id}`}
                   onClick={() => soundEngine.playSfx("click")}
-                  className={`px-2.5 py-1 rounded flex items-center gap-1 transition-all ${
+                  className={`px-2.5 py-1 rounded flex items-center gap-1 whitespace-nowrap shrink-0 transition-all ${
                     active
                       ? "bg-matrix-accent text-matrix-dark font-bold"
                       : solved
@@ -221,17 +225,17 @@ export function QuestCodingWorkspace({
                   }`}
                 >
                   <span>Trial {rq.order}</span>
-                  {solved && <CheckCircle2 className="w-3 h-3" />}
+                  {solved && <CheckCircle2 className="w-3 h-3 shrink-0" />}
                 </Link>
               );
             })}
             <Link
               href={`/boss/${realmId}`}
               onClick={() => soundEngine.playSfx("click")}
-              className="px-2.5 py-1 rounded flex items-center gap-1 text-matrix-neonRed hover:bg-red-950/40 font-bold transition-all"
+              className="px-2.5 py-1 rounded flex items-center gap-1 text-matrix-neonRed hover:bg-red-950/40 font-bold whitespace-nowrap shrink-0 transition-all"
               title="Challenge Realm Guardian Boss"
             >
-              <Swords className="w-3 h-3" />
+              <Swords className="w-3 h-3 shrink-0" />
               <span>Boss</span>
             </Link>
           </div>
@@ -241,16 +245,16 @@ export function QuestCodingWorkspace({
               href={`/curriculum?file=${realm.fileRef}`}
               target="_blank"
               onClick={() => soundEngine.playSfx("click")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm whitespace-nowrap shrink-0"
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Curriculum Reference</span>
             </Link>
           )}
 
           {/* Speedrun Timer Badge */}
           <div
-            className={`px-2.5 py-1 rounded-full border font-mono text-xs flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-full border font-mono text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               speedrunEligible
                 ? "bg-matrix-accent/10 border-matrix-accent/30 text-matrix-accent"
                 : "bg-matrix-card border-matrix-border text-gray-400"
@@ -261,14 +265,14 @@ export function QuestCodingWorkspace({
                 : "Trial Elapsed Time"
             }
           >
-            <Timer className="w-3.5 h-3.5" />
+            <Timer className="w-3.5 h-3.5 shrink-0" />
             <span>{formattedTime}</span>
             {speedrunEligible && (
               <span className="hidden xl:inline text-[10px] font-bold">• +25 Speed XP</span>
             )}
           </div>
 
-          <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center gap-1.5">
+          <span className="font-mono text-xs text-matrix-neonGold px-3 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center gap-1.5 whitespace-nowrap shrink-0">
             +{finalXp} XP
             {bonusLabel && (
               <span className="text-[10px] text-matrix-neonCyan font-bold">
@@ -280,11 +284,11 @@ export function QuestCodingWorkspace({
           {nextQuestId && isCompleted && (
             <Link
               href={`/quest/${realmId}/${nextQuestId}`}
-              className="px-3.5 py-1.5 rounded-lg bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-mono text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3.5 py-1.5 rounded-lg bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-mono text-xs font-bold flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0"
               onClick={() => soundEngine.playSfx("click")}
             >
               Next Quest
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
             </Link>
           )}
         </div>
@@ -293,9 +297,9 @@ export function QuestCodingWorkspace({
       {/* Dual Pane Grid: 50% Left Briefing, 50% Right Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
         {/* Left Pane: Story, Concepts, Checklist, Hints */}
-        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl">
+        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0">
           <div className="p-4 border-b border-matrix-border bg-matrix-dark/50 flex items-center gap-2 font-mono text-xs text-gray-300">
-            <Terminal className="w-4 h-4 text-matrix-accent" />
+            <Terminal className="w-4 h-4 text-matrix-accent shrink-0" />
             <span>MISSION DIRECTIVE</span>
           </div>
 
@@ -303,11 +307,11 @@ export function QuestCodingWorkspace({
             {/* Story Dialogue */}
             <div className="p-4 rounded-xl bg-gradient-to-r from-matrix-neonCyan/10 to-matrix-dark border border-matrix-neonCyan/30 space-y-2">
               <div className="flex items-center gap-2 font-mono text-xs text-matrix-neonCyan font-bold">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 BYTE (AI COMPANION DROID)
               </div>
               <p className="italic text-xs text-gray-200 leading-relaxed font-mono">
-                &ldquo;{quest.storyIntro}&rdquo;
+                &ldquo;{formattedStoryIntro}&rdquo;
               </p>
             </div>
 
@@ -396,20 +400,20 @@ export function QuestCodingWorkspace({
 
             {/* Hints & Guided Mentor Accordion */}
             <div className="pt-2 border-t border-matrix-border/60 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-gray-400 flex items-center gap-1.5">
-                  <HelpCircle className="w-3.5 h-3.5 text-matrix-neonPurple" />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-mono text-xs text-gray-400 flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                  <HelpCircle className="w-3.5 h-3.5 text-matrix-neonPurple shrink-0" />
                   Need Tactical Support?
                 </span>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   {showHintIndex < quest.hints.length - 1 && (
                     <button
                       onClick={() => {
                         soundEngine.playSfx("click");
                         setShowHintIndex((prev) => prev + 1);
                       }}
-                      className="text-xs font-mono text-matrix-neonPurple hover:underline cursor-pointer"
+                      className="text-xs font-mono text-matrix-neonPurple hover:underline cursor-pointer whitespace-nowrap shrink-0"
                     >
                       Reveal Hint ({showHintIndex + 2}/{quest.hints.length})
                     </button>
@@ -421,9 +425,9 @@ export function QuestCodingWorkspace({
                       soundEngine.playSfx("click");
                       setShowMentorGuide(!showMentorGuide);
                     }}
-                    className="text-xs font-mono text-matrix-neonCyan hover:underline flex items-center gap-1 cursor-pointer"
+                    className="text-xs font-mono text-matrix-neonCyan hover:underline flex items-center gap-1 cursor-pointer whitespace-nowrap shrink-0"
                   >
-                    <Lightbulb className="w-3 h-3" />
+                    <Lightbulb className="w-3 h-3 shrink-0" />
                     {showMentorGuide ? "Hide Walkthrough" : "Mentor Walkthrough"}
                   </button>
                 </div>
@@ -509,23 +513,23 @@ export function QuestCodingWorkspace({
         </div>
 
         {/* Right Pane: Code Editor + Live Preview + Terminal */}
-        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl">
+        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0">
           {/* Workspace Tab Header */}
-          <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="px-3 sm:px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between gap-2 overflow-x-auto">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("editor");
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
                   activeTab === "editor"
                     ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent shadow-sm shadow-matrix-accent/20"
-                    : "text-gray-400 hover:text-white"
+                    : "text-gray-400 hover:text-white border border-transparent"
                 }`}
               >
-                <Code className="w-3.5 h-3.5" />
-                Code Editor
+                <Code className="w-3.5 h-3.5 shrink-0" />
+                <span>Code Editor</span>
               </button>
 
               <button
@@ -533,14 +537,14 @@ export function QuestCodingWorkspace({
                   soundEngine.playSfx("click");
                   setActiveTab("preview");
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
                   activeTab === "preview"
                     ? "bg-matrix-neonCyan/20 border border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/20"
-                    : "text-gray-400 hover:text-white"
+                    : "text-gray-400 hover:text-white border border-transparent"
                 }`}
               >
-                <Eye className="w-3.5 h-3.5" />
-                Live Preview
+                <Eye className="w-3.5 h-3.5 shrink-0" />
+                <span>Live Preview</span>
               </button>
 
               <button
@@ -548,17 +552,17 @@ export function QuestCodingWorkspace({
                   soundEngine.playSfx("click");
                   setActiveTab("terminal");
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
                   activeTab === "terminal"
                     ? "bg-matrix-neonGold/20 border border-matrix-neonGold text-matrix-neonGold shadow-sm shadow-matrix-neonGold/20"
-                    : "text-gray-400 hover:text-white"
+                    : "text-gray-400 hover:text-white border border-transparent"
                 }`}
               >
-                <Terminal className="w-3.5 h-3.5" />
-                Matrix Terminal
+                <Terminal className="w-3.5 h-3.5 shrink-0" />
+                <span>Terminal</span>
                 {testResult && (
                   <span
-                    className={`w-2 h-2 rounded-full ${
+                    className={`w-2 h-2 rounded-full shrink-0 ${
                       testResult.passed ? "bg-matrix-accent" : "bg-matrix-neonRed"
                     }`}
                   />
@@ -570,19 +574,19 @@ export function QuestCodingWorkspace({
                   soundEngine.playSfx("click");
                   setActiveTab("visualizer");
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
                   activeTab === "visualizer"
                     ? "bg-matrix-neonPurple/20 border border-matrix-neonPurple text-matrix-neonPurple shadow-sm shadow-matrix-neonPurple/20"
-                    : "text-gray-400 hover:text-white"
+                    : "text-gray-400 hover:text-white border border-transparent"
                 }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                Concept Visualizer
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span>Visualizer</span>
               </button>
             </div>
 
-            <span className="font-mono text-[10px] uppercase text-gray-500">
-              {quest.language.toUpperCase()} ENGINE
+            <span className="px-2 py-0.5 rounded bg-matrix-card border border-matrix-border font-mono text-[10px] uppercase text-matrix-neonCyan font-bold whitespace-nowrap shrink-0">
+              {quest.language.toUpperCase()}
             </span>
           </div>
 

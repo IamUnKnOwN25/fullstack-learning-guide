@@ -32,18 +32,18 @@ interface Props {
 
 // 12-Node Map Coordinates in percent (x, y)
 const NODE_COORDINATES: Record<string, { x: number; y: number; icon: string }> = {
-  html: { x: 12, y: 18, icon: "01" },
-  css: { x: 34, y: 12, icon: "02" },
-  javascript: { x: 58, y: 16, icon: "03" },
-  typescript: { x: 84, y: 14, icon: "04" },
-  react: { x: 90, y: 48, icon: "05" },
-  backend: { x: 68, y: 56, icon: "06" },
-  databases: { x: 44, y: 48, icon: "07" },
-  devops: { x: 18, y: 52, icon: "08" },
-  testing: { x: 12, y: 84, icon: "09" },
-  cs: { x: 36, y: 86, icon: "10" },
-  security: { x: 62, y: 82, icon: "11" },
-  capstone: { x: 88, y: 84, icon: "12" },
+  html: { x: 12, y: 16, icon: "01" },
+  css: { x: 36, y: 12, icon: "02" },
+  javascript: { x: 60, y: 16, icon: "03" },
+  typescript: { x: 85, y: 14, icon: "04" },
+  react: { x: 88, y: 44, icon: "05" },
+  backend: { x: 64, y: 48, icon: "06" },
+  databases: { x: 40, y: 44, icon: "07" },
+  devops: { x: 15, y: 46, icon: "08" },
+  testing: { x: 12, y: 72, icon: "09" },
+  cs: { x: 36, y: 74, icon: "10" },
+  security: { x: 62, y: 71, icon: "11" },
+  capstone: { x: 86, y: 73, icon: "12" },
 };
 
 const CONDUIT_PATHS = [

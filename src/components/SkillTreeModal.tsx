@@ -31,9 +31,9 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple">
+            <div className="w-9 h-9 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple shrink-0">
               <Shield className="w-5 h-5" />
             </div>
             <div>
@@ -46,8 +46,8 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="px-3 py-1 rounded-full bg-matrix-neonPurple/10 border border-matrix-neonPurple/40 text-matrix-neonPurple font-mono text-xs font-bold">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-3 py-1 rounded-full bg-matrix-neonPurple/10 border border-matrix-neonPurple/40 text-matrix-neonPurple font-mono text-xs font-bold whitespace-nowrap shrink-0">
               {availableSkillPoints} Skill Points Available
             </div>
             <button
@@ -55,7 +55,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                 soundEngine.playSfx("click");
                 onClose();
               }}
-              className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-matrix-border/50"
+              className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-matrix-border/50 shrink-0"
             >
               <X className="w-5 h-5" />
             </button>

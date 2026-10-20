@@ -17,15 +17,23 @@ export default async function QuestPage({ params }: PageProps) {
     notFound();
   }
 
-  const questIndex = realmQuests.findIndex((q) => q.id === questId);
-  if (questIndex === -1) {
+  let matchedQuest = realmQuests.find((q) => q.id === questId);
+  if (!matchedQuest) {
+    const numMatch = questId.match(/(\d+)$/);
+    if (numMatch) {
+      const orderNum = parseInt(numMatch[1], 10);
+      matchedQuest = realmQuests.find((q) => q.order === orderNum);
+    }
+  }
+
+  if (!matchedQuest) {
     notFound();
   }
 
   return (
     <QuestCodingWorkspace
       realmId={realmId}
-      questId={questId}
+      questId={matchedQuest.id}
     />
   );
 }

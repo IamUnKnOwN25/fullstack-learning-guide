@@ -172,19 +172,19 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   return (
     <div className="w-full max-w-6xl mx-auto py-6 px-4 space-y-6">
       {/* Top Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-matrix-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border">
         <Link
           href="/"
-          className="flex items-center gap-2 text-xs font-mono text-gray-400 hover:text-white transition-colors"
+          className="flex items-center gap-2 text-xs font-mono text-gray-400 hover:text-white transition-colors whitespace-nowrap shrink-0"
           onClick={() => soundEngine.playSfx("click")}
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 shrink-0" />
           Retreat to World Map
         </Link>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Realm Trial & Boss Quick Switcher */}
-          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs">
+          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0">
             {realmQuests.map((rq) => {
               const solved = completedQuests.includes(rq.id);
               return (
@@ -192,19 +192,19 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                   key={rq.id}
                   href={`/quest/${realmId}/${rq.id}`}
                   onClick={() => soundEngine.playSfx("click")}
-                  className={`px-2.5 py-1 rounded flex items-center gap-1 transition-all ${
+                  className={`px-2.5 py-1 rounded flex items-center gap-1 whitespace-nowrap shrink-0 transition-all ${
                     solved
                       ? "text-matrix-accent hover:bg-matrix-card"
                       : "text-gray-400 hover:text-white"
                   }`}
                 >
                   <span>Trial {rq.order}</span>
-                  {solved && <CheckCircle2 className="w-3 h-3" />}
+                  {solved && <CheckCircle2 className="w-3 h-3 shrink-0" />}
                 </Link>
               );
             })}
-            <span className="px-2.5 py-1 rounded flex items-center gap-1 bg-matrix-neonRed text-white font-bold">
-              <Swords className="w-3 h-3" />
+            <span className="px-2.5 py-1 rounded flex items-center gap-1 bg-matrix-neonRed text-white font-bold whitespace-nowrap shrink-0">
+              <Swords className="w-3 h-3 shrink-0" />
               <span>Boss</span>
             </span>
           </div>
@@ -214,15 +214,15 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               href={`/curriculum?file=${realm.fileRef}`}
               target="_blank"
               onClick={() => soundEngine.playSfx("click")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-mono transition-colors shadow-sm whitespace-nowrap shrink-0"
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Grimoire Guide ({realm.fileRef})</span>
             </Link>
           )}
 
-          <div className="font-mono text-xs text-matrix-neonRed font-bold flex items-center gap-1.5">
-            <Swords className="w-4 h-4 animate-pulse" />
+          <div className="font-mono text-xs text-matrix-neonRed font-bold flex items-center gap-1.5 whitespace-nowrap shrink-0">
+            <Swords className="w-4 h-4 animate-pulse shrink-0" />
             BOSS ENCOUNTER • {boss.realmId.toUpperCase()}
           </div>
         </div>
@@ -493,21 +493,21 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
           {/* Code Editor */}
           <div className="bg-matrix-card border border-matrix-border rounded-xl flex flex-col overflow-hidden shadow-lg">
-            <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between font-mono text-xs text-gray-400">
-              <div className="flex items-center gap-2">
-                <span>DEBUG WORKBENCH</span>
+            <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-gray-400">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="whitespace-nowrap shrink-0">DEBUG WORKBENCH</span>
                 {phase.testCondition(code).passed && (
-                  <span className="px-2 py-0.5 rounded bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent text-[10px] font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" />
+                  <span className="px-2 py-0.5 rounded bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent text-[10px] font-bold flex items-center gap-1 whitespace-nowrap shrink-0">
+                    <CheckCircle2 className="w-3 h-3 shrink-0" />
                     PATCH VERIFIED — READY TO STRIKE
                   </span>
                 )}
               </div>
               <button
                 onClick={() => setCode(phase.initialCode)}
-                className="hover:text-white flex items-center gap-1"
+                className="hover:text-white flex items-center gap-1 whitespace-nowrap shrink-0"
               >
-                <RotateCcw className="w-3 h-3" /> Reset Code
+                <RotateCcw className="w-3 h-3 shrink-0" /> Reset Code
               </button>
             </div>
 

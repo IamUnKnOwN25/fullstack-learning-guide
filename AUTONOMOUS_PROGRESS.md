@@ -308,3 +308,10 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Updated `next.config.ts` (`distDir: process.env.NODE_ENV === "production" ? ".next-build" : ".next"`), `.gitignore`, and `tsconfig.json` so production builds never clobber the active `.next` dev server directory, and triggered a config reload so all 7 `/_next/static/chunks/*` bundles return `200 OK`.
   - Added a Selected Realm Quick-Launch Bar (`Trial 1`, `Trial 2`, `Boss`, `Guide`) on `ConstellationWorldMap.tsx` and direct action buttons on every Realm Card in `WorldCampaignMap.tsx` Grid View.
   - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and `200 OK` across all `/_next/static/chunks/*` client bundles.
+
+- **[2026-10-20 10:58] Cycle 37: Fix All UI Layout Overflow, Multi-Line Tab Wrapping, and Node Clipping Bugs (Tests: PASS)**
+  - Fixed HTML DOM Tree node right-border overflow in `src/components/RealmConceptVisualizer.tsx`: replaced `className="w-full ..."` + `marginLeft` (which resulted in `100% + 32px` width overflowing the container) with `width: calc(100% - ${indentPx}px)` and `whitespace-nowrap shrink-0` on `Node #X` and `A11y Score: 100%`.
+  - Audited and hardened all 12 realm visualizers in `src/components/RealmConceptVisualizer.tsx` with `flex-wrap gap-3` headers and `whitespace-nowrap shrink-0` on all interactive buttons and telemetry badges.
+  - Fixed Workspace Tab Header wrapping in `src/components/QuestCodingWorkspace.tsx`: added `whitespace-nowrap shrink-0` to `Code Editor`, `Live Preview`, `Terminal`, `Visualizer`, and the `{quest.language}` badge so tab labels never wrap onto 2 lines or collide.
+  - Cleaned up redundant `"Byte speaks: '...'"` nested quotes in `QuestCodingWorkspace.tsx` (`formattedStoryIntro`), improved Constellation bottom-row node spacing in `ConstellationWorldMap.tsx`, and added shorthand quest URL resolution in `src/app/quest/[realmId]/[questId]/page.tsx`.
+  - Added regression test suite `src/__tests__/uiLayoutGuard.test.ts` (32/32 tests passing across 7 test files).

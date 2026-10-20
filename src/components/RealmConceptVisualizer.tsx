@@ -102,42 +102,55 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
-                <Layers className="w-4 h-4" />
+                <Layers className="w-4 h-4 shrink-0" />
                 Interactive Semantic DOM Tree Inspector
               </h4>
               <p className="text-[11px] text-gray-400">
                 Click any tag node to inspect its accessibility landmark and semantic role.
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded bg-matrix-card border border-matrix-border text-matrix-accent text-[11px]">
+            <span className="px-2.5 py-1 rounded bg-matrix-card border border-matrix-border text-matrix-accent text-[11px] font-bold whitespace-nowrap shrink-0">
               A11y Score: 100%
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 bg-matrix-dark/80 p-3.5 rounded-xl border border-matrix-border">
-              {domTree.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playSfx("click");
-                    setActiveStep(idx);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center justify-between ${
-                    activeStep === idx
-                      ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent font-bold shadow-sm"
-                      : "hover:bg-matrix-card border border-transparent text-gray-300"
-                  }`}
-                  style={{ marginLeft: `${Math.min(idx * 8, 32)}px` }}
-                >
-                  <span>{item.tag}</span>
-                  <span className="text-[10px] text-gray-500">Node #{idx + 1}</span>
-                </button>
-              ))}
+            <div className="space-y-1.5 bg-matrix-dark/80 p-3.5 rounded-xl border border-matrix-border overflow-hidden">
+              {domTree.map((item, idx) => {
+                const indentPx = Math.min(idx * 6, 24);
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setActiveStep(idx);
+                    }}
+                    className={`text-left px-3 py-2 rounded-lg transition-all flex items-center justify-between gap-2 ${
+                      activeStep === idx
+                        ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent font-bold shadow-sm"
+                        : "hover:bg-matrix-card border border-transparent text-gray-300"
+                    }`}
+                    style={{
+                      marginLeft: `${indentPx}px`,
+                      width: `calc(100% - ${indentPx}px)`,
+                    }}
+                  >
+                    <span className="truncate flex items-center gap-1.5">
+                      {idx > 0 && (
+                        <span className="text-gray-600 text-[10px] select-none">└─</span>
+                      )}
+                      <span>{item.tag}</span>
+                    </span>
+                    <span className="text-[10px] text-gray-500 whitespace-nowrap shrink-0">
+                      Node #{idx + 1}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="bg-matrix-card/80 p-4 rounded-xl border border-matrix-border space-y-3 flex flex-col justify-between">
@@ -272,11 +285,11 @@ export function RealmConceptVisualizer({ realmId }: Props) {
           </div>
 
           {/* Generated CSS snippet */}
-          <div className="bg-black/50 p-3 rounded-xl border border-matrix-border text-matrix-neonCyan flex items-center justify-between">
-            <code>
+          <div className="bg-black/50 p-3 rounded-xl border border-matrix-border text-matrix-neonCyan flex flex-wrap items-center justify-between gap-2">
+            <code className="break-all">
               display: flex; flex-direction: {flexDirection}; justify-content: {justifyContent}; align-items: {alignItems}; gap: 12px;
             </code>
-            <span className="text-[10px] text-gray-500">Live Computed CSS</span>
+            <span className="text-[10px] text-gray-500 whitespace-nowrap shrink-0">Live Computed CSS</span>
           </div>
         </div>
       );
@@ -322,10 +335,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonGold flex items-center gap-2">
-                <Zap className="w-4 h-4" />
+                <Zap className="w-4 h-4 shrink-0" />
                 JavaScript Event Loop & Microtask Simulator
               </h4>
               <p className="text-[11px] text-gray-400">
@@ -338,10 +351,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 soundEngine.playSfx("click");
                 setEventLoopStep((prev) => (prev + 1) % steps.length);
               }}
-              className="px-3.5 py-1.5 rounded-lg bg-matrix-neonGold text-matrix-dark font-bold text-xs hover:scale-105 transition-all flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-lg bg-matrix-neonGold text-matrix-dark font-bold text-xs hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
             >
               <span>Step Next ({eventLoopStep + 1}/4)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           </div>
 
@@ -387,24 +400,24 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
-                <Search className="w-4 h-4" />
+                <Search className="w-4 h-4 shrink-0" />
                 Binary Search Step-by-Step Animator (O(log N))
               </h4>
               <p className="text-[11px] text-gray-400">
                 Target: <span className="text-matrix-neonGold font-bold font-mono">{searchTarget}</span> in a sorted array of 12 elements.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setSearchStep((prev) => (prev < 3 ? prev + 1 : 0));
                 }}
-                className="px-3.5 py-1.5 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs hover:scale-105 transition-all flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs hover:scale-105 transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0"
               >
                 <span>{searchStep < 3 ? "Next Halving Step" : "Reset Animation"}</span>
               </button>
@@ -469,10 +482,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "security": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonRed flex items-center gap-2">
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4 shrink-0" />
                 Interactive XSS Injection & Sanitization Lab
               </h4>
               <p className="text-[11px] text-gray-400">
@@ -485,13 +498,13 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 soundEngine.playSfx("click");
                 setSanitizeOn(!sanitizeOn);
               }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 sanitizeOn
                   ? "bg-matrix-accent text-matrix-dark shadow-sm shadow-matrix-accent/30"
                   : "bg-matrix-neonRed text-white shadow-sm shadow-red-900/50"
               }`}
             >
-              <Shield className="w-3.5 h-3.5" />
+              <Shield className="w-3.5 h-3.5 shrink-0" />
               <span>Sanitizer Shield: {sanitizeOn ? "ACTIVE (Safe)" : "DISABLED (Vulnerable)"}</span>
             </button>
           </div>
@@ -557,10 +570,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "typescript": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4 shrink-0" />
                 Discriminated Union & Type Narrowing Lab
               </h4>
               <p className="text-[11px] text-gray-400">
@@ -573,7 +586,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 soundEngine.playSfx("click");
                 setTsStrictMode(!tsStrictMode);
               }}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap shrink-0 ${
                 tsStrictMode
                   ? "bg-matrix-accent text-matrix-dark"
                   : "bg-matrix-neonRed text-white"
@@ -656,24 +669,24 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "react": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
-                <Zap className="w-4 h-4" />
+                <Zap className="w-4 h-4 shrink-0" />
                 React Render Flamegraph & Memoization Lab
               </h4>
               <p className="text-[11px] text-gray-400">
                 Trigger parent state updates and observe how React.memo + useCallback prevent wasted child re-renders.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setMemoEnabled(!memoEnabled);
                 }}
-                className={`px-3 py-1.5 rounded-lg font-bold text-xs border transition-all ${
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs border transition-all whitespace-nowrap shrink-0 ${
                   memoEnabled
                     ? "bg-matrix-accent/20 border-matrix-accent text-matrix-accent"
                     : "bg-matrix-neonRed/20 border-matrix-neonRed text-matrix-neonRed"
@@ -692,7 +705,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                   setFlashParent(true);
                   setTimeout(() => setFlashParent(false), 350);
                 }}
-                className="px-3.5 py-1.5 rounded-lg bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-all"
+                className="px-3.5 py-1.5 rounded-lg bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-all whitespace-nowrap shrink-0"
               >
                 Trigger Parent setState (+1)
               </button>
@@ -701,7 +714,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
           <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-4">
             <div
-              className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
+              className={`p-3.5 rounded-xl border transition-all flex flex-wrap items-center justify-between gap-2 ${
                 flashParent
                   ? "bg-matrix-neonCyan/20 border-matrix-neonCyan"
                   : "bg-matrix-card border-matrix-border"
@@ -713,36 +726,36 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 </span>
                 <span className="font-bold text-white">&lt;MatrixDashboard /&gt;</span>
               </div>
-              <span className="px-2.5 py-1 rounded bg-black/60 text-matrix-neonCyan font-bold">
+              <span className="px-2.5 py-1 rounded bg-black/60 text-matrix-neonCyan font-bold whitespace-nowrap shrink-0">
                 Renders: {renderCount}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-4 border-l-2 border-matrix-border">
-              <div className="p-3 rounded-xl bg-matrix-card border border-matrix-accent/40 flex items-center justify-between">
-                <div>
+              <div className="p-3 rounded-xl bg-matrix-card border border-matrix-accent/40 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
                   <span className="text-[10px] text-matrix-accent block">Stateful Target</span>
-                  <span className="font-bold text-white">&lt;CounterBadge count={renderCount} /&gt;</span>
+                  <span className="font-bold text-white break-all">&lt;CounterBadge count={renderCount} /&gt;</span>
                 </div>
-                <span className="px-2 py-1 rounded bg-matrix-accent/20 text-matrix-accent font-bold">
+                <span className="px-2 py-1 rounded bg-matrix-accent/20 text-matrix-accent font-bold whitespace-nowrap shrink-0">
                   Renders: {renderCount}
                 </span>
               </div>
 
               <div
-                className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                className={`p-3 rounded-xl border flex flex-wrap items-center justify-between gap-2 transition-all ${
                   memoEnabled
                     ? "bg-matrix-card border-matrix-border text-gray-300"
                     : "bg-red-950/30 border-matrix-neonRed text-matrix-neonRed"
                 }`}
               >
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] block">
                     {memoEnabled ? "Memoized Heavy Child (Skipped!)" : "Un-memoized Heavy Child (Wasted Render!)"}
                   </span>
-                  <span className="font-bold text-white">&lt;HeavyAnalyticsChart /&gt;</span>
+                  <span className="font-bold text-white break-all">&lt;HeavyAnalyticsChart /&gt;</span>
                 </div>
-                <span className="px-2 py-1 rounded bg-black/60 font-bold">
+                <span className="px-2 py-1 rounded bg-black/60 font-bold whitespace-nowrap shrink-0">
                   Renders: {unmemoizedChildRenders}
                 </span>
               </div>
@@ -844,24 +857,24 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "databases": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonPurple flex items-center gap-2">
-                <Database className="w-4 h-4" />
+                <Database className="w-4 h-4 shrink-0" />
                 PostgreSQL Parameterized Queries & B-Tree Index Planner
               </h4>
               <p className="text-[11px] text-gray-400">
                 Compare prepared statements ($1) and B-Tree index lookup speed on a 1,000,000-row table.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setIsParameterized(!isParameterized);
                 }}
-                className={`px-3 py-1 rounded-lg border font-bold text-[11px] ${
+                className={`px-3 py-1 rounded-lg border font-bold text-[11px] whitespace-nowrap shrink-0 ${
                   isParameterized
                     ? "bg-matrix-accent/20 border-matrix-accent text-matrix-accent"
                     : "bg-matrix-neonRed/20 border-matrix-neonRed text-matrix-neonRed"
@@ -875,7 +888,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                   soundEngine.playSfx("click");
                   setHasBtreeIndex(!hasBtreeIndex);
                 }}
-                className={`px-3 py-1 rounded-lg border font-bold text-[11px] ${
+                className={`px-3 py-1 rounded-lg border font-bold text-[11px] whitespace-nowrap shrink-0 ${
                   hasBtreeIndex
                     ? "bg-matrix-neonCyan/20 border-matrix-neonCyan text-matrix-neonCyan"
                     : "bg-amber-500/20 border-amber-500 text-amber-300"
@@ -919,10 +932,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "devops": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
-                <Layers className="w-4 h-4" />
+                <Layers className="w-4 h-4 shrink-0" />
                 Multi-Stage Docker Image Size & Layer Optimizer
               </h4>
               <p className="text-[11px] text-gray-400">
@@ -935,7 +948,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 soundEngine.playSfx("click");
                 setMultiStageDocker(!multiStageDocker);
               }}
-              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs ${
+              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap shrink-0 ${
                 multiStageDocker
                   ? "bg-matrix-accent text-matrix-dark"
                   : "bg-amber-500 text-matrix-dark"
@@ -983,17 +996,17 @@ export function RealmConceptVisualizer({ realmId }: Props) {
     case "testing": {
       return (
         <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
-          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-matrix-border pb-3">
             <div>
               <h4 className="text-sm font-bold text-matrix-accent flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 TDD Red-Green-Refactor & Vitest Spy Lab
               </h4>
               <p className="text-[11px] text-gray-400">
                 Inspect each phase of the Test-Driven Development loop and deterministic mock isolation.
               </p>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 shrink-0">
               {(["red", "green", "refactor"] as const).map((phase) => (
                 <button
                   key={phase}
@@ -1002,7 +1015,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                     soundEngine.playSfx("click");
                     setTddPhase(phase);
                   }}
-                  className={`px-3 py-1 rounded-lg font-bold uppercase text-[11px] border ${
+                  className={`px-3 py-1 rounded-lg font-bold uppercase text-[11px] border whitespace-nowrap shrink-0 ${
                     tddPhase === phase
                       ? phase === "red"
                         ? "bg-matrix-neonRed text-white border-matrix-neonRed"

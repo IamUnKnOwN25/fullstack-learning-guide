@@ -500,25 +500,25 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 flex flex-col gap-6 h-[calc(100vh-4.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 flex flex-col gap-6 min-h-[calc(100vh-4.5rem)] md:h-[calc(100vh-4.5rem)]">
       {/* Top Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-matrix-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-matrix-border">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors shrink-0"
             onClick={() => soundEngine.playSfx("click")}
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <h1 className="text-xl font-bold text-white font-mono flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-matrix-neonCyan" />
+              <BookOpen className="w-5 h-5 text-matrix-neonCyan shrink-0" />
               Curriculum Knowledge Vault
             </h1>
             <p className="text-xs text-gray-400">
               Complete reference documentation, concept deep-dives, and capstone specifications •{" "}
-              <span className="text-matrix-accent font-mono font-bold">
+              <span className="text-matrix-accent font-mono font-bold whitespace-nowrap">
                 {completedChapters.length}/{docs.length} Chapters Mastered
               </span>
             </p>
@@ -527,7 +527,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
 
         <Link
           href="/"
-          className="px-3.5 py-1.5 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent font-mono text-xs font-bold hover:bg-matrix-accent/20 transition-all"
+          className="px-3.5 py-1.5 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent font-mono text-xs font-bold hover:bg-matrix-accent/20 transition-all whitespace-nowrap shrink-0"
         >
           Return to Game Map
         </Link>
