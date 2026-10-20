@@ -206,3 +206,12 @@ This document records each autonomous improvement cycle, deterministic verificat
     - `audio.ts` → `soundEngine.ts`
   - Added root `README.md`, updated `CLAUDE.md`, and added filesystem existence assertions in `quests.test.ts`.
   - Verified with `tsc --noEmit` and `vitest run` (22/22 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 09:22] Cycle 23: Fix Live Preview Sandbox Bug & Add Multi-Language Interactive Simulators (Tests: PASS)**
+  - Fixed parse-time `<script>` syntax crash in `QuestCodingWorkspace.tsx` when evaluating TypeScript, ESM `import`/`export`, SQL, Dockerfile, and YAML quests inside the Live Preview tab.
+  - Created `src/lib/sandboxBuilder.ts` with `transpileToRunnableJs` and `buildSandboxSrcDoc`:
+    - Automatically strips TypeScript interfaces, type aliases, generic parameters, type annotations, and `import`/`export` statements before sandboxed `new Function(...)` execution.
+    - Injected accessible cybernetic dark-mode base styles into HTML/CSS previews so unstyled HTML elements are legible against the dark theme.
+    - Added specialized interactive preview simulators for PostgreSQL DDL/B-Tree indexes (`sql`), Docker BuildKit multi-stage layers (`dockerfile`), and GitHub Actions CI workflows (`yaml`).
+    - Added runtime shims for Express routes, Next.js `revalidatePath`, JWT verification, and Vitest `describe`/`it`/`expect`/`vi.fn()`.
+  - Added unit test suite `src/__tests__/sandboxBuilder.test.ts` (26/26 tests passing, 0 TypeScript errors).
