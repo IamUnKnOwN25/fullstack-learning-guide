@@ -236,3 +236,11 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added synchronized line-number gutter, live line/character telemetry bar, and "Copy Code" button with visual feedback.
   - Enhanced `BossBattleArena.tsx` with a line-number gutter and "Load Tactical Patch" helper inside the Tactical Weakness Scanner.
   - Verified with `tsc --noEmit` and `vitest run` (26/26 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 09:30] Cycle 26: Interactive Curriculum Reader Upgrade — Clickable Checkboxes, Section Jump Bar, Copy Snippets & Direct Quest Launcher (Tests: PASS)**
+  - Enhanced `src/components/CurriculumViewer.tsx`:
+    - Converted Markdown task lists (`- [ ]` and `- [x]`) into interactive, clickable checkboxes with live per-chapter progress telemetry (`Tasks: X/Y`).
+    - Added one-click "Copy Snippet" button with visual confirmation to every fenced code block.
+    - Added auto-generated "Jump to:" section Table of Contents pill bar for all `## ` headings.
+    - Added "Practice Realm Quests" action button in the chapter header and internal `.md` link routing across all 13 guides.
+  - Verified with `tsc --noEmit` and `vitest run` (26/26 tests passing, 0 TypeScript errors).

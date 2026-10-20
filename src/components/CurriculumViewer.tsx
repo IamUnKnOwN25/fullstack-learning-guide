@@ -3,7 +3,19 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { soundEngine } from "@/lib/soundEngine";
-import { BookOpen, ArrowLeft, Search, FileText, CheckCircle2 } from "lucide-react";
+import { REALMS } from "@/data/realms";
+import { QUESTS } from "@/data/quests";
+import {
+  BookOpen,
+  ArrowLeft,
+  Search,
+  FileText,
+  CheckCircle2,
+  Copy,
+  Check,
+  Play,
+  ListChecks,
+} from "lucide-react";
 
 export interface DocFile {
   filename: string;
@@ -17,7 +29,10 @@ interface Props {
 }
 
 // Inline formatting helper for bold, inline code, and links
-function formatInlineText(text: string): React.ReactNode[] {
+function formatInlineText(
+  text: string,
+  onSelectDoc?: (filename: string) => void
+): React.ReactNode[] {
   // Split tokens by code, bold, link
   const parts: React.ReactNode[] = [];
   // Regex to match `code`, **bold**, or [text](url)
@@ -50,17 +65,44 @@ function formatInlineText(text: string): React.ReactNode[] {
       const closingBracket = token.indexOf("]");
       const linkText = token.slice(1, closingBracket);
       const url = token.slice(closingBracket + 2, -1);
-      parts.push(
-        <a
-          key={match.index}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-matrix-neonCyan hover:underline hover:text-white"
-        >
-          {linkText}
-        </a>
-      );
+
+      if (url.endsWith(".md") && onSelectDoc) {
+        parts.push(
+          <button
+            type="button"
+            key={match.index}
+            onClick={() => {
+              soundEngine.playSfx("click");
+              onSelectDoc(url);
+            }}
+            className="text-matrix-neonCyan hover:underline hover:text-white font-bold cursor-pointer"
+          >
+            {linkText}
+          </button>
+        );
+      } else if (url.startsWith("#")) {
+        parts.push(
+          <a
+            key={match.index}
+            href={url}
+            className="text-matrix-neonCyan hover:underline hover:text-white"
+          >
+            {linkText}
+          </a>
+        );
+      } else {
+        parts.push(
+          <a
+            key={match.index}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-matrix-neonCyan hover:underline hover:text-white"
+          >
+            {linkText}
+          </a>
+        );
+      }
     }
 
     lastIndex = regex.lastIndex;
@@ -73,7 +115,28 @@ function formatInlineText(text: string): React.ReactNode[] {
   return parts;
 }
 
-function RichMarkdownViewer({ content }: { content: string }) {
+function slugifyHeading(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+function RichMarkdownViewer({
+  content,
+  docId,
+  checkedBoxes,
+  onToggleBox,
+  onSelectDoc,
+}: {
+  content: string;
+  docId: string;
+  checkedBoxes: Record<string, boolean>;
+  onToggleBox: (key: string) => void;
+  onSelectDoc: (filename: string) => void;
+}) {
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const lines = content.split("\n");
   const elements: React.ReactNode[] = [];
   let inCodeBlock = false;
@@ -84,19 +147,46 @@ function RichMarkdownViewer({ content }: { content: string }) {
 
   const flushCodeBlock = (key: string | number) => {
     if (codeBlockLines.length > 0) {
+      const snippetText = codeBlockLines.join("\n");
+      const blockId = `${docId}-code-${key}`;
+      const isCopied = copiedKey === blockId;
+
       elements.push(
         <div
-          key={`code-${key}`}
+          key={blockId}
           className="my-4 rounded-xl border border-matrix-border bg-matrix-dark overflow-hidden shadow-lg"
         >
           <div className="flex items-center justify-between px-4 py-2 border-b border-matrix-border bg-matrix-card/80 text-[11px] font-mono text-gray-400">
             <span className="text-matrix-neonCyan uppercase font-bold">
               {codeBlockLang || "CODE"}
             </span>
-            <span className="text-gray-500 text-[10px]">TERMINAL SNIPPET</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof navigator !== "undefined" && navigator.clipboard) {
+                  navigator.clipboard.writeText(snippetText);
+                }
+                soundEngine.playSfx("click");
+                setCopiedKey(blockId);
+                setTimeout(() => setCopiedKey(null), 1500);
+              }}
+              className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white text-[10px] transition-colors cursor-pointer"
+            >
+              {isCopied ? (
+                <>
+                  <Check className="w-3 h-3 text-matrix-accent" />
+                  <span className="text-matrix-accent font-bold">Copied</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3" />
+                  <span>Copy Snippet</span>
+                </>
+              )}
+            </button>
           </div>
           <pre className="p-4 overflow-x-auto font-mono text-xs text-matrix-accent leading-relaxed select-text">
-            <code>{codeBlockLines.join("\n")}</code>
+            <code>{snippetText}</code>
           </pre>
         </div>
       );
@@ -205,13 +295,16 @@ function RichMarkdownViewer({ content }: { content: string }) {
     }
 
     if (line.startsWith("## ")) {
+      const headingText = line.slice(3);
+      const idSlug = slugifyHeading(headingText);
       elements.push(
         <h2
+          id={idSlug}
           key={i}
-          className="text-xl font-bold font-mono text-matrix-accent mt-6 mb-3 flex items-center gap-2"
+          className="text-xl font-bold font-mono text-matrix-accent mt-6 mb-3 flex items-center gap-2 scroll-mt-6"
         >
           <span className="text-matrix-accent/60">##</span>
-          {formatInlineText(line.slice(3))}
+          {formatInlineText(headingText, onSelectDoc)}
         </h2>
       );
       continue;
@@ -252,6 +345,44 @@ function RichMarkdownViewer({ content }: { content: string }) {
       continue;
     }
 
+    // Interactive Task Checkbox List Item (- [ ] or - [x])
+    const checkboxMatch = line.trim().match(/^[-*]\s+\[([ xX])\]\s+(.*)$/);
+    if (checkboxMatch) {
+      const boxKey = `${docId}-line-${i}`;
+      const defaultChecked = checkboxMatch[1].toLowerCase() === "x";
+      const isChecked = checkedBoxes[boxKey] ?? defaultChecked;
+      const labelContent = checkboxMatch[2];
+
+      elements.push(
+        <div
+          key={i}
+          onClick={() => {
+            soundEngine.playSfx("click");
+            onToggleBox(boxKey);
+          }}
+          className={`my-1.5 p-2.5 rounded-lg border transition-all flex items-start gap-2.5 cursor-pointer font-mono text-xs sm:text-sm ${
+            isChecked
+              ? "bg-matrix-accent/10 border-matrix-accent/40 text-gray-300"
+              : "bg-matrix-dark/50 border-matrix-border/70 hover:border-matrix-neonCyan/50 text-gray-200"
+          }`}
+        >
+          <div
+            className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+              isChecked
+                ? "bg-matrix-accent border-matrix-accent text-matrix-dark"
+                : "bg-matrix-card border-gray-600"
+            }`}
+          >
+            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+          </div>
+          <span className={isChecked ? "line-through text-gray-400" : "text-gray-200"}>
+            {formatInlineText(labelContent, onSelectDoc)}
+          </span>
+        </div>
+      );
+      continue;
+    }
+
     // Unordered List item
     if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
       const bulletContent = line.trim().slice(2);
@@ -260,7 +391,7 @@ function RichMarkdownViewer({ content }: { content: string }) {
           key={i}
           className="ml-5 list-disc text-xs sm:text-sm font-mono text-gray-300 my-1 leading-relaxed"
         >
-          {formatInlineText(bulletContent)}
+          {formatInlineText(bulletContent, onSelectDoc)}
         </li>
       );
       continue;
@@ -306,6 +437,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
     return docs[0]?.filename || "";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [checkedBoxes, setCheckedBoxes] = useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     if (initialFile && docs.some((d) => d.filename === initialFile)) {
@@ -314,6 +446,35 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   }, [initialFile, docs]);
 
   const activeDoc = docs.find((d) => d.filename === selectedFile) || docs[0];
+  const matchingRealm = REALMS.find((r) => r.fileRef === activeDoc?.filename);
+  const firstQuestId = matchingRealm ? QUESTS[matchingRealm.id]?.[0]?.id : undefined;
+
+  // Extract ## headings for quick section jump bar
+  const sectionHeadings = React.useMemo(() => {
+    if (!activeDoc) return [];
+    return activeDoc.content
+      .split("\n")
+      .filter((line) => line.startsWith("## "))
+      .map((line) => {
+        const title = line.slice(3).trim();
+        return { title, id: slugifyHeading(title) };
+      });
+  }, [activeDoc]);
+
+  // Count interactive checkboxes in current document
+  const totalCheckboxes = React.useMemo(() => {
+    if (!activeDoc) return 0;
+    return activeDoc.content
+      .split("\n")
+      .filter((l) => /^[-*]\s+\[[ xX]\]\s+/.test(l.trim())).length;
+  }, [activeDoc]);
+
+  const completedCheckboxesCount = React.useMemo(() => {
+    if (!activeDoc) return 0;
+    return Object.entries(checkedBoxes).filter(
+      ([k, val]) => k.startsWith(`${activeDoc.filename}-line-`) && val
+    ).length;
+  }, [activeDoc, checkedBoxes]);
 
   const filteredDocs = docs.filter(
     (d) =>
@@ -393,21 +554,76 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         </div>
 
         {/* Right Content: Document Reader */}
-        <div className="md:col-span-3 bg-matrix-card border border-matrix-border rounded-xl p-6 sm:p-8 overflow-y-auto space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
+        <div className="md:col-span-3 bg-matrix-card border border-matrix-border rounded-xl p-6 sm:p-8 overflow-y-auto space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
                 {activeDoc.filename}
               </span>
-              <span>{activeDoc.title}</span>
+              <span className="text-white font-bold">{activeDoc.title}</span>
             </div>
-            <span className="text-matrix-neonCyan text-[11px] hidden sm:inline">
-              READ-ONLY CURRICULUM ARCHIVE
-            </span>
+
+            <div className="flex items-center gap-3">
+              {totalCheckboxes > 0 && (
+                <span className="px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-accent flex items-center gap-1.5 text-[11px] font-bold">
+                  <ListChecks className="w-3.5 h-3.5" />
+                  Tasks: {completedCheckboxesCount}/{totalCheckboxes}
+                </span>
+              )}
+
+              {matchingRealm && firstQuestId && (
+                <Link
+                  href={`/quest/${matchingRealm.id}/${firstQuestId}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className="px-3 py-1 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all"
+                >
+                  <Play className="w-3 h-3 fill-matrix-dark" />
+                  <span>Practice Realm Quests</span>
+                </Link>
+              )}
+            </div>
           </div>
 
+          {/* Section Table of Contents Jump Bar */}
+          {sectionHeadings.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px]">
+              <span className="text-gray-500 uppercase font-bold mr-1">Jump to:</span>
+              {sectionHeadings.map((sec) => (
+                <a
+                  key={sec.id}
+                  href={`#${sec.id}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors"
+                >
+                  {sec.title}
+                </a>
+              ))}
+            </div>
+          )}
+
           <div className="text-xs sm:text-sm select-text">
-            <RichMarkdownViewer content={activeDoc.content} />
+            <RichMarkdownViewer
+              content={activeDoc.content}
+              docId={activeDoc.filename}
+              checkedBoxes={checkedBoxes}
+              onToggleBox={(boxKey) =>
+                setCheckedBoxes((prev) => ({ ...prev, [boxKey]: !prev[boxKey] }))
+              }
+              onSelectDoc={(filename) => {
+                const aliasMap: Record<string, string> = {
+                  "00-README.md": "00-curriculum-overview.md",
+                  "01-html.md": "01-html-and-semantics.md",
+                  "02-css.md": "02-css-layout-and-styling.md",
+                  "03-javascript.md": "03-modern-javascript.md",
+                  "04-typescript.md": "04-strict-typescript.md",
+                  "07-databases.md": "07-databases-and-sql.md",
+                };
+                const target = aliasMap[filename] || filename;
+                if (docs.some((d) => d.filename === target)) {
+                  setSelectedFile(target);
+                }
+              }}
+            />
           </div>
         </div>
       </div>
