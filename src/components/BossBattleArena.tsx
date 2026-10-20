@@ -60,6 +60,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const [scanOpen, setScanOpen] = useState(false);
   const [arenaShaking, setArenaShaking] = useState(false);
   const [laserActive, setLaserActive] = useState(false);
+  const gutterRef = React.useRef<HTMLDivElement | null>(null);
 
   const phase = boss?.phases[currentPhaseIndex];
 
@@ -511,10 +512,11 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               </button>
             </div>
 
-            <div className="p-4 bg-matrix-dark flex-1 min-h-[220px] flex gap-3">
+            <div className="bg-matrix-dark flex-1 min-h-[220px] flex overflow-hidden">
               <div
+                ref={gutterRef}
                 aria-hidden="true"
-                className="select-none text-right pr-2 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-relaxed"
+                className="select-none text-right py-4 pl-4 pr-2.5 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-6 overflow-hidden shrink-0"
               >
                 {code.split("\n").map((_, i) => (
                   <div key={i}>{i + 1}</div>
@@ -523,8 +525,14 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               <textarea
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                onScroll={(e) => {
+                  if (gutterRef.current) {
+                    gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+                  }
+                }}
                 spellCheck={false}
-                className="w-full h-full bg-transparent text-gray-200 outline-none resize-none font-mono text-xs leading-relaxed selection:bg-red-500/30"
+                wrap="off"
+                className="w-full flex-1 h-full py-4 px-3 bg-transparent text-gray-200 outline-none resize-none font-mono text-xs leading-6 overflow-auto whitespace-pre selection:bg-red-500/30"
                 style={{ tabSize: 2 }}
                 onKeyDown={(e) => {
                   if (e.key === "Tab") {

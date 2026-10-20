@@ -64,6 +64,7 @@ export function QuestCodingWorkspace({
   const [copiedCode, setCopiedCode] = useState(false);
   const [showMentorGuide, setShowMentorGuide] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const gutterRef = React.useRef<HTMLDivElement | null>(null);
   const [testResult, setTestResult] = useState<{
     passed?: boolean;
     message?: string;
@@ -603,11 +604,12 @@ export function QuestCodingWorkspace({
           {/* Tab 1: Code Editor */}
           {activeTab === "editor" && (
             <div className="flex-1 bg-matrix-dark flex flex-col font-mono text-xs overflow-hidden">
-              <div className="flex-1 flex overflow-y-auto p-3 sm:p-4 gap-3">
+              <div className="flex-1 flex overflow-hidden">
                 {/* Line Numbers Gutter */}
                 <div
+                  ref={gutterRef}
                   aria-hidden="true"
-                  className="select-none text-right pr-2 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-relaxed"
+                  className="select-none text-right py-3 sm:py-4 pl-3 sm:pl-4 pr-2.5 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-6 overflow-hidden shrink-0"
                 >
                   {code.split("\n").map((_, i) => (
                     <div key={i}>{i + 1}</div>
@@ -617,9 +619,15 @@ export function QuestCodingWorkspace({
                 <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
+                  onScroll={(e) => {
+                    if (gutterRef.current) {
+                      gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+                    }
+                  }}
                   placeholder="Type your code solution here..."
                   spellCheck={false}
-                  className="w-full flex-1 bg-transparent text-gray-200 outline-none resize-none font-mono leading-relaxed selection:bg-matrix-accent/30 selection:text-white"
+                  wrap="off"
+                  className="w-full flex-1 h-full py-3 sm:py-4 px-3 bg-transparent text-gray-200 outline-none resize-none font-mono leading-6 overflow-auto whitespace-pre selection:bg-matrix-accent/30 selection:text-white"
                   style={{ tabSize: 2 }}
                   onKeyDown={(e) => {
                     if (e.key === "Tab") {

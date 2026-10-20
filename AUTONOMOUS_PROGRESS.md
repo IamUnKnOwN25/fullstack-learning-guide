@@ -332,3 +332,10 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **Integrated Terminal (`matrix-sh`), Console & Problems Panel**: Interactive shell supporting `help`, `ls`, `cat`, `node <file>`, `run`, `touch`, `rm`, `whoami`, `clear`, plus real-time `console.log`/`warn`/`error` streaming and static linter diagnostics.
   - Added `Matrix IDE` navigation buttons in `NavigationHud.tsx`, `WorldCampaignMap.tsx`, and `QuestCodingWorkspace.tsx` (`Open in Matrix IDE`).
   - Verified with `tsc --noEmit`, `vitest run` (36/36 tests passing across 8 test suites), and live HTTP 200 verification on `/ide` and `/ide?quest=html_1_skeleton`.
+
+- **[2026-10-20 12:34] Cycle 40: Fix Duplicate Scrollbars in Code Editors & Synchronize Line-Number Gutter Scrolling (Tests: PASS)**
+  - Fixed duplicate vertical scrollbars in `src/components/OnlineMatrixIde.tsx`, `src/components/QuestCodingWorkspace.tsx`, and `src/components/BossBattleArena.tsx`:
+    - Previously, the outer flex wrapper had `overflow-y-auto` (Scrollbar #1 driven by the line-number gutter height) while the child `<textarea>` stretched to the flex viewport height and rendered its own native vertical scrollbar (Scrollbar #2).
+    - Replaced `overflow-y-auto` on the outer wrapper with `overflow-hidden`, set `overflow-hidden` on the line-number gutter (`gutterRef`), made `<textarea>` the sole scroll container (`overflow-y-auto`), and synchronized `gutterRef.current.scrollTop = e.currentTarget.scrollTop` on `onScroll`.
+    - Defaulted `wordWrap` to `false` (`wrap="off"`) with matching `leading-6` line heights so every line number aligns 1-to-1 with its corresponding code line.
+  - Added regression test in `src/__tests__/uiLayoutGuard.test.ts` (37/37 tests passing across 8 test suites).

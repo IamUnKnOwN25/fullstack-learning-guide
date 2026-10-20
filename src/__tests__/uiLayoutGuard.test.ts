@@ -5,6 +5,8 @@ import path from "path";
 describe("UI Layout & Overflow Regression Guards", () => {
   const visualizerPath = path.join(process.cwd(), "src/components/RealmConceptVisualizer.tsx");
   const workspacePath = path.join(process.cwd(), "src/components/QuestCodingWorkspace.tsx");
+  const idePath = path.join(process.cwd(), "src/components/OnlineMatrixIde.tsx");
+  const bossPath = path.join(process.cwd(), "src/components/BossBattleArena.tsx");
 
   it("prevents combining w-full with inline marginLeft in RealmConceptVisualizer DOM tree", () => {
     const content = fs.readFileSync(visualizerPath, "utf-8");
@@ -22,5 +24,12 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(content).toContain("<span>Live Preview</span>");
     expect(content).toContain("<span>Terminal</span>");
     expect(content).toContain("<span>Visualizer</span>");
+  });
+
+  it("prevents duplicate scrollbars in code editors by synchronizing gutterRef with textarea scrollTop", () => {
+    for (const filePath of [idePath, workspacePath, bossPath]) {
+      const content = fs.readFileSync(filePath, "utf-8");
+      expect(content).toContain("gutterRef.current.scrollTop = e.currentTarget.scrollTop");
+    }
   });
 });

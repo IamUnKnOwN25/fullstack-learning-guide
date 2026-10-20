@@ -115,7 +115,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     "desktop"
   );
   const [fontSize, setFontSize] = useState<"text-xs" | "text-sm" | "text-base">("text-xs");
-  const [wordWrap, setWordWrap] = useState(true);
+  const [wordWrap, setWordWrap] = useState(false);
 
   // File Creation state
   const [isCreatingFile, setIsCreatingFile] = useState(false);
@@ -153,6 +153,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   } | null>(null);
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
+  const gutterRef = useRef<HTMLDivElement | null>(null);
 
   // Load saved workspace from localStorage on mount (unless initialQuestId is passed)
   useEffect(() => {
@@ -1115,13 +1116,14 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   </div>
                 </div>
 
-                {/* Line-Numbered Code Surface */}
+                {/* Line-Numbered Code Surface (Single Scrollbar via Synchronized Gutter) */}
                 <div
-                  className={`flex-1 bg-matrix-dark flex overflow-y-auto p-3 gap-3 ${fontSize} min-h-[260px]`}
+                  className={`flex-1 bg-matrix-dark flex overflow-hidden ${fontSize} min-h-[260px]`}
                 >
                   <div
+                    ref={gutterRef}
                     aria-hidden="true"
-                    className="select-none text-right pr-2.5 border-r border-matrix-border/60 text-gray-600 leading-relaxed"
+                    className="select-none text-right py-3 pl-3 pr-2.5 border-r border-matrix-border/60 text-gray-600 leading-6 overflow-hidden shrink-0"
                   >
                     {(activeFile?.content || "").split("\n").map((_, idx) => (
                       <div
@@ -1142,12 +1144,17 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                       updateActiveFileContent(e.target.value);
                       updateCursorMetrics(e.target);
                     }}
+                    onScroll={(e) => {
+                      if (gutterRef.current) {
+                        gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+                      }
+                    }}
                     onClick={(e) => updateCursorMetrics(e.currentTarget)}
                     onKeyUp={(e) => updateCursorMetrics(e.currentTarget)}
                     spellCheck={false}
                     wrap={wordWrap ? "soft" : "off"}
                     placeholder="Write your code here..."
-                    className={`w-full flex-1 bg-transparent text-gray-100 outline-none resize-none font-mono leading-relaxed selection:bg-matrix-neonCyan/30 select-text ${
+                    className={`w-full flex-1 h-full py-3 px-3 bg-transparent text-gray-100 outline-none resize-none font-mono leading-6 overflow-y-auto selection:bg-matrix-neonCyan/30 select-text ${
                       wordWrap ? "" : "overflow-x-auto whitespace-pre"
                     }`}
                     style={{ tabSize: 2 }}
@@ -1262,7 +1269,11 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                 </div>
 
                 {/* Live Sandboxed Iframe Container */}
-                <div className="flex-1 bg-black/50 p-2 flex items-stretch justify-center overflow-auto">
+                <div
+                  className={`flex-1 bg-black/50 p-2 flex items-stretch justify-center ${
+                    viewportDevice === "desktop" ? "overflow-hidden" : "overflow-x-auto overflow-y-hidden"
+                  }`}
+                >
                   <div
                     className={`bg-matrix-dark rounded-lg overflow-hidden border border-matrix-border/70 transition-all h-full ${
                       viewportDevice === "mobile"
