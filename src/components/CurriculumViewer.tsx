@@ -17,6 +17,8 @@ import {
   Play,
   ListChecks,
   Award,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 export interface DocFile {
@@ -446,6 +448,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
     return docs[0]?.filename || "";
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [focusReader, setFocusReader] = useState(false);
 
   const checkedBoxes = React.useMemo(() => {
     const map: Record<string, boolean> = {};
@@ -536,7 +539,11 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
       {/* Main Split: Left Sidebar File Nav, Right Markdown Content */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
         {/* Left Sidebar: File List */}
-        <div className="md:col-span-3 xl:col-span-2 bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex flex-col gap-3 overflow-hidden">
+        <div
+          className={`bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex flex-col gap-3 overflow-hidden ${
+            focusReader ? "md:hidden" : "md:col-span-3 xl:col-span-2"
+          }`}
+        >
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-500" />
             <input
@@ -581,10 +588,33 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         {/* Right Content: Document Reader */}
         <div
           key={activeDoc.filename}
-          className="md:col-span-9 xl:col-span-10 bg-matrix-card border border-matrix-border rounded-xl p-5 sm:p-7 overflow-y-auto space-y-5 animate-fadeIn"
+          className={`bg-matrix-card border border-matrix-border rounded-xl p-5 sm:p-7 overflow-y-auto space-y-5 animate-fadeIn ${
+            focusReader ? "md:col-span-12" : "md:col-span-9 xl:col-span-10"
+          }`}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setFocusReader((prev) => !prev);
+                }}
+                className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                title={focusReader ? "Show Chapters Sidebar" : "Maximize Reader (Full Width)"}
+              >
+                {focusReader ? (
+                  <>
+                    <Minimize2 className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>Chapters</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>Maximize</span>
+                  </>
+                )}
+              </button>
               <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
                 {activeDoc.filename}
               </span>

@@ -372,3 +372,8 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Expanded `src/components/WorldCampaignMap.tsx` and `src/components/ConstellationWorldMap.tsx` to `max-w-[1920px]` with `lg:grid-cols-12` (`lg:col-span-8 xl:col-span-9` Map/Grid, `lg:col-span-4 xl:col-span-3` Realm Inspector), 3-column realm cards on `xl` screens (`xl:grid-cols-3`), and taller responsive Constellation Map height (`lg:h-[calc(100vh-17rem)] max-h-[820px]`).
   - Expanded `src/components/BossBattleArena.tsx` (`max-w-[1920px]`, `lg:grid-cols-12` with `lg:col-span-5` Phase Prompt and `lg:col-span-7` Debug Workbench), `src/components/CurriculumViewer.tsx` (`max-w-[1920px]`, `md:col-span-3 xl:col-span-2` sidebar and `md:col-span-9 xl:col-span-10` document reader), and widened `AchievementsModal.tsx` and `SkillTreeModal.tsx` (`max-w-4xl`, `lg:grid-cols-3`).
   - Verified with `tsc --noEmit` and `vitest run` (38/38 tests passing across 8 suites).
+
+- **[2026-10-20 13:07] Cycle 46: Side-by-Side Split (`Editor + Preview`) Mode in Quest Coding Workspace & Full-Width Reader Toggle in Curriculum Vault (Tests: PASS)**
+  - Added a **Split (`Editor + Preview`)** tab in `src/components/QuestCodingWorkspace.tsx` (`activeTab === "split"`) so learners can edit code and see their live sandboxed output side-by-side in `xl:flex-row` (and combine it with the **Maximize** button for a full 12-column dual-pane coding studio inside every quest).
+  - Added a **Maximize / Chapters** toggle button (`focusReader`) in `src/components/CurriculumViewer.tsx` so learners can collapse the left chapter sidebar and expand the Markdown Document Reader to 100% full width (`md:col-span-12`).
+  - Verified with `tsc --noEmit` and `vitest run` (38/38 tests passing across 8 suites).

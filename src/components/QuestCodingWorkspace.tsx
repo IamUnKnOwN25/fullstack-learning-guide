@@ -28,6 +28,7 @@ import {
   Zap,
   Maximize2,
   Minimize2,
+  Columns,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
@@ -60,7 +61,7 @@ export function QuestCodingWorkspace({
       : undefined);
 
   const [code, setCode] = useState(quest?.starterCode || "");
-  const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal" | "visualizer">("editor");
+  const [activeTab, setActiveTab] = useState<"editor" | "split" | "preview" | "terminal" | "visualizer">("editor");
   const [showHintIndex, setShowHintIndex] = useState<number>(-1);
   const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
   const [copiedCode, setCopiedCode] = useState(false);
@@ -557,6 +558,22 @@ export function QuestCodingWorkspace({
               <button
                 onClick={() => {
                   soundEngine.playSfx("click");
+                  setActiveTab("split");
+                }}
+                className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
+                  activeTab === "split"
+                    ? "bg-matrix-neonCyan/20 border border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/20"
+                    : "text-gray-400 hover:text-white border border-transparent"
+                }`}
+                title="Side-by-Side Code Editor + Live Preview"
+              >
+                <Columns className="w-3.5 h-3.5 shrink-0" />
+                <span>Split</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
                   setActiveTab("preview");
                 }}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap shrink-0 transition-all ${
@@ -647,97 +664,104 @@ export function QuestCodingWorkspace({
             </div>
           </div>
 
-          {/* Tab 1: Code Editor */}
-          {activeTab === "editor" && (
-            <div className="flex-1 bg-matrix-dark flex flex-col font-mono text-xs sm:text-sm overflow-hidden animate-fadeIn">
-              <div className="flex-1 flex overflow-hidden">
-                {/* Line Numbers Gutter */}
+          {/* Tab 1 / Split / Tab 2: Code Editor & Sandboxed Live Preview */}
+          {(activeTab === "editor" || activeTab === "split" || activeTab === "preview") && (
+            <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden animate-fadeIn">
+              {(activeTab === "editor" || activeTab === "split") && (
                 <div
-                  ref={gutterRef}
-                  aria-hidden="true"
-                  className="select-none text-right py-3 sm:py-4 pl-3 sm:pl-4 pr-2.5 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-6 overflow-hidden shrink-0"
+                  className={`flex-1 min-w-0 bg-matrix-dark flex flex-col font-mono text-xs sm:text-sm overflow-hidden ${
+                    activeTab === "split" ? "border-b xl:border-b-0 xl:border-r border-matrix-border" : ""
+                  }`}
                 >
-                  {code.split("\n").map((_, i) => (
-                    <div key={i}>{i + 1}</div>
-                  ))}
+                  <div className="flex-1 flex overflow-hidden">
+                    {/* Line Numbers Gutter */}
+                    <div
+                      ref={gutterRef}
+                      aria-hidden="true"
+                      className="select-none text-right py-3 sm:py-4 pl-3 sm:pl-4 pr-2.5 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-6 overflow-hidden shrink-0"
+                    >
+                      {code.split("\n").map((_, i) => (
+                        <div key={i}>{i + 1}</div>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      onScroll={(e) => {
+                        if (gutterRef.current) {
+                          gutterRef.current.scrollTop = e.currentTarget.scrollTop;
+                        }
+                      }}
+                      placeholder="Type your code solution here..."
+                      spellCheck={false}
+                      wrap="off"
+                      className="w-full flex-1 h-full py-3 sm:py-4 px-3 bg-transparent text-gray-200 outline-none resize-none font-mono leading-6 overflow-auto whitespace-pre selection:bg-matrix-accent/30 selection:text-white"
+                      style={{ tabSize: 2 }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Tab") {
+                          e.preventDefault();
+                          const target = e.target as HTMLTextAreaElement;
+                          const start = target.selectionStart;
+                          const end = target.selectionEnd;
+                          setCode(code.substring(0, start) + "  " + code.substring(end));
+                          setTimeout(() => {
+                            target.selectionStart = target.selectionEnd = start + 2;
+                          }, 0);
+                        } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                          e.preventDefault();
+                          handleRunCode();
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Editor Status & Copy Toolbar */}
+                  <div className="px-4 py-1.5 border-t border-matrix-border bg-matrix-card/60 flex items-center justify-between text-[10px] text-gray-400">
+                    <div className="flex items-center gap-3">
+                      <span>Lines: {code.split("\n").length}</span>
+                      <span>•</span>
+                      <span>Chars: {code.length}</span>
+                      <span className="hidden sm:inline">• Tab: 2 Spaces</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                          navigator.clipboard.writeText(code);
+                        }
+                        soundEngine.playSfx("click");
+                        setCopiedCode(true);
+                        setTimeout(() => setCopiedCode(false), 1800);
+                      }}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white transition-colors"
+                    >
+                      {copiedCode ? (
+                        <>
+                          <Check className="w-3 h-3 text-matrix-accent" />
+                          <span className="text-matrix-accent font-bold">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>Copy Code</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
+              )}
 
-                <textarea
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  onScroll={(e) => {
-                    if (gutterRef.current) {
-                      gutterRef.current.scrollTop = e.currentTarget.scrollTop;
-                    }
-                  }}
-                  placeholder="Type your code solution here..."
-                  spellCheck={false}
-                  wrap="off"
-                  className="w-full flex-1 h-full py-3 sm:py-4 px-3 bg-transparent text-gray-200 outline-none resize-none font-mono leading-6 overflow-auto whitespace-pre selection:bg-matrix-accent/30 selection:text-white"
-                  style={{ tabSize: 2 }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab") {
-                      e.preventDefault();
-                      const target = e.target as HTMLTextAreaElement;
-                      const start = target.selectionStart;
-                      const end = target.selectionEnd;
-                      setCode(code.substring(0, start) + "  " + code.substring(end));
-                      setTimeout(() => {
-                        target.selectionStart = target.selectionEnd = start + 2;
-                      }, 0);
-                    } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                      e.preventDefault();
-                      handleRunCode();
-                    }
-                  }}
-                />
-              </div>
-
-              {/* Editor Status & Copy Toolbar */}
-              <div className="px-4 py-1.5 border-t border-matrix-border bg-matrix-card/60 flex items-center justify-between text-[10px] text-gray-400">
-                <div className="flex items-center gap-3">
-                  <span>Lines: {code.split("\n").length}</span>
-                  <span>•</span>
-                  <span>Chars: {code.length}</span>
-                  <span className="hidden sm:inline">• Tab: 2 Spaces</span>
+              {(activeTab === "preview" || activeTab === "split") && (
+                <div className="flex-1 min-w-0 bg-matrix-dark p-2 flex flex-col">
+                  <iframe
+                    title="Live Sandboxed Output"
+                    sandbox="allow-scripts"
+                    srcDoc={buildSandboxSrcDoc(code, quest.language, quest.previewType)}
+                    className="w-full h-full border-none rounded-lg"
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof navigator !== "undefined" && navigator.clipboard) {
-                      navigator.clipboard.writeText(code);
-                    }
-                    soundEngine.playSfx("click");
-                    setCopiedCode(true);
-                    setTimeout(() => setCopiedCode(false), 1800);
-                  }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white transition-colors"
-                >
-                  {copiedCode ? (
-                    <>
-                      <Check className="w-3 h-3 text-matrix-accent" />
-                      <span className="text-matrix-accent font-bold">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span>Copy Code</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Tab 2: Sandboxed Live Preview */}
-          {activeTab === "preview" && (
-            <div className="flex-1 bg-matrix-dark p-2 flex flex-col animate-fadeIn">
-              <iframe
-                title="Live Sandboxed Output"
-                sandbox="allow-scripts"
-                srcDoc={buildSandboxSrcDoc(code, quest.language, quest.previewType)}
-                className="w-full h-full border-none rounded-lg"
-              />
+              )}
             </div>
           )}
 
