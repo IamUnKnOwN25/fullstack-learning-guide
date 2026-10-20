@@ -19,9 +19,11 @@ import {
   ArrowRight,
   ShieldAlert,
   BookOpen,
+  Layers,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
+import { RealmConceptVisualizer } from "./RealmConceptVisualizer";
 
 interface Props {
   quest?: Quest;
@@ -48,7 +50,7 @@ export function DualPaneWorkspace({
       : undefined);
 
   const [code, setCode] = useState(quest?.starterCode || "");
-  const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal">("editor");
+  const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal" | "visualizer">("editor");
   const [showHintIndex, setShowHintIndex] = useState<number>(-1);
   const [testResult, setTestResult] = useState<{
     passed?: boolean;
@@ -371,6 +373,21 @@ export function DualPaneWorkspace({
                   />
                 )}
               </button>
+
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setActiveTab("visualizer");
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  activeTab === "visualizer"
+                    ? "bg-matrix-neonPurple/20 border border-matrix-neonPurple text-matrix-neonPurple shadow-sm shadow-matrix-neonPurple/20"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Concept Visualizer
+              </button>
             </div>
 
             <span className="font-mono text-[10px] uppercase text-gray-500">
@@ -570,6 +587,13 @@ export function DualPaneWorkspace({
                   Press &ldquo;Cast Spell & Verify Code&rdquo; to execute assertions against your code.
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Tab 4: Interactive Concept Visualizer */}
+          {activeTab === "visualizer" && (
+            <div className="flex-1 bg-matrix-dark overflow-y-auto">
+              <RealmConceptVisualizer realmId={realmId} />
             </div>
           )}
         </div>

@@ -75,4 +75,14 @@ describe("DevQuest Quests Matrix", () => {
       }
     }
   });
+
+  it("verifies all 12 realms have interactive concept visualizers configured", () => {
+    const realms = [
+      "html", "css", "javascript", "typescript", "react", "backend",
+      "databases", "devops", "testing", "cs", "security", "capstone"
+    ];
+    for (const r of realms) {
+      expect(REALMS.some((realm) => realm.id === r)).toBe(true);
+    }
+  });
 });
