@@ -29,7 +29,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">
@@ -37,7 +37,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
               <Shield className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 Cybernetic Skill Tree
               </h2>
               <p className="text-xs text-gray-400">
@@ -47,7 +47,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <div className="px-3 py-1 rounded-full bg-matrix-neonPurple/10 border border-matrix-neonPurple/40 text-matrix-neonPurple font-mono text-xs font-bold whitespace-nowrap shrink-0">
+            <div className="px-3 py-1 rounded-full bg-matrix-neonPurple/10 border border-matrix-neonPurple/40 text-matrix-neonPurple font-mono tabular-nums text-xs font-bold whitespace-nowrap shrink-0">
               {availableSkillPoints} Skill Points Available
             </div>
             <button
@@ -55,7 +55,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                 soundEngine.playSfx("click");
                 onClose();
               }}
-              className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-matrix-border/50 shrink-0"
+              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
             >
               <X className="w-5 h-5" />
             </button>

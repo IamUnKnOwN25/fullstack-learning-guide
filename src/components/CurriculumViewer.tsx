@@ -339,7 +339,7 @@ function RichMarkdownViewer({
       elements.push(
         <blockquote
           key={i}
-          className="my-3 pl-4 py-2 border-l-2 border-matrix-neonCyan bg-matrix-card/60 rounded-r-lg font-mono text-xs italic text-gray-300"
+          className="my-3.5 pl-4 py-2.5 border-l-2 border-matrix-neonCyan bg-matrix-card/60 rounded-r-xl font-sans text-xs sm:text-sm italic text-gray-200 leading-relaxed"
         >
           {formatInlineText(line.slice(1).trim())}
         </blockquote>
@@ -362,10 +362,10 @@ function RichMarkdownViewer({
             soundEngine.playSfx("click");
             onToggleBox(boxKey);
           }}
-          className={`my-1.5 p-2.5 rounded-lg border transition-all flex items-start gap-2.5 cursor-pointer font-mono text-xs sm:text-sm ${
+          className={`my-2 p-3 rounded-xl border transition-all duration-200 flex items-start gap-3 cursor-pointer font-sans text-xs sm:text-sm ${
             isChecked
               ? "bg-matrix-accent/10 border-matrix-accent/40 text-gray-300"
-              : "bg-matrix-dark/50 border-matrix-border/70 hover:border-matrix-neonCyan/50 text-gray-200"
+              : "bg-matrix-dark/50 border-matrix-border/70 hover:border-matrix-neonCyan/50 hover:bg-matrix-dark/80 text-gray-200"
           }`}
         >
           <div
@@ -391,7 +391,7 @@ function RichMarkdownViewer({
       elements.push(
         <li
           key={i}
-          className="ml-5 list-disc text-xs sm:text-sm font-mono text-gray-300 my-1 leading-relaxed"
+          className="ml-5 list-disc text-xs sm:text-sm font-sans text-gray-200 my-1.5 leading-relaxed"
         >
           {formatInlineText(bulletContent, onSelectDoc)}
         </li>
@@ -403,8 +403,8 @@ function RichMarkdownViewer({
     const orderedMatch = line.trim().match(/^(\d+)\.\s+(.*)$/);
     if (orderedMatch) {
       elements.push(
-        <div key={i} className="ml-4 flex items-start gap-2 text-xs sm:text-sm font-mono text-gray-300 my-1 leading-relaxed">
-          <span className="text-matrix-neonCyan font-bold">{orderedMatch[1]}.</span>
+        <div key={i} className="ml-4 flex items-start gap-2.5 text-xs sm:text-sm font-sans text-gray-200 my-1.5 leading-relaxed">
+          <span className="text-matrix-neonCyan font-mono font-bold">{orderedMatch[1]}.</span>
           <span>{formatInlineText(orderedMatch[2])}</span>
         </div>
       );
@@ -419,7 +419,7 @@ function RichMarkdownViewer({
 
     // Default paragraph
     elements.push(
-      <p key={i} className="text-xs sm:text-sm font-mono leading-relaxed text-gray-300 my-2">
+      <p key={i} className="text-xs sm:text-sm font-sans leading-relaxed text-gray-200 my-2.5">
         {formatInlineText(line)}
       </p>
     );
@@ -579,13 +579,16 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         </div>
 
         {/* Right Content: Document Reader */}
-        <div className="md:col-span-3 bg-matrix-card border border-matrix-border rounded-xl p-6 sm:p-8 overflow-y-auto space-y-5">
+        <div
+          key={activeDoc.filename}
+          className="md:col-span-3 bg-matrix-card border border-matrix-border rounded-xl p-6 sm:p-8 overflow-y-auto space-y-5 animate-fadeIn"
+        >
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
             <div className="flex items-center gap-2">
               <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
                 {activeDoc.filename}
               </span>
-              <span className="text-white font-bold">{activeDoc.title}</span>
+              <span className="text-white font-bold font-sans text-sm">{activeDoc.title}</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">

@@ -180,7 +180,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               <Trophy className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 Trophy Room & Operator Profile
               </h2>
               <p className="text-xs text-gray-400">
@@ -202,14 +202,14 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-matrix-border/50"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Stats Summary Bar */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-6 py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-6 py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono tabular-nums">
           <div>
             <div className="text-[10px] uppercase text-gray-400">Rank</div>
             <div className="text-xs font-bold text-matrix-accent truncate">{rankTitle}</div>

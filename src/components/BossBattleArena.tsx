@@ -272,8 +272,8 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
             />
 
             <div>
-              <h2 className="text-xl font-bold text-white font-mono">{boss.name}</h2>
-              <p className="text-xs text-gray-400">{boss.title}</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{boss.name}</h2>
+              <p className="text-xs sm:text-sm text-gray-400 mt-0.5">{boss.title}</p>
             </div>
           </div>
 
@@ -281,13 +281,13 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           <div className="flex-1 w-full max-w-lg space-y-5">
             {/* Boss HP */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-mono font-bold">
+              <div className="flex items-center justify-between text-xs font-mono font-bold tabular-nums">
                 <span className="text-matrix-neonRed">{boss.name} HP</span>
-                <span className="text-gray-300">
+                <span className="text-gray-200">
                   {bossHp}/{boss.maxHp}
                 </span>
               </div>
-              <div className="w-full h-3 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-red-900">
+              <div className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-red-900/80 shadow-inner">
                 <div
                   className="h-full bg-gradient-to-r from-orange-600 to-matrix-neonRed transition-all duration-300 rounded-full"
                   style={{ width: `${(bossHp / boss.maxHp) * 100}%` }}
@@ -297,15 +297,15 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
             {/* Player HP */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-mono font-bold">
+              <div className="flex items-center justify-between text-xs font-mono font-bold tabular-nums">
                 <span className="text-matrix-accent flex items-center gap-1">
                   <Heart className="w-3.5 h-3.5 fill-matrix-accent" /> Player Vitality
                 </span>
-                <span className="text-gray-300">
+                <span className="text-gray-200">
                   {hp}/{maxHp}
                 </span>
               </div>
-              <div className="w-full h-3 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-emerald-900">
+              <div className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-emerald-900/80 shadow-inner">
                 <div
                   className="h-full bg-gradient-to-r from-matrix-accentDark to-matrix-accent transition-all duration-300 rounded-full"
                   style={{ width: `${(hp / maxHp) * 100}%` }}
@@ -419,19 +419,24 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
       {!battleWon && !battleLost && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Phase Prompt & Objective */}
-          <div className="bg-matrix-card border border-matrix-border rounded-xl p-5 space-y-4 flex flex-col justify-between">
+          <div
+            key={currentPhaseIndex}
+            className="bg-matrix-card border border-matrix-border rounded-xl p-5 space-y-4 flex flex-col justify-between animate-fadeIn"
+          >
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-mono uppercase text-matrix-neonCyan font-bold">
+                <span className="text-xs font-mono uppercase text-matrix-neonCyan font-bold tracking-wider">
                   BATTLE STAGE {currentPhaseIndex + 1} OF {boss.phases.length}
                 </span>
-                <span className="text-[10px] font-mono text-matrix-neonGold">
+                <span className="text-[11px] font-mono font-bold text-matrix-neonGold tabular-nums">
                   +{phase.damageToBoss} Boss Damage on Pass
                 </span>
               </div>
 
-              <h4 className="text-base font-bold text-white">{phase.phaseTitle}</h4>
-              <p className="text-xs text-gray-300 leading-relaxed bg-matrix-dark/50 p-3 rounded-lg border border-matrix-border">
+              <h4 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                {phase.phaseTitle}
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-matrix-dark/50 p-3.5 rounded-xl border border-matrix-border">
                 {phase.prompt}
               </p>
 

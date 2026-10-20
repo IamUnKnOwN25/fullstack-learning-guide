@@ -357,3 +357,10 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Upgraded `src/components/WorldCampaignMap.tsx` with clearer typographic scale (`text-xs` / `text-sm` instead of cramped `text-[11px]`), `tabular-nums` stat badges, subtle card hover elevation (`hover:-translate-y-0.5`), `key={selectedRealm.id}` + `animate-fadeIn` on `#realm-inspector` so switching realms smoothly animates the inspector panel, and an `Open in IDE` quick-launch button inside the Realm Inspector.
   - Enhanced `src/components/QuestCodingWorkspace.tsx` with crisp tab typography (`text-xs font-bold`), `animate-fadeIn` transitions when switching between `Briefing & Tasks`, `Concept Guide`, `Cheat Sheet`, and `Visualizer` tabs, elevated task step cards, and refined button glow and hover states on `Run & Verify Code` (`Ctrl+Enter`).
   - Verified with `tsc --noEmit` and `vitest run` (38/38 tests passing across 8 suites).
+
+- **[2026-10-20 12:51] Cycle 44: Curriculum Vault Reader Typography (`Plus Jakarta Sans`), Boss Arena Phase Transitions & Modal Slide-Up Animations (Tests: PASS)**
+  - Upgraded `src/components/CurriculumViewer.tsx` so long-form documentation paragraphs, lists, checkboxes, and blockquotes use `font-sans` (`Plus Jakarta Sans`, `text-xs sm:text-sm`) for comfortable reading while code blocks, inline tokens, and metadata badges remain `font-mono` (`JetBrains Mono`).
+  - Added `key={activeDoc.filename}` and `animate-fadeIn` to the Document Reader container in `CurriculumViewer.tsx` for smooth chapter transitions.
+  - Enhanced `src/components/BossBattleArena.tsx` with `key={currentPhaseIndex}` + `animate-fadeIn` on the phase briefing card, `tabular-nums` HP gauges (`h-3.5`), and clearer stage typography (`text-xs sm:text-sm`).
+  - Added `animate-slideUp` modal entry animations and `tabular-nums` stat counters in `src/components/AchievementsModal.tsx` and `src/components/SkillTreeModal.tsx`.
+  - Verified with `tsc --noEmit`, `vitest run` (38/38 tests passing across 8 suites), and HTTP 200 across `/`, `/ide`, `/quest/html/html_1_skeleton`, `/boss/html`, and `/curriculum`.
