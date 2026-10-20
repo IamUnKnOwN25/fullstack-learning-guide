@@ -335,8 +335,8 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
             </div>
 
             {/* Boss Dialogue Speech Bubble */}
-            <div className="p-3.5 rounded-xl bg-black/60 border border-matrix-border text-xs font-mono text-gray-300 italic">
-              <span className="text-matrix-neonRed font-bold not-italic mr-2">&gt;</span>
+            <div className="p-3.5 rounded-xl bg-black/60 border border-matrix-border text-xs sm:text-sm font-sans text-gray-200 italic">
+              <span className="text-matrix-neonRed font-mono font-bold not-italic mr-2">&gt;</span>
               &ldquo;{battleWon ? boss.defeatQuote : phase.bossDialogue}&rdquo;
             </div>
           </div>
@@ -503,7 +503,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               <h4 className="text-base sm:text-lg font-bold text-white tracking-tight">
                 {phase.phaseTitle}
               </h4>
-              <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-matrix-dark/50 p-3.5 rounded-xl border border-matrix-border">
+              <p className="text-xs sm:text-sm text-gray-200 leading-relaxed bg-matrix-dark/50 p-3.5 rounded-xl border border-matrix-border font-sans">
                 {phase.prompt}
               </p>
 

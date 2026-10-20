@@ -470,7 +470,7 @@ export function QuestCodingWorkspace({
                 <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 BYTE (AI COMPANION DROID)
               </div>
-              <p className="italic text-xs sm:text-sm text-gray-100 leading-relaxed font-mono">
+              <p className="italic text-xs sm:text-sm text-gray-100 leading-relaxed font-sans">
                 &ldquo;{formattedStoryIntro}&rdquo;
               </p>
             </div>
@@ -480,7 +480,7 @@ export function QuestCodingWorkspace({
               <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-accent font-bold">
                 Core Concept
               </h3>
-              <p className="text-xs sm:text-sm leading-relaxed text-gray-200 bg-matrix-dark/50 p-4 rounded-xl border border-matrix-border">
+              <p className="text-xs sm:text-sm leading-relaxed text-gray-200 bg-matrix-dark/50 p-4 rounded-xl border border-matrix-border font-sans">
                 {quest.conceptSummary}
               </p>
             </div>
