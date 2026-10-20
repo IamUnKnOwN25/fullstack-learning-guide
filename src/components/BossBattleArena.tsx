@@ -19,8 +19,10 @@ import {
   Shield,
   Crosshair,
   Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
+import { QUESTS } from "@/data/quests";
 import { BOSSES, Boss } from "@/data/bosses";
 import { BossMonsterSprite } from "./BossMonsterSprite";
 
@@ -37,8 +39,14 @@ interface FloatingDamage {
 
 export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const boss = initialBoss || BOSSES[realmId];
-  const { hp, maxHp, takeDamage, defeatBoss, completedBosses, unlockedSkills } = useGameStore();
+  const { hp, maxHp, takeDamage, defeatBoss, completedBosses, completedQuests, unlockedSkills } =
+    useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
+  const realmIndex = REALMS.findIndex((r) => r.id === realmId);
+  const nextRealm =
+    realmIndex !== -1 && realmIndex + 1 < REALMS.length ? REALMS[realmIndex + 1] : undefined;
+  const nextRealmFirstQuest = nextRealm ? QUESTS[nextRealm.id]?.[0] : undefined;
+  const realmQuests = QUESTS[realmId] || [];
 
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [bossHp, setBossHp] = useState(boss?.maxHp || 100);
@@ -174,7 +182,33 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           Retreat to World Map
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Realm Trial & Boss Quick Switcher */}
+          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs">
+            {realmQuests.map((rq) => {
+              const solved = completedQuests.includes(rq.id);
+              return (
+                <Link
+                  key={rq.id}
+                  href={`/quest/${realmId}/${rq.id}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className={`px-2.5 py-1 rounded flex items-center gap-1 transition-all ${
+                    solved
+                      ? "text-matrix-accent hover:bg-matrix-card"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <span>Trial {rq.order}</span>
+                  {solved && <CheckCircle2 className="w-3 h-3" />}
+                </Link>
+              );
+            })}
+            <span className="px-2.5 py-1 rounded flex items-center gap-1 bg-matrix-neonRed text-white font-bold">
+              <Swords className="w-3 h-3" />
+              <span>Boss</span>
+            </span>
+          </div>
+
           {realm && (
             <Link
               href={`/curriculum?file=${realm.fileRef}`}
@@ -314,13 +348,45 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
             </span>{" "}
             badge!
           </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-matrix-accent text-matrix-dark font-mono text-xs font-bold shadow-lg shadow-matrix-accent/20 hover:scale-105 transition-all"
-            onClick={() => soundEngine.playSfx("click")}
-          >
-            Return to World Map
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                useGameStore.getState().resetHealth();
+                setBossHp(boss.maxHp);
+                setCurrentPhaseIndex(0);
+                setCode(boss.phases[0].initialCode);
+                setBattleWon(false);
+                setBattleLost(false);
+                setShieldUsed(false);
+                setCombatLog([]);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-200 font-mono text-xs font-bold transition-all cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Rematch Boss
+            </button>
+
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-accent/50 text-matrix-accent font-mono text-xs font-bold transition-all"
+              onClick={() => soundEngine.playSfx("click")}
+            >
+              Return to World Map
+            </Link>
+
+            {nextRealm && nextRealmFirstQuest && (
+              <Link
+                href={`/quest/${nextRealm.id}/${nextRealmFirstQuest.id}`}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-matrix-accent text-matrix-dark font-mono text-xs font-bold shadow-lg shadow-matrix-accent/20 hover:scale-105 transition-all"
+                onClick={() => soundEngine.playSfx("click")}
+              >
+                <span>Advance to {nextRealm.title}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -428,7 +494,15 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
           {/* Code Editor */}
           <div className="bg-matrix-card border border-matrix-border rounded-xl flex flex-col overflow-hidden shadow-lg">
             <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between font-mono text-xs text-gray-400">
-              <span>DEBUG WORKBENCH</span>
+              <div className="flex items-center gap-2">
+                <span>DEBUG WORKBENCH</span>
+                {phase.testCondition(code).passed && (
+                  <span className="px-2 py-0.5 rounded bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent text-[10px] font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    PATCH VERIFIED — READY TO STRIKE
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setCode(phase.initialCode)}
                 className="hover:text-white flex items-center gap-1"
