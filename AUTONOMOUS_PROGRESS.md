@@ -302,3 +302,9 @@ This document records each autonomous improvement cycle, deterministic verificat
 - **[2026-10-20 10:11] Cycle 35: Expand AI Companion Flashcard Deck Across All 12 Full-Stack Realms (Tests: PASS)**
   - Expanded `FLASHCARDS` in `src/components/CyberCompanionByte.tsx` from 4 questions to a complete 12-realm flashcard deck (`HTML`, `CSS`, `JS`, `TS`, `REACT`, `BACKEND`, `SQL`, `DEVOPS`, `TESTING`, `CS`, `SECURITY`, `CAPSTONE`) with realm badges and card progress indicators (`Card X/12`).
   - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000/` verification (`200 OK`, zero errors).
+
+- **[2026-10-20 10:23] Cycle 36: Fix Missing Client Hydration Chunks (`main-app.js` 404) & Add Direct Trial/Boss Quick-Launch Buttons on Map (Tests: PASS)**
+  - Fixed the root cause of unresponsive buttons on `localhost:3000`: running `next build` while `next dev` was active overwrote `.next/static/chunks/main-app.js` and `app-pages-internals.js` (`404 Not Found`), preventing React client hydration.
+  - Updated `next.config.ts` (`distDir: process.env.NODE_ENV === "production" ? ".next-build" : ".next"`), `.gitignore`, and `tsconfig.json` so production builds never clobber the active `.next` dev server directory, and triggered a config reload so all 7 `/_next/static/chunks/*` bundles return `200 OK`.
+  - Added a Selected Realm Quick-Launch Bar (`Trial 1`, `Trial 2`, `Boss`, `Guide`) on `ConstellationWorldMap.tsx` and direct action buttons on every Realm Card in `WorldCampaignMap.tsx` Grid View.
+  - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and `200 OK` across all `/_next/static/chunks/*` client bundles.

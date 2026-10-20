@@ -381,9 +381,9 @@ export function WorldCampaignMap() {
                   </p>
                 </div>
 
-                {/* Progress Footer */}
-                <div className="pt-3 border-t border-matrix-border/60 flex items-center justify-between text-xs font-mono">
-                  {isUnlocked ? (
+                {/* Progress & Direct Action Footer */}
+                <div className="pt-3 border-t border-matrix-border/60 space-y-2.5 text-xs font-mono">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-matrix-neonCyan">
                       <span>
                         Quests: {completedCount}/{realmQuests.length}
@@ -394,13 +394,40 @@ export function WorldCampaignMap() {
                         </span>
                       )}
                     </div>
-                  ) : (
-                    <span className="text-gray-500 flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Requires Level {realm.requiredLevel}
-                    </span>
-                  )}
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
 
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  <div
+                    className="flex flex-wrap items-center gap-1.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {realmQuests.map((rq) => (
+                      <Link
+                        key={rq.id}
+                        href={`/quest/${realm.id}/${rq.id}`}
+                        onClick={() => soundEngine.playSfx("click")}
+                        className="px-2 py-1 rounded bg-matrix-accent/20 hover:bg-matrix-accent hover:text-matrix-dark border border-matrix-accent/50 text-matrix-accent font-bold text-[10px] transition-colors"
+                      >
+                        Trial {rq.order}
+                      </Link>
+                    ))}
+                    {BOSSES[realm.id] && (
+                      <Link
+                        href={`/boss/${realm.id}`}
+                        onClick={() => soundEngine.playSfx("attack")}
+                        className="px-2 py-1 rounded bg-red-950/60 hover:bg-matrix-neonRed border border-matrix-neonRed/50 text-matrix-neonRed hover:text-white font-bold text-[10px] transition-colors"
+                      >
+                        Boss
+                      </Link>
+                    )}
+                    <Link
+                      href={`/curriculum?file=${realm.fileRef}`}
+                      onClick={() => soundEngine.playSfx("click")}
+                      className="px-2 py-1 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-matrix-neonCyan font-bold text-[10px] transition-colors"
+                    >
+                      Guide
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

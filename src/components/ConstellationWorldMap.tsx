@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Realm, REALMS } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
@@ -15,6 +16,8 @@ import {
   Shield,
   Layers,
   Crown,
+  Play,
+  BookOpen,
 } from "lucide-react";
 
 interface Props {
@@ -261,20 +264,56 @@ export function ConstellationWorldMap({
         );
       })}
 
-      {/* Map Legend */}
-      <div className="absolute bottom-3 left-4 flex flex-wrap items-center gap-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400">
-        <span className="flex items-center gap-1 text-matrix-accent font-bold">
-          <span className="w-2 h-2 rounded-full bg-matrix-accent" /> Mastered
-        </span>
-        <span className="flex items-center gap-1 text-matrix-neonGold font-bold">
-          <span className="w-2 h-2 rounded-full bg-matrix-neonGold animate-pulse" /> Active Trial
-        </span>
-        <span className="flex items-center gap-1 text-gray-500">
-          <Lock className="w-2.5 h-2.5" /> Sealed
-        </span>
-        <span className="hidden sm:inline text-matrix-neonCyan">
-          • Double-click node to launch trial
-        </span>
+      {/* Map Legend & Selected Realm Quick-Launch Bar */}
+      <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
+        <div className="flex flex-wrap items-center gap-3 bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400">
+          <span className="flex items-center gap-1 text-matrix-accent font-bold">
+            <span className="w-2 h-2 rounded-full bg-matrix-accent" /> Mastered
+          </span>
+          <span className="flex items-center gap-1 text-matrix-neonGold font-bold">
+            <span className="w-2 h-2 rounded-full bg-matrix-neonGold animate-pulse" /> Active Trial
+          </span>
+          <span className="flex items-center gap-1 text-gray-500">
+            <Lock className="w-2.5 h-2.5" /> Sealed
+          </span>
+        </div>
+
+        {selectedRealm && (
+          <div className="flex flex-wrap items-center gap-1.5 bg-matrix-card/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-matrix-neonCyan/50 shadow-lg font-mono text-[11px]">
+            <span className="text-white font-bold mr-1">
+              {String(selectedRealm.order).padStart(2, "0")}. {selectedRealm.realmName}:
+            </span>
+            {(QUESTS[selectedRealm.id] || []).map((q) => (
+              <Link
+                key={q.id}
+                href={`/quest/${selectedRealm.id}/${q.id}`}
+                onClick={() => soundEngine.playSfx("click")}
+                className="px-2 py-0.5 rounded bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-bold flex items-center gap-1 transition-all"
+              >
+                <Play className="w-2.5 h-2.5 fill-matrix-dark" />
+                <span>Trial {q.order}</span>
+              </Link>
+            ))}
+            {BOSSES[selectedRealm.id] && (
+              <Link
+                href={`/boss/${selectedRealm.id}`}
+                onClick={() => soundEngine.playSfx("attack")}
+                className="px-2 py-0.5 rounded bg-matrix-neonRed hover:bg-red-600 text-white font-bold flex items-center gap-1 transition-all"
+              >
+                <Swords className="w-2.5 h-2.5" />
+                <span>Boss</span>
+              </Link>
+            )}
+            <Link
+              href={`/curriculum?file=${selectedRealm.fileRef}`}
+              onClick={() => soundEngine.playSfx("click")}
+              className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan font-bold flex items-center gap-1 transition-all"
+            >
+              <BookOpen className="w-2.5 h-2.5" />
+              <span>Guide</span>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
