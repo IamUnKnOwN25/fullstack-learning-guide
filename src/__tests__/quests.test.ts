@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import fs from "fs";
+import path from "path";
 import { QUESTS } from "../data/quests";
 import { REALMS } from "../data/realms";
 
@@ -76,13 +78,19 @@ describe("DevQuest Quests Matrix", () => {
     }
   });
 
-  it("verifies all 12 realms have interactive concept visualizers configured", () => {
+  it("verifies all 12 realms have interactive concept visualizers configured and valid curriculum fileRefs on disk", () => {
     const realms = [
       "html", "css", "javascript", "typescript", "react", "backend",
       "databases", "devops", "testing", "cs", "security", "capstone"
     ];
     for (const r of realms) {
-      expect(REALMS.some((realm) => realm.id === r)).toBe(true);
+      const realm = REALMS.find((item) => item.id === r);
+      expect(realm).toBeDefined();
+      const filePath = path.join(process.cwd(), realm!.fileRef);
+      expect(
+        fs.existsSync(filePath),
+        `Curriculum file '${realm!.fileRef}' for realm '${r}' must exist on disk`
+      ).toBe(true);
     }
   });
 });

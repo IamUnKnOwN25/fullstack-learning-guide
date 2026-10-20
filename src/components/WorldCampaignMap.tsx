@@ -5,8 +5,8 @@ import Link from "next/link";
 import { REALMS, Realm } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
 import { BOSSES } from "@/data/bosses";
-import { useGameStore } from "@/lib/store";
-import { soundEngine } from "@/lib/audio";
+import { useGameStore } from "@/lib/gameStore";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   Lock,
   Sparkles,
@@ -44,7 +44,7 @@ const REALM_CATEGORIES: Record<string, RealmCategory> = {
   capstone: "theory",
 };
 
-export function QuestMap() {
+export function WorldCampaignMap() {
   const { unlockedRealms, completedQuests, completedBosses, level, rankTitle, stars } = useGameStore();
   const [selectedRealm, setSelectedRealm] = useState<Realm | null>(REALMS[0]);
   const [activeCategory, setActiveCategory] = useState<RealmCategory>("all");

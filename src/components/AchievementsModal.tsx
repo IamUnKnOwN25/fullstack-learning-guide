@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { useGameStore } from "@/lib/store";
-import { soundEngine } from "@/lib/audio";
+import { useGameStore } from "@/lib/gameStore";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   X,
   Trophy,
@@ -104,7 +104,7 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
   },
 };
 
-export function InventoryModal({ isOpen, onClose }: Props) {
+export function AchievementsModal({ isOpen, onClose }: Props) {
   const { badges, completedQuests, completedBosses, xp, level, rankTitle, resetProgress } =
     useGameStore();
 

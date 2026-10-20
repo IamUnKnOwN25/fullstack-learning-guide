@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { soundEngine } from "@/lib/audio";
+import { soundEngine } from "@/lib/soundEngine";
 import { BookOpen, ArrowLeft, Search, FileText, CheckCircle2 } from "lucide-react";
 
 export interface DocFile {

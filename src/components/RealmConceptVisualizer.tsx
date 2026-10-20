@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { soundEngine } from "@/lib/audio";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   Layers,
   Play,

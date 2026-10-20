@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useGameStore } from "@/lib/store";
-import { soundEngine } from "@/lib/audio";
+import { useGameStore } from "@/lib/gameStore";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   Sparkles,
   Flame,
@@ -18,9 +18,9 @@ import {
   Crown,
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
-import { InventoryModal } from "./InventoryModal";
+import { AchievementsModal } from "./AchievementsModal";
 
-export function HUD() {
+export function NavigationHud() {
   const {
     xp,
     level,
@@ -215,7 +215,9 @@ export function HUD() {
 
       {/* Modals */}
       <SkillTreeModal isOpen={skillTreeOpen} onClose={() => setSkillTreeOpen(false)} />
-      <InventoryModal isOpen={inventoryOpen} onClose={() => setInventoryOpen(false)} />
+      <AchievementsModal isOpen={inventoryOpen} onClose={() => setInventoryOpen(false)} />
     </>
   );
 }
+
+export { NavigationHud as HUD };

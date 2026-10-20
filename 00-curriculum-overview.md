@@ -75,13 +75,13 @@ Topics are grouped into three levels in every file:
 
 | # | File | What it covers |
 |---|------|----------------|
-| 01 | [01-html.md](01-html.md) | Structure, semantics, forms, media, SEO, accessibility, web components |
-| 02 | [02-css.md](02-css.md) | Box model, Flexbox, Grid, responsive design, animation, architecture, Tailwind |
-| 03 | [03-javascript.md](03-javascript.md) | Language core, DOM, async, modules, browser APIs, patterns, workers |
-| 04 | [04-typescript.md](04-typescript.md) | Types, generics, narrowing, utility types, advanced types, config, Zod |
+| 01 | [01-html-and-semantics.md](01-html-and-semantics.md) | Structure, semantics, forms, media, SEO, accessibility, web components |
+| 02 | [02-css-layout-and-styling.md](02-css-layout-and-styling.md) | Box model, Flexbox, Grid, responsive design, animation, architecture, Tailwind |
+| 03 | [03-modern-javascript.md](03-modern-javascript.md) | Language core, DOM, async, modules, browser APIs, patterns, workers |
+| 04 | [04-strict-typescript.md](04-strict-typescript.md) | Types, generics, narrowing, utility types, advanced types, config, Zod |
 | 05 | [05-frontend-react-and-ecosystem.md](05-frontend-react-and-ecosystem.md) | React, Next.js, state, forms, other frameworks, performance, PWA |
 | 06 | [06-backend-nodejs.md](06-backend-nodejs.md) | HTTP, Node, Express, REST, auth, GraphQL, real-time, jobs, architecture |
-| 07 | [07-databases.md](07-databases.md) | SQL, design, indexes, transactions, ORMs, NoSQL, Redis, scaling |
+| 07 | [07-databases-and-sql.md](07-databases-and-sql.md) | SQL, design, indexes, transactions, ORMs, NoSQL, Redis, scaling |
 | 08 | [08-git-devops-deployment.md](08-git-devops-deployment.md) | Git, Linux, Docker, CI/CD, cloud, Kubernetes, monitoring |
 | 09 | [09-testing-and-quality.md](09-testing-and-quality.md) | Unit, integration, API, component, E2E, TDD, debugging |
 | 10 | [10-cs-fundamentals-and-system-design.md](10-cs-fundamentals-and-system-design.md) | Algorithms, data structures, design patterns, system design |

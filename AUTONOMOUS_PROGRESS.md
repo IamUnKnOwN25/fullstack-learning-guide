@@ -187,3 +187,22 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Integrated audio chirps and interactive intel tips drawer delivering tactical advice, developer trivia, and realm milestones.
   - Mounted globally in `src/app/layout.tsx` for persistent availability across World Map, Coding Trials, Boss Arenas, and Grimoire.
   - Verified with `tsc --noEmit` and `vitest run` (22/22 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 09:19] Cycle 22: Standardize & Improve File Naming Across Curriculum, Components & Core Modules (Tests: PASS)**
+  - Renamed curriculum files to descriptive, consistent `NN-kebab-case.md` format:
+    - `00-README.md` → `00-curriculum-overview.md`
+    - `01-html.md` → `01-html-and-semantics.md`
+    - `02-css.md` → `02-css-layout-and-styling.md`
+    - `03-javascript.md` → `03-modern-javascript.md`
+    - `04-typescript.md` → `04-strict-typescript.md`
+    - `07-databases.md` → `07-databases-and-sql.md`
+  - Added legacy query alias mapping (`LEGACY_FILE_ALIASES`) in `src/app/curriculum/page.tsx` so bookmarks using old filenames resolve seamlessly.
+  - Renamed core components and libraries to descriptive domain names:
+    - `HUD.tsx` → `NavigationHud.tsx`
+    - `InventoryModal.tsx` → `AchievementsModal.tsx`
+    - `QuestMap.tsx` → `WorldCampaignMap.tsx`
+    - `DualPaneWorkspace.tsx` → `QuestCodingWorkspace.tsx`
+    - `store.ts` → `gameStore.ts` (`store.test.ts` → `gameStore.test.ts`)
+    - `audio.ts` → `soundEngine.ts`
+  - Added root `README.md`, updated `CLAUDE.md`, and added filesystem existence assertions in `quests.test.ts`.
+  - Verified with `tsc --noEmit` and `vitest run` (22/22 tests passing, 0 TypeScript errors).

@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { useGameStore } from "@/lib/store";
+import { useGameStore } from "@/lib/gameStore";
 import { SKILL_TREE } from "@/data/skills";
-import { soundEngine } from "@/lib/audio";
+import { soundEngine } from "@/lib/soundEngine";
 import { X, Shield, Eye, Atom, Zap, Cpu, Crown, Check, Lock } from "lucide-react";
 
 interface Props {

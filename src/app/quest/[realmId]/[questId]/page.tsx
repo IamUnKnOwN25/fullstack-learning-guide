@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { QUESTS } from "@/data/quests";
-import { DualPaneWorkspace } from "@/components/DualPaneWorkspace";
+import { QuestCodingWorkspace } from "@/components/QuestCodingWorkspace";
 
 interface PageProps {
   params: Promise<{
@@ -23,7 +23,7 @@ export default async function QuestPage({ params }: PageProps) {
   }
 
   return (
-    <DualPaneWorkspace
+    <QuestCodingWorkspace
       realmId={realmId}
       questId={questId}
     />

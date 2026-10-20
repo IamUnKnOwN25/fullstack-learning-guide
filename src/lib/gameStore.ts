@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { soundEngine } from "./audio";
+import { soundEngine } from "./soundEngine";
 
 export interface PlayerStats {
   xp: number;

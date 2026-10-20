@@ -1,5 +1,5 @@
-import { QuestMap } from "@/components/QuestMap";
+import { WorldCampaignMap } from "@/components/WorldCampaignMap";
 
 export default function MapPage() {
-  return <QuestMap />;
+  return <WorldCampaignMap />;
 }

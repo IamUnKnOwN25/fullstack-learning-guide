@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import { useGameStore } from "@/lib/store";
-import { soundEngine } from "@/lib/audio";
+import { useGameStore } from "@/lib/gameStore";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   Sparkles,
   Terminal,
@@ -32,7 +32,7 @@ interface Props {
   realmId: string;
 }
 
-export function DualPaneWorkspace({
+export function QuestCodingWorkspace({
   quest: initialQuest,
   questId,
   nextQuestId: propNextQuestId,

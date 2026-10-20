@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { soundEngine } from "@/lib/audio";
-import { useGameStore } from "@/lib/store";
+import { soundEngine } from "@/lib/soundEngine";
+import { useGameStore } from "@/lib/gameStore";
 import {
   Sparkles,
   X,

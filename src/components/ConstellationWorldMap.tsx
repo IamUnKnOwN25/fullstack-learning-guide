@@ -4,7 +4,7 @@ import React from "react";
 import { Realm, REALMS } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
 import { BOSSES } from "@/data/bosses";
-import { soundEngine } from "@/lib/audio";
+import { soundEngine } from "@/lib/soundEngine";
 import {
   Lock,
   CheckCircle2,
