@@ -41,7 +41,9 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Dumbbell,
 } from "lucide-react";
+import { REALM_WARMUP_DRILLS, RealmWarmUpDrill } from "@/data/questPedagogy";
 
 interface ConsoleEntry {
   id: string;
@@ -151,6 +153,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     passed: boolean;
     message: string;
   } | null>(null);
+  const [linkedWarmupId, setLinkedWarmupId] = useState<string>("");
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const gutterRef = useRef<HTMLDivElement | null>(null);
@@ -243,6 +246,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     soundEngine.playSfx("click");
     setActiveTemplateId(tpl.id);
     setLinkedQuestId("");
+    setLinkedWarmupId("");
     setQuestVerifyBanner(null);
     const cloned = tpl.files.map((f) => ({ ...f }));
     setFiles(cloned);
@@ -254,6 +258,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   const loadQuestIntoIde = (quest: Quest) => {
     soundEngine.playSfx("click");
     setLinkedQuestId(quest.id);
+    setLinkedWarmupId("");
     setQuestVerifyBanner(null);
 
     const extMap: Record<string, string> = {
@@ -294,6 +299,50 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setOpenTabs(questFiles.map((f) => f.name));
     setActiveFileName(mainFileName);
     saveWorkspace(questFiles, false);
+  };
+
+  const loadWarmupDrillIntoIde = (drill: RealmWarmUpDrill) => {
+    soundEngine.playSfx("click");
+    setLinkedQuestId("");
+    setLinkedWarmupId(drill.realmId);
+    setQuestVerifyBanner(null);
+
+    const ext =
+      drill.realmId === "html"
+        ? "html"
+        : drill.realmId === "css"
+        ? "css"
+        : drill.realmId === "typescript"
+        ? "ts"
+        : "js";
+    const mainFileName = `warmup-${drill.realmId}.${ext}`;
+    const mainLang = detectFileLanguage(mainFileName);
+
+    const drillFiles: IdeFile[] = [
+      {
+        name: mainFileName,
+        language: mainLang,
+        content: drill.starterCode,
+      },
+      {
+        name: "DRILL_PROMPT.md",
+        language: "markdown",
+        content: `# ${drill.title} (${drill.difficulty})\n\n${drill.prompt}\n\n## Hint\n${drill.hint}\n\n## Reference Pattern\n\`\`\`${mainLang}\n${drill.solutionSnippet}\n\`\`\``,
+      },
+    ];
+
+    if (mainLang === "css") {
+      drillFiles.unshift({
+        name: "index.html",
+        language: "html",
+        content: `<div class="container card">\n  <h2>Warm-Up Drill Preview</h2>\n  <p>Target element for centering / layout.</p>\n</div>`,
+      });
+    }
+
+    setFiles(drillFiles);
+    setOpenTabs(drillFiles.map((f) => f.name));
+    setActiveFileName(mainFileName);
+    saveWorkspace(drillFiles, false);
   };
 
   const updateActiveFileContent = (newContent: string) => {
@@ -390,6 +439,21 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           origin: { y: 0.6 },
         });
       }
+    } else if (linkedWarmupId && activeFile) {
+      const drill = REALM_WARMUP_DRILLS[linkedWarmupId];
+      if (drill) {
+        const result = drill.validator(activeFile.content);
+        setQuestVerifyBanner(result);
+        if (result.passed) {
+          soundEngine.playSfx("correct");
+          addXp(15);
+          confetti({
+            particleCount: 50,
+            spread: 55,
+            origin: { y: 0.6 },
+          });
+        }
+      }
     }
   };
 
@@ -411,11 +475,23 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         "  cat <filename>     Print file contents",
         "  node <filename>    Execute JS/TS file and print console output",
         "  run                Bundle & refresh live preview",
+        "  drill <realm>      Load beginner warm-up drill into workspace",
         "  touch <filename>   Create a new file in workspace",
         "  rm <filename>      Remove a file from workspace",
         "  clear              Clear terminal output",
         "  whoami             Display current operator status"
       );
+    } else if (cmd === "drill") {
+      const drillKey = arg?.toLowerCase();
+      const drill = drillKey ? REALM_WARMUP_DRILLS[drillKey] : undefined;
+      if (!drill) {
+        out.push(
+          `drill: Unknown or missing realm '${arg || ""}'. Available: ${Object.keys(REALM_WARMUP_DRILLS).join(", ")}`
+        );
+      } else {
+        loadWarmupDrillIntoIde(drill);
+        out.push(`Loaded ${drill.title} into workspace (${drill.difficulty}). Press 'Run / Test' to verify.`);
+      }
     } else if (cmd === "clear") {
       setTerminalHistory([]);
       setTerminalInput("");
@@ -620,6 +696,24 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
             {allQuests.map((q) => (
               <option key={q.id} value={q.id}>
                 [{q.realmId.toUpperCase()}] {q.order}. {q.title}
+              </option>
+            ))}
+          </select>
+
+          {/* Load Any of the 12 Warm-Up Drills into the IDE */}
+          <select
+            aria-label="Load Realm Warm-Up Drill into IDE"
+            value={linkedWarmupId}
+            onChange={(e) => {
+              const d = REALM_WARMUP_DRILLS[e.target.value];
+              if (d) loadWarmupDrillIntoIde(d);
+            }}
+            className="bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-amber-300 outline-none focus:border-amber-400 cursor-pointer"
+          >
+            <option value="">Warm-Up Drill (12 Realms)...</option>
+            {Object.values(REALM_WARMUP_DRILLS).map((drill) => (
+              <option key={drill.realmId} value={drill.realmId}>
+                [{drill.realmId.toUpperCase()}] {drill.title}
               </option>
             ))}
           </select>

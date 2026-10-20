@@ -20,11 +20,16 @@ import {
   Crosshair,
   Sparkles,
   ArrowRight,
+  AlertOctagon,
+  Activity,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
 import { BOSSES, Boss } from "@/data/bosses";
 import { BossMonsterSprite } from "./BossMonsterSprite";
+import { BOSS_INCIDENT_POST_MORTEMS } from "@/data/questPedagogy";
 
 interface Props {
   boss?: Boss;
@@ -60,7 +65,10 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const [scanOpen, setScanOpen] = useState(false);
   const [arenaShaking, setArenaShaking] = useState(false);
   const [laserActive, setLaserActive] = useState(false);
+  const [postMortemOpen, setPostMortemOpen] = useState(true);
   const gutterRef = React.useRef<HTMLDivElement | null>(null);
+
+  const postMortem = BOSS_INCIDENT_POST_MORTEMS[realmId];
 
   const phase = boss?.phases[currentPhaseIndex];
 
@@ -349,6 +357,65 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
             </span>{" "}
             badge!
           </p>
+
+          {/* Senior Production Post-Mortem & Incident Retrospective */}
+          {postMortem && (
+            <div className="text-left bg-matrix-dark/95 border border-matrix-border rounded-xl p-4 sm:p-5 space-y-3.5 shadow-xl max-w-4xl mx-auto">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-matrix-border pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-red-500/20 text-red-400 border border-red-500/40">
+                    {postMortem.incidentSeverity}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-matrix-neonCyan">
+                    {postMortem.incidentId} • SENIOR INCIDENT RETROSPECTIVE
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPostMortemOpen(!postMortemOpen)}
+                  className="text-[11px] font-mono text-gray-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <span>{postMortemOpen ? "Collapse Report" : "Expand Report"}</span>
+                  {postMortemOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              {postMortemOpen && (
+                <div className="space-y-3 font-mono text-xs animate-fadeIn">
+                  <div>
+                    <h4 className="text-sm font-bold text-white mb-1">{postMortem.title}</h4>
+                    <p className="text-xs text-gray-300 leading-relaxed font-sans">{postMortem.rootCause}</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 rounded-lg bg-black/40 border border-red-500/20 space-y-1">
+                      <div className="flex items-center gap-1.5 text-red-400 text-[11px] font-bold">
+                        <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                        <span>Real-World Outage Impact:</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 font-sans leading-relaxed">{postMortem.productionImpact}</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-black/40 border border-matrix-accent/20 space-y-1">
+                      <div className="flex items-center gap-1.5 text-matrix-accent text-[11px] font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Senior Prevention Strategy:</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 font-sans leading-relaxed">{postMortem.seniorMitigation}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2 text-yellow-300 text-[11px]">
+                    <Activity className="w-3.5 h-3.5 shrink-0 mt-0.5 text-yellow-400" />
+                    <div>
+                      <span className="font-bold">Production Metric Alert Rule: </span>
+                      <span className="text-gray-300 font-sans">{postMortem.metricAlert}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
               type="button"

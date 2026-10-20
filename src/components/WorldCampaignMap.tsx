@@ -24,6 +24,7 @@ import {
   Filter,
   Compass,
   LayoutGrid,
+  Dumbbell,
 } from "lucide-react";
 import { ConstellationWorldMap } from "./ConstellationWorldMap";
 
@@ -487,23 +488,32 @@ export function WorldCampaignMap() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <Link
                     href={`/curriculum?file=${selectedRealm.fileRef}`}
                     onClick={() => soundEngine.playSfx("click")}
-                    className="py-2 px-3 rounded-xl bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    className="py-2 px-2.5 rounded-xl bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
                     <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Chapter Guide</span>
+                    <span>Guide</span>
+                  </Link>
+
+                  <Link
+                    href={`/quest/${selectedRealm.id}/${QUESTS[selectedRealm.id]?.[0]?.id || ""}?tab=warmup`}
+                    onClick={() => soundEngine.playSfx("click")}
+                    className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Dumbbell className="w-3.5 h-3.5 shrink-0" />
+                    <span>Warm-Up Drill</span>
                   </Link>
 
                   <Link
                     href={`/ide?quest=${QUESTS[selectedRealm.id]?.[0]?.id || ""}`}
                     onClick={() => soundEngine.playSfx("click")}
-                    className="py-2 px-3 rounded-xl bg-matrix-neonPurple/15 hover:bg-matrix-neonPurple/25 border border-matrix-neonPurple/50 text-matrix-neonPurple font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    className="py-2 px-2.5 rounded-xl bg-matrix-neonPurple/15 hover:bg-matrix-neonPurple/25 border border-matrix-neonPurple/50 text-matrix-neonPurple font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
                     <Terminal className="w-3.5 h-3.5 shrink-0" />
-                    <span>Open in IDE</span>
+                    <span>Open IDE</span>
                   </Link>
                 </div>
               </div>

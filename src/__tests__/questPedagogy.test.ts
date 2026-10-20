@@ -5,6 +5,7 @@ import {
   QUEST_DEEP_DIVES,
   REALM_WARMUP_DRILLS,
   generateQuestAssertions,
+  BOSS_INCIDENT_POST_MORTEMS,
 } from "../data/questPedagogy";
 
 describe("Pedagogical Deep Dives & Concept Checks", () => {
@@ -76,5 +77,19 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
     expect(fallbackAssertions.length).toBeGreaterThanOrEqual(2);
     expect(fallbackAssertions[0].name).toBe("Syntax Integrity Check");
     expect(fallbackAssertions[0].passed).toBe(true);
+  });
+
+  it("provides senior incident post-mortems for all 12 realm bosses", () => {
+    for (const realm of REALMS) {
+      const postMortem = BOSS_INCIDENT_POST_MORTEMS[realm.id];
+      expect(postMortem, `Missing incident post-mortem for boss of realm ${realm.id}`).toBeDefined();
+      expect(postMortem.incidentId).toMatch(/^INC-[A-Z]+-[0-9]+/);
+      expect(postMortem.incidentSeverity).toMatch(/^P[0-2]/);
+      expect(postMortem.title.length).toBeGreaterThan(10);
+      expect(postMortem.rootCause.length).toBeGreaterThan(30);
+      expect(postMortem.productionImpact.length).toBeGreaterThan(30);
+      expect(postMortem.seniorMitigation.length).toBeGreaterThan(30);
+      expect(postMortem.metricAlert.length).toBeGreaterThan(20);
+    }
   });
 });

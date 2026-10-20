@@ -35,6 +35,16 @@ export interface InvariantAssertion {
   notes: string;
 }
 
+export interface BossIncidentPostMortem {
+  incidentId: string;
+  incidentSeverity: "P0 CRITICAL OUTAGE" | "P1 MAJOR OUTAGE" | "P2 DEGRADATION";
+  title: string;
+  rootCause: string;
+  productionImpact: string;
+  seniorMitigation: string;
+  metricAlert: string;
+}
+
 export const QUEST_DEEP_DIVES: Record<string, QuestDeepDive> = {
   html_1_skeleton: {
     whyItWorks:
@@ -966,3 +976,150 @@ export function generateQuestAssertions(questId: string, code: string): Invarian
     }
   }
 }
+
+export const BOSS_INCIDENT_POST_MORTEMS: Record<string, BossIncidentPostMortem> = {
+  html: {
+    incidentId: "INC-HTML-401",
+    incidentSeverity: "P1 MAJOR OUTAGE",
+    title: "Malformed Tag Tree & Quirks Mode Fallback",
+    rootCause:
+      "Unclosed tags and non-semantic <div> markup caused browser engines to trigger quirks mode, misinterpreting the DOM hierarchy and causing interactive elements to fail accessibility screen-reader scans.",
+    productionImpact:
+      "Screen-reader bounce rate surged to 85%, SEO crawler index penalties were assessed on key landing pages, and mobile touch targets overlapped erroneously.",
+    seniorMitigation:
+      "Enforce HTMLHint and axe-core accessibility scanners in pre-commit git hooks. Never ship document templates without strict W3C validator checks.",
+    metricAlert: "Alert when DOM depth exceeds 32 nodes or when W3C parser error count > 0 in synthetic monitoring.",
+  },
+  css: {
+    incidentId: "INC-CSS-502",
+    incidentSeverity: "P1 MAJOR OUTAGE",
+    title: "Unbounded Layout Shift Cascades & Flexbox Collapse",
+    rootCause:
+      "Children lacking explicit flex-shrink constraints caused viewport layout recalculations on every image load, spiking Cumulative Layout Shift (CLS).",
+    productionImpact:
+      "Google Core Web Vitals score dropped into the 'Poor' band (CLS > 0.45), lowering organic search ranking by 30% over 72 hours.",
+    seniorMitigation:
+      "Use CSS aspect-ratio on all media containers and enforce modern CSS Grid or minmax() constraints instead of unconstrained absolute percentages.",
+    metricAlert: "Synthetic Lighthouse CI failure whenever CLS > 0.1 or First Contentful Paint (FCP) > 1.8s.",
+  },
+  javascript: {
+    incidentId: "INC-JS-500",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Unhandled Promise Rejection & SSR Hydration Mismatch",
+    rootCause:
+      "An asynchronous fetch call lacked an exception guard (try/catch), causing unhandled promise rejections that crashed Node.js server-side rendering workers.",
+    productionImpact:
+      "Production SSR workers entered crash loops with HTTP 502 Bad Gateway responses for 18 minutes until auto-scaling spun up fresh pods.",
+    seniorMitigation:
+      "Wrap all async network calls in structured Result types or try/catch blocks with fallback UI states. Listen for process.on('unhandledRejection') in observability telemetry.",
+    metricAlert: "Trigger PagerDuty incident if HTTP 5xx error rate exceeds 1% of total edge gateway traffic over 60 seconds.",
+  },
+  typescript: {
+    incidentId: "INC-TS-400",
+    incidentSeverity: "P1 MAJOR OUTAGE",
+    title: "Unsound Type Assertion ('as any') Runtime Crash",
+    rootCause:
+      "A developer used 'as any' to bypass a compiler type check on an incoming external webhook payload, masking a missing 'id' property.",
+    productionImpact:
+      "TypeError: Cannot read properties of undefined caused 1,200 webhook transaction deliveries to fail and enter the dead-letter queue.",
+    seniorMitigation:
+      "Ban 'any' with ESLint rule @typescript-eslint/no-explicit-any. Use runtime parsing validation (e.g. Zod or TypeBox) at all network boundaries.",
+    metricAlert: "Track Dead Letter Queue (DLQ) depth; trigger warning if queue depth > 50 messages.",
+  },
+  react: {
+    incidentId: "INC-REACT-503",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Infinite Component Re-Render Loop & Browser Freezes",
+    rootCause:
+      "An unmemoized object literal in a useEffect dependency array created a new reference on every render, triggering an endless state update cycle.",
+    productionImpact:
+      "User browser tabs froze at 100% CPU utilization, triggering browser 'Page Unresponsive' kill dialogs for all authenticated users.",
+    seniorMitigation:
+      "Enforce eslint-plugin-react-hooks strictly. Keep primitive values in dependency arrays and lift state or use reducer patterns when coordinating complex state.",
+    metricAlert: "Datadog / Sentry client-side performance monitor flagging CPU long-task durations exceeding 500ms.",
+  },
+  backend: {
+    incidentId: "INC-AUTH-403",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Unsigned Token Signature Bypass (JWT 'alg: none')",
+    rootCause:
+      "Authentication middleware accepted JWT tokens without enforcing algorithms: ['HS256'], allowing attackers to craft forged admin tokens with algorithm 'none'.",
+    productionImpact:
+      "Potential unauthorized privilege escalation to tenant administrative endpoints before security honeypot detected anomalous access patterns.",
+    seniorMitigation:
+      "Always pass explicit algorithms list to jwt.verify(). Never rely on default library configurations without cryptographic parameter pinning.",
+    metricAlert: "Instant P0 security alert when authentication middleware encounters a token with alg != configured server key.",
+  },
+  databases: {
+    incidentId: "INC-DB-504",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Missing Foreign Key B-Tree Index & Table Lockout",
+    rootCause:
+      "An unindexed foreign key in a large order_items table forced PostgreSQL into full sequential table scans on every query, causing disk I/O saturation.",
+    productionImpact:
+      "Database connection pool exhausted (100% connections saturated). All checkout transactions timed out with HTTP 504 for 24 minutes.",
+    seniorMitigation:
+      "Automatically lint all schema migrations with pg-index-check. Run EXPLAIN (ANALYZE, BUFFERS) in CI performance regression testing.",
+    metricAlert: "Trigger warning when PostgreSQL active connection count exceeds 80% or disk read latency > 15ms.",
+  },
+  devops: {
+    incidentId: "INC-DOCKER-502",
+    incidentSeverity: "P1 MAJOR OUTAGE",
+    title: "Docker Layer Invalidation & Multi-Gigabyte Deployment Stalls",
+    rootCause:
+      "Copying the full source directory prior to 'npm install' invalidated Docker layer caching on every commit, turning 40-second builds into 15-minute multi-GB network pulls.",
+    productionImpact:
+      "Hotfix deployment for an active production bug was delayed by 18 minutes while worker nodes pulled redundant 1.8 GB container images.",
+    seniorMitigation:
+      "Use multi-stage Docker builds. Copy package*.json separately, run npm ci, and only then copy application code into a slim Alpine/distroless runner.",
+    metricAlert: "CI build duration alert if container build stage exceeds 3 minutes.",
+  },
+  testing: {
+    incidentId: "INC-TEST-409",
+    incidentSeverity: "P2 DEGRADATION",
+    title: "Non-Deterministic Async Race Conditions in CI Pipeline",
+    rootCause:
+      "Tests relied on arbitrary setTimeout(resolve, 100) delays instead of waiting on explicit promise resolutions or event emitter events.",
+    productionImpact:
+      "CI builds failed intermittently (1 in 4 runs), eroding engineering trust and causing teams to bypass branch protection merge gates.",
+    seniorMitigation:
+      "Never use arbitrary time delays in tests. Use waitFor(), Vitest fake timers, or explicit promise coordination to test async state transitions.",
+    metricAlert: "Track CI test suite retry rate; flag PRs if flaky test rate exceeds 2% across runs.",
+  },
+  cs: {
+    incidentId: "INC-ALGO-500",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "O(N^2) Nested Loop Bottleneck Under Spike Traffic",
+    rootCause:
+      "A developer used array.find() inside an array.forEach() loop to match catalog records instead of pre-indexing into an O(1) Map / HashMap.",
+    productionImpact:
+      "During Black Friday traffic, catalog search latency spiked from 45ms to 8,200ms, backing up worker queues and causing connection drops.",
+    seniorMitigation:
+      "Profile algorithmic complexity in code reviews. Convert lookup collections to Map or Set when operating over > 50 records in hot paths.",
+    metricAlert: "APM alert if p99 endpoint response time degrades past 200ms.",
+  },
+  security: {
+    incidentId: "INC-SEC-101",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Reflected Cross-Site Scripting (XSS) via Unsanitized Input",
+    rootCause:
+      "Search parameter values were rendered directly into the DOM using element.innerHTML without HTML-entity encoding or DOMPurify sanitization.",
+    productionImpact:
+      "Attackers could execute arbitrary JavaScript in the victim's session context and access session storage / CSRF tokens.",
+    seniorMitigation:
+      "Use textContent for raw strings, adopt strict Content Security Policy (CSP) headers, and sanitize rich text using DOMPurify.",
+    metricAlert: "Real-time CSP violation reports sent to Sentry or edge reporting endpoint.",
+  },
+  capstone: {
+    incidentId: "INC-ARCH-503",
+    incidentSeverity: "P0 CRITICAL OUTAGE",
+    title: "Cascading Microservice Failure Without Circuit Breakers",
+    rootCause:
+      "An unhandled third-party payment gateway timeout propagated up through the API gateway, tying up server threads and bringing down the entire cluster.",
+    productionImpact:
+      "Complete platform outage affecting all 100,000 active users for 35 minutes.",
+    seniorMitigation:
+      "Implement circuit breakers (e.g. Cockatiel or Opossum) with exponential backoff and fast fallbacks. Isolate critical user paths from downstream third parties.",
+    metricAlert: "Circuit breaker state transition alerts when error rate exceeds 50% over a 10-second rolling window.",
+  },
+};

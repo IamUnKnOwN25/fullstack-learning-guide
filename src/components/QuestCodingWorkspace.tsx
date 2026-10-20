@@ -133,6 +133,17 @@ export function QuestCodingWorkspace({
     }
   }, [quest, warmupDrill]);
 
+  // Check URL query parameters for ?tab=warmup or ?tab=deepdive
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get("tab");
+      if (tabParam === "warmup" || tabParam === "deepdive" || tabParam === "directive") {
+        setDirectiveTab(tabParam);
+      }
+    }
+  }, []);
+
   // Increment trial timer every second until solved
   useEffect(() => {
     if (testResult?.passed) return;
