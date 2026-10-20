@@ -1,16 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { soundEngine } from "@/lib/soundEngine";
 import { useGameStore } from "@/lib/gameStore";
+import { REALMS } from "@/data/realms";
+import { QUESTS } from "@/data/quests";
+import { BOSSES } from "@/data/bosses";
 import {
   Sparkles,
   X,
-  MessageSquare,
-  HelpCircle,
   Lightbulb,
-  Compass,
+  Heart,
+  BookOpen,
   Zap,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 const COMPANION_TIPS = [
@@ -25,11 +31,58 @@ const COMPANION_TIPS = [
   "System Design: In high-throughput distributed systems, use Token Bucket or Sliding Window algorithms for rate limits.",
 ];
 
+const FLASHCARDS = [
+  {
+    q: "Which queue runs first after the JavaScript Call Stack empties?",
+    options: ["Macrotask Queue (setTimeout)", "Microtask Queue (Promises)", "requestIdleCallback"],
+    answer: 1,
+    explanation: "Microtasks (Promise.then / await) always drain completely before the next Macrotask!",
+  },
+  {
+    q: "What SQL feature reduces a 1,000,000-row lookup from O(N) to O(log N)?",
+    options: ["FOREIGN KEY", "B-Tree Index (CREATE INDEX)", "SELECT DISTINCT"],
+    answer: 1,
+    explanation: "A B-Tree index organizes column values into a balanced tree for logarithmic O(log N) lookups.",
+  },
+  {
+    q: "How do you prevent SQL Injection in Node.js / PostgreSQL queries?",
+    options: ["Parameterized queries ($1, $2)", "String concatenation", "Base64 encoding"],
+    answer: 0,
+    explanation: "Parameterized queries separate the SQL command structure from untrusted user data.",
+  },
+  {
+    q: "Which React hook caches a function reference across renders?",
+    options: ["useEffect", "useCallback", "useRef"],
+    answer: 1,
+    explanation: "useCallback memoizes a callback function so React.memo child components don't re-render.",
+  },
+];
+
 export function CyberCompanionByte() {
-  const { level, rankTitle, completedQuests, completedBosses } = useGameStore();
+  const pathname = usePathname() || "/";
+  const { level, rankTitle, hp, maxHp, completedQuests, completedBosses, healPlayer, addXp } =
+    useGameStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [mode, setMode] = useState<"intel" | "quiz">("intel");
   const [tipIndex, setTipIndex] = useState(0);
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [mood, setMood] = useState<"happy" | "thinking" | "wink" | "cool">("happy");
+
+  // Detect active route context
+  const pathParts = pathname.split("/").filter(Boolean);
+  const activeRealmId =
+    (pathParts[0] === "quest" || pathParts[0] === "boss") && pathParts[1]
+      ? pathParts[1]
+      : undefined;
+  const activeQuestId = pathParts[0] === "quest" && pathParts[2] ? pathParts[2] : undefined;
+
+  const activeRealm = activeRealmId ? REALMS.find((r) => r.id === activeRealmId) : undefined;
+  const activeQuest =
+    activeRealmId && activeQuestId
+      ? (QUESTS[activeRealmId] || []).find((q) => q.id === activeQuestId)
+      : undefined;
+  const activeBoss = activeRealmId && pathParts[0] === "boss" ? BOSSES[activeRealmId] : undefined;
 
   const cycleTip = () => {
     soundEngine.playSfx("click");
@@ -50,6 +103,8 @@ export function CyberCompanionByte() {
         return "(◕‿◕)";
     }
   };
+
+  const currentCard = FLASHCARDS[quizIndex];
 
   return (
     <div className="fixed bottom-5 right-5 z-40 font-mono select-none">
@@ -77,31 +132,182 @@ export function CyberCompanionByte() {
             </button>
           </div>
 
-          {/* Dialogue Content */}
-          <div className="text-xs text-gray-200 leading-relaxed bg-matrix-dark/80 p-3 rounded-xl border border-matrix-border/60">
-            {COMPANION_TIPS[tipIndex]}
+          {/* Mode Tabs: Tactical Intel vs Flashcard Quiz */}
+          <div className="grid grid-cols-2 gap-1.5 bg-matrix-dark p-1 rounded-lg border border-matrix-border text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setMode("intel");
+              }}
+              className={`py-1 rounded font-bold transition-all ${
+                mode === "intel"
+                  ? "bg-matrix-accent text-matrix-dark"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Tactical Intel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setMode("quiz");
+                setSelectedOption(null);
+              }}
+              className={`py-1 rounded font-bold transition-all ${
+                mode === "quiz"
+                  ? "bg-matrix-neonCyan text-matrix-dark"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Quick Quiz (+15 XP)
+            </button>
           </div>
 
-          {/* Player Cadet Briefing */}
-          <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1">
+          {mode === "intel" ? (
+            <>
+              {/* Route-Contextual Banner if on Quest or Boss */}
+              {activeQuest ? (
+                <div className="p-2.5 rounded-xl bg-matrix-neonCyan/10 border border-matrix-neonCyan/30 text-[11px] space-y-1">
+                  <div className="text-matrix-neonCyan font-bold">
+                    Active Trial: {activeQuest.title}
+                  </div>
+                  <p className="text-gray-300 leading-relaxed">
+                    {activeQuest.hints[0] || activeQuest.conceptSummary}
+                  </p>
+                </div>
+              ) : activeBoss ? (
+                <div className="p-2.5 rounded-xl bg-red-950/40 border border-matrix-neonRed/40 text-[11px] space-y-1">
+                  <div className="text-matrix-neonRed font-bold">
+                    Boss Alert: {activeBoss.name}
+                  </div>
+                  <p className="text-gray-300 leading-relaxed">
+                    Use the Tactical Weakness Scanner or press Emergency Repair below if your HP drops low!
+                  </p>
+                </div>
+              ) : null}
+
+              {/* General Tip Content */}
+              <div className="text-xs text-gray-200 leading-relaxed bg-matrix-dark/80 p-3 rounded-xl border border-matrix-border/60">
+                {COMPANION_TIPS[tipIndex]}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={cycleTip}
+                  className="flex-1 py-1.5 px-3 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent hover:bg-matrix-accent/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  <span>Next Tip</span>
+                </button>
+
+                {hp < maxHp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      healPlayer(25);
+                      setMood("cool");
+                    }}
+                    className="py-1.5 px-3 rounded-lg bg-emerald-500/20 border border-emerald-500/50 text-matrix-accent hover:bg-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1"
+                    title="Emergency Field Medic Repair"
+                  >
+                    <Heart className="w-3.5 h-3.5 fill-matrix-accent" />
+                    <span>+25 HP</span>
+                  </button>
+                )}
+
+                {activeRealm && (
+                  <Link
+                    href={`/curriculum?file=${activeRealm.fileRef}`}
+                    onClick={() => soundEngine.playSfx("click")}
+                    className="py-1.5 px-2.5 rounded-lg bg-matrix-dark border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan text-xs font-bold flex items-center gap-1"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>Guide</span>
+                  </Link>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Flashcard Mini-Quiz Mode */
+            <div className="space-y-2.5 text-xs">
+              <div className="p-3 rounded-xl bg-matrix-dark border border-matrix-border text-white font-bold leading-relaxed">
+                {currentCard.q}
+              </div>
+
+              <div className="space-y-1.5">
+                {currentCard.options.map((opt, idx) => {
+                  const isPicked = selectedOption === idx;
+                  const isCorrect = idx === currentCard.answer;
+                  return (
+                    <button
+                      type="button"
+                      key={idx}
+                      disabled={selectedOption !== null}
+                      onClick={() => {
+                        setSelectedOption(idx);
+                        if (idx === currentCard.answer) {
+                          soundEngine.playSfx("correct");
+                          addXp(15);
+                          setMood("cool");
+                        } else {
+                          soundEngine.playSfx("error");
+                          setMood("thinking");
+                        }
+                      }}
+                      className={`w-full text-left p-2 rounded-lg border text-[11px] transition-all flex items-center justify-between ${
+                        selectedOption === null
+                          ? "bg-matrix-dark/70 border-matrix-border hover:border-matrix-neonCyan text-gray-200"
+                          : isCorrect
+                          ? "bg-matrix-accent/20 border-matrix-accent text-matrix-accent font-bold"
+                          : isPicked
+                          ? "bg-matrix-neonRed/20 border-matrix-neonRed text-matrix-neonRed"
+                          : "bg-matrix-dark/30 border-matrix-border/40 text-gray-500"
+                      }`}
+                    >
+                      <span>{opt}</span>
+                      {selectedOption !== null && isCorrect && (
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      )}
+                      {selectedOption !== null && isPicked && !isCorrect && (
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedOption !== null && (
+                <div className="p-2.5 rounded-lg bg-black/50 border border-matrix-border text-[11px] text-gray-300 space-y-2">
+                  <p>{currentCard.explanation}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setSelectedOption(null);
+                      setQuizIndex((prev) => (prev + 1) % FLASHCARDS.length);
+                    }}
+                    className="w-full py-1.5 rounded bg-matrix-neonCyan text-matrix-dark font-bold text-xs flex items-center justify-center gap-1"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>Next Flashcard</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Player Cadet Briefing Footer */}
+          <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-matrix-border/50">
             <span className="text-matrix-neonCyan">
               {rankTitle} (L{level})
             </span>
             <span>
               {completedQuests.length}/24 Quests • {completedBosses.length}/12 Bosses
             </span>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={cycleTip}
-              className="flex-1 py-1.5 px-3 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent hover:bg-matrix-accent/20 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-            >
-              <Lightbulb className="w-3.5 h-3.5" />
-              <span>Another Intel Tip</span>
-            </button>
           </div>
         </div>
       )}

@@ -244,3 +244,11 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added auto-generated "Jump to:" section Table of Contents pill bar for all `## ` headings.
     - Added "Practice Realm Quests" action button in the chapter header and internal `.md` link routing across all 13 guides.
   - Verified with `tsc --noEmit` and `vitest run` (26/26 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 09:32] Cycle 27: Context-Aware AI Cyber-Companion "Byte", Flashcard Quiz Mode & Global Quick-Jump Command Modal (Tests: PASS)**
+  - Upgraded `src/components/CyberCompanionByte.tsx`:
+    - Added route-context awareness via `usePathname()` to detect active quests and boss encounters, displaying tailored hints and one-click curriculum guide links.
+    - Added "Emergency Field Medic Repair (+25 HP)" button when player vitality is below maximum.
+    - Added interactive "Quick Quiz (+15 XP)" flashcard tab allowing learners to test their knowledge on Event Loop, B-Tree Indexes, SQLi Defense, and React hooks for bonus XP.
+  - Upgraded `src/components/NavigationHud.tsx` with a global Quick-Jump Command Modal (`Ctrl+K` / Search button) searching across all 12 realms, 24 coding quests, 12 boss battles, and 13 curriculum guides.
+  - Verified with `npm.cmd run validate` (26/26 tests passing, 0 TypeScript errors, 100% clean Next.js build).

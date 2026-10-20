@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
+import { REALMS } from "@/data/realms";
+import { QUESTS } from "@/data/quests";
+import { BOSSES } from "@/data/bosses";
 import {
   Sparkles,
   Flame,
@@ -16,6 +19,10 @@ import {
   MapPin,
   Heart,
   Crown,
+  Search,
+  X,
+  Swords,
+  Code,
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { AchievementsModal } from "./AchievementsModal";
@@ -34,12 +41,30 @@ export function NavigationHud() {
     toggleBgm,
     badges,
     unlockedSkills,
+    completedQuests,
+    completedBosses,
   } = useGameStore();
 
   const isGrandmaster = unlockedSkills.includes("matrix_grandmaster");
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        soundEngine.playSfx("click");
+        setCommandOpen((prev) => !prev);
+      } else if (e.key === "Escape") {
+        setCommandOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Level curve: xp needed for current level vs next level
   const prevLevelXp = Math.pow(level - 1, 2) * 25;
@@ -151,8 +176,24 @@ export function NavigationHud() {
               <span className="font-mono text-xs font-bold">{streak}d</span>
             </div>
 
-            {/* Action Buttons: Skills & Trophies */}
+            {/* Action Buttons: Quick Search, Skills & Trophies */}
             <div className="flex items-center gap-1.5 border-l border-matrix-border/80 pl-2 sm:pl-4">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setCommandOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan text-xs font-mono transition-all"
+                title="Quick Jump & Search (Ctrl+K)"
+              >
+                <Search className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                <span className="hidden lg:inline">Jump</span>
+                <kbd className="hidden xl:inline-block text-[10px] px-1 rounded bg-matrix-dark border border-matrix-border text-gray-400">
+                  Ctrl+K
+                </kbd>
+              </button>
+
               <button
                 onClick={() => {
                   soundEngine.playSfx("click");
@@ -216,6 +257,113 @@ export function NavigationHud() {
       {/* Modals */}
       <SkillTreeModal isOpen={skillTreeOpen} onClose={() => setSkillTreeOpen(false)} />
       <AchievementsModal isOpen={inventoryOpen} onClose={() => setInventoryOpen(false)} />
+
+      {/* Global Quick-Jump Command Modal (Ctrl+K) */}
+      {commandOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden font-mono">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-matrix-border bg-matrix-dark">
+              <Search className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Search 12 realms, 24 coding quests, 12 bosses, or curriculum guides..."
+                value={commandQuery}
+                onChange={(e) => setCommandQuery(e.target.value)}
+                className="w-full bg-transparent text-xs text-white placeholder-gray-500 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setCommandOpen(false)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="max-h-96 overflow-y-auto p-3 space-y-2 text-xs">
+              {REALMS.filter((r) => {
+                const q = commandQuery.trim().toLowerCase();
+                if (!q) return true;
+                const quests = QUESTS[r.id] || [];
+                const boss = BOSSES[r.id];
+                return (
+                  r.title.toLowerCase().includes(q) ||
+                  r.realmName.toLowerCase().includes(q) ||
+                  r.id.toLowerCase().includes(q) ||
+                  quests.some((item) => item.title.toLowerCase().includes(q)) ||
+                  (boss && boss.name.toLowerCase().includes(q))
+                );
+              }).map((r) => {
+                const quests = QUESTS[r.id] || [];
+                const boss = BOSSES[r.id];
+                return (
+                  <div
+                    key={r.id}
+                    className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">
+                        {String(r.order).padStart(2, "0")}. {r.title}
+                      </span>
+                      <Link
+                        href={`/curriculum?file=${r.fileRef}`}
+                        onClick={() => {
+                          soundEngine.playSfx("click");
+                          setCommandOpen(false);
+                        }}
+                        className="text-[11px] text-matrix-neonCyan hover:underline flex items-center gap-1"
+                      >
+                        <BookOpen className="w-3 h-3" />
+                        Guide
+                      </Link>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {quests.map((q) => (
+                        <Link
+                          key={q.id}
+                          href={`/quest/${r.id}/${q.id}`}
+                          onClick={() => {
+                            soundEngine.playSfx("click");
+                            setCommandOpen(false);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
+                            completedQuests.includes(q.id)
+                              ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent"
+                              : "bg-matrix-card border-matrix-border hover:border-matrix-neonCyan text-gray-200"
+                          }`}
+                        >
+                          <Code className="w-3 h-3" />
+                          <span>{q.title}</span>
+                        </Link>
+                      ))}
+
+                      {boss && (
+                        <Link
+                          href={`/boss/${r.id}`}
+                          onClick={() => {
+                            soundEngine.playSfx("click");
+                            setCommandOpen(false);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
+                            completedBosses.includes(r.id)
+                              ? "bg-matrix-neonGold/15 border-matrix-neonGold/50 text-matrix-neonGold"
+                              : "bg-red-950/30 border-matrix-neonRed/40 hover:border-matrix-neonRed text-matrix-neonRed"
+                          }`}
+                        >
+                          <Swords className="w-3 h-3" />
+                          <span>{boss.name}</span>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
