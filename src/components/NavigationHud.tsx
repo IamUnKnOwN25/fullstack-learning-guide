@@ -98,10 +98,10 @@ export function NavigationHud() {
               </div>
             </Link>
 
-            <div className="hidden md:flex items-center gap-1.5 border-l border-matrix-border/80 pl-4">
+            <div className="flex items-center gap-1 sm:gap-1.5 border-l border-matrix-border/80 pl-2.5 sm:pl-4">
               <Link
                 href="/"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-accent hover:bg-matrix-card transition-colors"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-accent hover:bg-matrix-card transition-colors"
                 onClick={() => {
                   soundEngine.playSfx("click");
                   if (typeof window !== "undefined" && window.location.pathname === "/") {
@@ -110,15 +110,15 @@ export function NavigationHud() {
                 }}
               >
                 <MapPin className="w-3.5 h-3.5 text-matrix-accent" />
-                World Map
+                <span className="hidden sm:inline">World Map</span>
               </Link>
               <Link
                 href="/curriculum"
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card transition-colors"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card transition-colors"
                 onClick={() => soundEngine.playSfx("click")}
               >
                 <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" />
-                Curriculum Vault
+                <span className="hidden sm:inline">Curriculum Vault</span>
               </Link>
             </div>
           </div>

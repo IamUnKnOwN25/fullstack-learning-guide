@@ -45,7 +45,16 @@ const REALM_CATEGORIES: Record<string, RealmCategory> = {
 };
 
 export function WorldCampaignMap() {
-  const { unlockedRealms, completedQuests, completedBosses, level, rankTitle, stars } = useGameStore();
+  const {
+    unlockedRealms,
+    completedQuests,
+    completedBosses,
+    completedChapters = [],
+    unlockAllRealms,
+    level,
+    rankTitle,
+    stars,
+  } = useGameStore();
   const [selectedRealm, setSelectedRealm] = useState<Realm | null>(REALMS[0]);
   const [activeCategory, setActiveCategory] = useState<RealmCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -123,7 +132,11 @@ export function WorldCampaignMap() {
               </div>
               <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonGold">
                 <Star className="w-3.5 h-3.5 fill-matrix-neonGold" />
-                <span>Stars: {totalStars} Earned</span>
+                <span>Stars: {totalStars}/72 ★</span>
+              </div>
+              <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonPurple">
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Chapters: {completedChapters.length}/13 Mastered</span>
               </div>
             </div>
           </div>
@@ -412,13 +425,22 @@ export function WorldCampaignMap() {
                 </p>
 
                 {!(unlockedRealms.includes(selectedRealm.id) || level >= selectedRealm.requiredLevel) && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs space-y-1 mb-3">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Campaign Requirement: Level {selectedRealm.requiredLevel}</span>
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs space-y-2 mb-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Campaign Requirement: Level {selectedRealm.requiredLevel}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => unlockAllRealms()}
+                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        Unlock All Realms
+                      </button>
                     </div>
                     <p className="text-[11px] text-gray-400">
-                      This realm is sealed in story order, but you may freely practice its coding quests below or consult its grimoire guide.
+                      This realm is sealed in story order, or click &ldquo;Unlock All Realms&rdquo; to enable open practice mode immediately.
                     </p>
                   </div>
                 )}

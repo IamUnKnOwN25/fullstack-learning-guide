@@ -288,3 +288,8 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added "Rematch Boss" and "Advance to <Next Realm>" buttons on the Victory screen so players who revisit a defeated boss can replay the encounter or jump straight into the next realm's first trial.
     - Added a live `PATCH VERIFIED — READY TO STRIKE` status badge in the Debug Workbench header when the player's code satisfies the current phase's test condition.
   - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000` route probes (`200 OK`, zero errors).
+
+- **[2026-10-20 10:04] Cycle 33: Responsive HUD Navigation & World Map Open Practice Quick-Unlock (Tests: PASS)**
+  - Fixed responsive visibility in `src/components/NavigationHud.tsx` so `World Map` and `Curriculum Vault` navigation links remain accessible on mobile/compact viewports (`< 768px`) instead of being hidden.
+  - Enhanced `src/components/WorldCampaignMap.tsx` with `Chapters: X/13 Mastered` in the Hero stats strip and a one-click `Unlock All Realms` button inside the locked realm inspector banner.
+  - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000` route probes (`200 OK`, zero errors).
