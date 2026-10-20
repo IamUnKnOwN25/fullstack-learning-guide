@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Realm, REALMS } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
 import { BOSSES } from "@/data/bosses";
@@ -65,6 +66,18 @@ export function ConstellationWorldMap({
   level,
   highlightedRealmIds,
 }: Props) {
+  const router = useRouter();
+
+  const handleLaunchRealm = (realm: Realm) => {
+    const rQuests = QUESTS[realm.id] || [];
+    const nextQuest = rQuests.find((q) => !completedQuests.includes(q.id)) || rQuests[0];
+    if (nextQuest) {
+      router.push(`/quest/${realm.id}/${nextQuest.id}`);
+    } else if (BOSSES[realm.id]) {
+      router.push(`/boss/${realm.id}`);
+    }
+  };
+
   return (
     <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] max-h-[640px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none">
       {/* Background Cyber Grid */}
@@ -78,8 +91,12 @@ export function ConstellationWorldMap({
       />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-matrix-neonCyan/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* SVG Conduits & Pathways */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+      {/* SVG Conduits & Pathways (Synchronized 800x500 coordinate system) */}
+      <svg
+        viewBox="0 0 800 500"
+        preserveAspectRatio="none"
+        className="absolute inset-0 w-full h-full pointer-events-none"
+      >
         <defs>
           <linearGradient id="activeConduit" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#00ff9d" />
@@ -101,14 +118,19 @@ export function ConstellationWorldMap({
             completedBosses.includes(from) ||
             unlockedRealms.includes(to);
 
+          const x1 = start.x * 8;
+          const y1 = start.y * 5;
+          const x2 = end.x * 8;
+          const y2 = end.y * 5;
+
           return (
             <g key={idx}>
               {/* Conduit Glow */}
               <line
-                x1={`${start.x}%`}
-                y1={`${start.y}%`}
-                x2={`${end.x}%`}
-                y2={`${end.y}%`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
                 stroke={isPathUnlocked ? "url(#activeConduit)" : "#1e293b"}
                 strokeWidth={isPathUnlocked ? "3" : "1.5"}
                 strokeDasharray={isPathUnlocked ? "none" : "6 4"}
@@ -117,9 +139,9 @@ export function ConstellationWorldMap({
               />
               {/* Flowing pulse on active conduits */}
               {isPathUnlocked && (
-                <circle r="3" fill="#00e5ff" className="animate-pulse">
+                <circle r="3.5" fill="#00e5ff" className="animate-pulse">
                   <animateMotion
-                    path={`M ${start.x * 8} ${start.y * 5} L ${end.x * 8} ${end.y * 5}`}
+                    path={`M ${x1} ${y1} L ${x2} ${y2}`}
                     dur="3s"
                     repeatCount="indefinite"
                   />
@@ -149,6 +171,9 @@ export function ConstellationWorldMap({
         return (
           <div
             key={realm.id}
+            role="button"
+            tabIndex={0}
+            title={`${realm.title} — Click to inspect, Double-click to launch trial`}
             style={{
               left: `${coords.x}%`,
               top: `${coords.y}%`,
@@ -158,7 +183,18 @@ export function ConstellationWorldMap({
               soundEngine.playSfx("click");
               onSelectRealm(realm);
             }}
-            className={`absolute z-10 flex flex-col items-center group cursor-pointer transition-all ${
+            onDoubleClick={() => {
+              soundEngine.playSfx("attack");
+              handleLaunchRealm(realm);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                soundEngine.playSfx("click");
+                onSelectRealm(realm);
+              }
+            }}
+            className={`absolute z-10 flex flex-col items-center group cursor-pointer transition-all outline-none ${
               isSelected ? "scale-125 z-20" : "hover:scale-115"
             } ${isFilterMatch ? "opacity-100" : "opacity-25 scale-90"}`}
           >
@@ -226,7 +262,7 @@ export function ConstellationWorldMap({
       })}
 
       {/* Map Legend */}
-      <div className="absolute bottom-3 left-4 flex items-center gap-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400">
+      <div className="absolute bottom-3 left-4 flex flex-wrap items-center gap-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400">
         <span className="flex items-center gap-1 text-matrix-accent font-bold">
           <span className="w-2 h-2 rounded-full bg-matrix-accent" /> Mastered
         </span>
@@ -235,6 +271,9 @@ export function ConstellationWorldMap({
         </span>
         <span className="flex items-center gap-1 text-gray-500">
           <Lock className="w-2.5 h-2.5" /> Sealed
+        </span>
+        <span className="hidden sm:inline text-matrix-neonCyan">
+          • Double-click node to launch trial
         </span>
       </div>
     </div>

@@ -293,3 +293,8 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Fixed responsive visibility in `src/components/NavigationHud.tsx` so `World Map` and `Curriculum Vault` navigation links remain accessible on mobile/compact viewports (`< 768px`) instead of being hidden.
   - Enhanced `src/components/WorldCampaignMap.tsx` with `Chapters: X/13 Mastered` in the Hero stats strip and a one-click `Unlock All Realms` button inside the locked realm inspector banner.
   - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000` route probes (`200 OK`, zero errors).
+
+- **[2026-10-20 10:08] Cycle 34: Fix Constellation SVG Conduit Animation Alignment & Add Double-Click Trial Launcher (Tests: PASS)**
+  - Fixed SVG coordinate alignment in `src/components/ConstellationWorldMap.tsx` by adding `viewBox="0 0 800 500" preserveAspectRatio="none"` and unifying `<line>` and `<animateMotion>` coordinates so energy pulses travel accurately along the conduit paths at any viewport aspect ratio.
+  - Added double-click direct trial launching (`onDoubleClick`) and keyboard accessibility (`role="button"`, `tabIndex={0}`, `Enter`/`Space` handling) on all 12 constellation realm nodes.
+  - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000/` verification (`200 OK`, zero errors).
