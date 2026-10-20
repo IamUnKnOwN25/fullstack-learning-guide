@@ -315,3 +315,9 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Fixed Workspace Tab Header wrapping in `src/components/QuestCodingWorkspace.tsx`: added `whitespace-nowrap shrink-0` to `Code Editor`, `Live Preview`, `Terminal`, `Visualizer`, and the `{quest.language}` badge so tab labels never wrap onto 2 lines or collide.
   - Cleaned up redundant `"Byte speaks: '...'"` nested quotes in `QuestCodingWorkspace.tsx` (`formattedStoryIntro`), improved Constellation bottom-row node spacing in `ConstellationWorldMap.tsx`, and added shorthand quest URL resolution in `src/app/quest/[realmId]/[questId]/page.tsx`.
   - Added regression test suite `src/__tests__/uiLayoutGuard.test.ts` (32/32 tests passing across 7 test files).
+
+- **[2026-10-20 11:02] Cycle 38: CSS Flexbox Column-Mode Overflow Fix, Capstone 2x2 Architecture Grid, and 12-Realm Concept Lab Switcher (Tests: PASS)**
+  - Fixed CSS Flexbox Visualizer (`case "css"` in `src/components/RealmConceptVisualizer.tsx`) where toggling `flex-direction: column` previously clipped `Item #3` and `Item #4` inside a fixed `h-48 overflow-hidden` container; replaced with `min-h-[220px] flex-wrap` and responsive item heights.
+  - Updated Capstone System Architecture Simulator (`case "capstone"` in `src/components/RealmConceptVisualizer.tsx`) from `sm:grid-cols-4` to `sm:grid-cols-2` so the 4 architecture nodes fit comfortably inside the 50%-width right pane without narrow text wrapping.
+  - Added a 12-Realm Concept Lab Switcher bar at the top of `RealmConceptVisualizer.tsx` so learners can explore any of the 12 interactive concept visualizers directly inside the `Visualizer` tab.
+  - Verified with `tsc --noEmit`, `vitest run` (32/32 tests passing across 7 suites), and live HTTP 200 verification across `/`, `/quest/html/html_1_skeleton`, `/quest/html/2`, `/boss/html`, and `/curriculum`.

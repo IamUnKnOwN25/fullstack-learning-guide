@@ -38,6 +38,12 @@ export const SUPPORTED_VISUALIZER_REALMS = [
 ] as const;
 
 export function RealmConceptVisualizer({ realmId }: Props) {
+  const [selectedRealmId, setSelectedRealmId] = useState(realmId);
+
+  React.useEffect(() => {
+    setSelectedRealmId(realmId);
+  }, [realmId]);
+
   // Common interactive state
   const [activeStep, setActiveStep] = useState(0);
 
@@ -86,9 +92,9 @@ export function RealmConceptVisualizer({ realmId }: Props) {
   // Capstone traffic scenario state
   const [capstoneFlow, setCapstoneFlow] = useState<"cache-hit" | "cache-miss" | "websocket">("cache-hit");
 
-  // Render Visualizer per realm
-  switch (realmId) {
-    case "html": {
+  const renderActiveRealmContent = () => {
+    switch (selectedRealmId) {
+      case "html": {
       const domTree = [
         { tag: "<html>", desc: "Root element containing document metadata and structure." },
         { tag: "<head>", desc: "Container for page title, viewport meta tags, and linked stylesheets." },
@@ -260,7 +266,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
           {/* Interactive Physical Playground Container */}
           <div
-            className="w-full h-48 bg-matrix-dark border-2 border-dashed border-matrix-accent/50 rounded-2xl p-4 flex gap-3 transition-all duration-300 overflow-hidden shadow-inner"
+            className="w-full min-h-[220px] bg-matrix-dark border-2 border-dashed border-matrix-accent/50 rounded-2xl p-4 flex flex-wrap gap-2.5 transition-all duration-300 shadow-inner"
             style={{
               flexDirection,
               justifyContent,
@@ -275,8 +281,12 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             ].map((box) => (
               <div
                 key={box.id}
-                className={`bg-gradient-to-br ${box.color} text-white font-bold text-xs p-3 rounded-xl shadow-lg flex items-center justify-center transition-all duration-300 ${
-                  alignItems === "stretch" && flexDirection === "row" ? "h-full" : "min-w-[80px] min-h-[50px]"
+                className={`bg-gradient-to-br ${box.color} text-white font-bold text-xs px-3 py-2 rounded-xl shadow-lg flex items-center justify-center whitespace-nowrap transition-all duration-300 ${
+                  alignItems === "stretch" && flexDirection === "row"
+                    ? "min-h-[140px]"
+                    : flexDirection === "column"
+                    ? "min-h-[36px]"
+                    : "min-w-[80px] min-h-[46px]"
                 }`}
               >
                 {box.label}
@@ -1090,7 +1100,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { name: "1. Next.js 15 Edge UI", role: "Optimistic UI + RSC", active: true },
               { name: "2. Node API Gateway", role: "JWT + Zod + Rate Limit", active: true },
@@ -1129,7 +1139,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             <div>
               <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
-                {realmId.toUpperCase()} Interactive Concept Simulator
+                {selectedRealmId.toUpperCase()} Interactive Concept Simulator
               </h4>
               <p className="text-[11px] text-gray-400">
                 Explore core mechanics, state flow, and architectural principles for this realm.
@@ -1153,12 +1163,45 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             <div className="bg-black/50 p-3.5 rounded-xl border border-matrix-border text-xs text-gray-300 space-y-2">
               <div className="text-matrix-neonGold font-bold">Key Architectural Invariant:</div>
               <p>
-                In the {realmId} realm, prioritize deterministic state management, pure functions, and non-blocking asynchronous operations to prevent latency spikes and race conditions.
+                In the {selectedRealmId} realm, prioritize deterministic state management, pure functions, and non-blocking asynchronous operations to prevent latency spikes and race conditions.
               </p>
             </div>
           </div>
         </div>
       );
     }
-  }
+    }
+  };
+
+  return (
+    <div className="flex flex-col">
+      {/* 12-Realm Concept Lab Switcher Bar */}
+      <div className="px-4 py-2 border-b border-matrix-border bg-matrix-card/40 flex items-center gap-1.5 overflow-x-auto font-mono text-[10px]">
+        <span className="text-gray-400 uppercase font-bold whitespace-nowrap shrink-0 mr-1">
+          Lab:
+        </span>
+        {SUPPORTED_VISUALIZER_REALMS.map((r) => {
+          const isCurrent = selectedRealmId === r;
+          return (
+            <button
+              key={r}
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setSelectedRealmId(r);
+              }}
+              className={`px-2 py-0.5 rounded uppercase font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer ${
+                isCurrent
+                  ? "bg-matrix-neonPurple text-white shadow-sm"
+                  : "bg-matrix-dark border border-matrix-border text-gray-400 hover:text-white"
+              }`}
+            >
+              {r === "javascript" ? "js" : r === "typescript" ? "ts" : r === "databases" ? "sql" : r}
+            </button>
+          );
+        })}
+      </div>
+      {renderActiveRealmContent()}
+    </div>
+  );
 }
