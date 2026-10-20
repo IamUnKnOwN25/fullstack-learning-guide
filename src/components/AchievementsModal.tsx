@@ -14,6 +14,9 @@ import {
   Star,
   Zap,
   Crown,
+  Download,
+  Upload,
+  Unlock,
 } from "lucide-react";
 
 interface Props {
@@ -105,10 +108,75 @@ const BADGES_CATALOG: Record<string, { name: string; description: string; icon: 
 };
 
 export function AchievementsModal({ isOpen, onClose }: Props) {
-  const { badges, completedQuests, completedBosses, xp, level, rankTitle, resetProgress } =
-    useGameStore();
+  const {
+    badges,
+    completedQuests,
+    completedBosses,
+    completedChapters = [],
+    completedCurriculumTasks = [],
+    unlockedRealms,
+    unlockedSkills,
+    stars,
+    xp,
+    level,
+    rankTitle,
+    resetProgress,
+    unlockAllRealms,
+    importSaveData,
+  } = useGameStore();
+
+  const [copiedBackup, setCopiedBackup] = React.useState(false);
+  const [showImportBox, setShowImportBox] = React.useState(false);
+  const [importJsonText, setImportJsonText] = React.useState("");
+  const [importStatus, setImportStatus] = React.useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const totalStarsEarned = Object.values(stars || {}).reduce((acc, s) => acc + s, 0);
+  const allRealmsUnlocked = unlockedRealms.length >= 12;
+
+  const handleExportSave = () => {
+    const payload = JSON.stringify(
+      {
+        xp,
+        level,
+        rankTitle,
+        completedQuests,
+        completedBosses,
+        unlockedRealms,
+        stars,
+        unlockedSkills,
+        badges,
+        completedCurriculumTasks,
+        completedChapters,
+      },
+      null,
+      2
+    );
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(payload);
+    }
+    soundEngine.playSfx("click");
+    setCopiedBackup(true);
+    setTimeout(() => setCopiedBackup(false), 2000);
+  };
+
+  const handleImportSave = () => {
+    try {
+      const parsed = JSON.parse(importJsonText);
+      const ok = importSaveData(parsed);
+      if (ok) {
+        setImportStatus("Save profile restored successfully!");
+        setShowImportBox(false);
+        setImportJsonText("");
+      } else {
+        setImportStatus("Invalid save data structure.");
+      }
+    } catch {
+      soundEngine.playSfx("error");
+      setImportStatus("Invalid JSON format. Paste a valid DevQuest backup.");
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
@@ -121,10 +189,10 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white font-mono flex items-center gap-2">
-                Trophy Room & Badges
+                Trophy Room & Operator Profile
               </h2>
               <p className="text-xs text-gray-400">
-                Your earned honors, boss trophies, and quest statistics
+                Your earned honors, boss trophies, star ratings, and profile backup
               </p>
             </div>
           </div>
@@ -141,7 +209,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Stats Summary Bar */}
-        <div className="grid grid-cols-4 gap-2 px-6 py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-6 py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono">
           <div>
             <div className="text-[10px] uppercase text-gray-400">Rank</div>
             <div className="text-xs font-bold text-matrix-accent truncate">{rankTitle}</div>
@@ -152,13 +220,99 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
           </div>
           <div>
             <div className="text-[10px] uppercase text-gray-400">Quests</div>
-            <div className="text-xs font-bold text-matrix-neonCyan">{completedQuests.length}</div>
+            <div className="text-xs font-bold text-matrix-neonCyan">{completedQuests.length}/24</div>
           </div>
           <div>
             <div className="text-[10px] uppercase text-gray-400">Bosses</div>
-            <div className="text-xs font-bold text-matrix-neonGold">{completedBosses.length}</div>
+            <div className="text-xs font-bold text-matrix-neonGold">{completedBosses.length}/12</div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase text-gray-400">Stars</div>
+            <div className="text-xs font-bold text-matrix-neonGold">{totalStarsEarned}/72 ★</div>
+          </div>
+          <div>
+            <div className="text-[10px] uppercase text-gray-400">Chapters</div>
+            <div className="text-xs font-bold text-matrix-accent">{completedChapters.length}/13</div>
           </div>
         </div>
+
+        {/* Sandbox Unlock & Backup Controls Bar */}
+        <div className="px-6 py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportSave}
+              className="px-2.5 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-matrix-neonCyan" />
+              <span>{copiedBackup ? "Copied Backup JSON!" : "Export Save JSON"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setShowImportBox(!showImportBox);
+                setImportStatus(null);
+              }}
+              className="px-2.5 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-matrix-neonPurple" />
+              <span>Import Save</span>
+            </button>
+          </div>
+
+          {!allRealmsUnlocked ? (
+            <button
+              type="button"
+              onClick={() => unlockAllRealms()}
+              className="px-2.5 py-1 rounded bg-matrix-accent/15 hover:bg-matrix-accent/25 border border-matrix-accent/50 text-matrix-accent font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Unlock all 12 realms immediately for open practice"
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              <span>Unlock All 12 Realms (Open Practice)</span>
+            </button>
+          ) : (
+            <span className="text-[11px] text-matrix-accent font-bold flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              All 12 Realms Unlocked
+            </span>
+          )}
+        </div>
+
+        {showImportBox && (
+          <div className="px-6 py-3 border-b border-matrix-border bg-matrix-dark space-y-2 font-mono text-xs">
+            <div className="text-gray-300">Paste your exported DevQuest JSON backup below:</div>
+            <textarea
+              value={importJsonText}
+              onChange={(e) => setImportJsonText(e.target.value)}
+              placeholder='{"xp": 500, "completedQuests": [...]}'
+              rows={3}
+              className="w-full p-2 rounded bg-matrix-card border border-matrix-border text-gray-200 font-mono text-xs outline-none focus:border-matrix-neonCyan"
+            />
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowImportBox(false)}
+                className="px-3 py-1 rounded bg-matrix-card border border-matrix-border text-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleImportSave}
+                className="px-3 py-1 rounded bg-matrix-accent text-matrix-dark font-bold"
+              >
+                Restore Backup
+              </button>
+            </div>
+          </div>
+        )}
+
+        {importStatus && (
+          <div className="px-6 py-2 bg-matrix-neonCyan/10 border-b border-matrix-neonCyan/30 text-matrix-neonCyan font-mono text-xs">
+            {importStatus}
+          </div>
+        )}
 
         {/* Badges Grid */}
         <div className="p-6 overflow-y-auto space-y-4">

@@ -4,7 +4,7 @@ import React from "react";
 import { useGameStore } from "@/lib/gameStore";
 import { SKILL_TREE } from "@/data/skills";
 import { soundEngine } from "@/lib/soundEngine";
-import { X, Shield, Eye, Atom, Zap, Cpu, Crown, Check, Lock } from "lucide-react";
+import { X, Shield, Eye, Atom, Zap, Cpu, Crown, Check, Lock, RotateCcw } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
@@ -21,7 +21,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 export function SkillTreeModal({ isOpen, onClose }: Props) {
-  const { level, unlockedSkills, unlockSkill } = useGameStore();
+  const { level, unlockedSkills, unlockSkill, respecSkills } = useGameStore();
 
   if (!isOpen) return null;
 
@@ -64,6 +64,29 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
 
         {/* Modal Body: Skills Grid */}
         <div className="p-6 overflow-y-auto space-y-4">
+          {/* Active Perks Summary Bar */}
+          <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-xs flex flex-wrap items-center justify-between gap-2">
+            <span className="text-gray-400 uppercase text-[10px] font-bold">
+              Active Cybernetic Buffs ({unlockedSkills.length + 1}/{SKILL_TREE.length}):
+            </span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded bg-matrix-accent/15 border border-matrix-accent/30 text-matrix-accent text-[10px]">
+                Syntax Sense (Passive)
+              </span>
+              {unlockedSkills.map((skId) => {
+                const sk = SKILL_TREE.find((s) => s.id === skId);
+                return sk ? (
+                  <span
+                    key={skId}
+                    className="px-2 py-0.5 rounded bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 text-matrix-neonPurple text-[10px] font-bold"
+                  >
+                    {sk.name}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {SKILL_TREE.map((skill) => {
               const isUnlocked = unlockedSkills.includes(skill.id) || skill.unlockedByDefault;
@@ -142,7 +165,20 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
 
         {/* Modal Footer */}
         <div className="px-6 py-3 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-between text-xs font-mono text-gray-400">
-          <span>Earn 1 Skill Point on every Level Up</span>
+          <div className="flex items-center gap-3">
+            <span>Earn 1 Skill Point on every Level Up</span>
+            {unlockedSkills.length > 0 && (
+              <button
+                type="button"
+                onClick={() => respecSkills()}
+                className="px-2.5 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan flex items-center gap-1 transition-colors cursor-pointer"
+                title="Refund all spent skill points so you can reallocate your build"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Respec Skills</span>
+              </button>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-matrix-border hover:bg-gray-700 text-white text-xs font-mono"

@@ -193,5 +193,10 @@ describe("DevQuest Game Store", () => {
     expect(useGameStore.getState().xp).toBe(900);
     expect(useGameStore.getState().completedQuests).toHaveLength(2);
     expect(useGameStore.getState().completedChapters).toContain("01-html-and-semantics.md");
+
+    // Unlock all realms for open practice
+    useGameStore.getState().unlockAllRealms();
+    expect(useGameStore.getState().unlockedRealms).toHaveLength(12);
+    expect(useGameStore.getState().unlockedRealms).toContain("capstone");
   });
 });

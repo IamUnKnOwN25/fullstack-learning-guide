@@ -273,3 +273,11 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Enhanced `src/lib/gameStore.ts` with persistent `completedCurriculumTasks`, `completedChapters`, `toggleCurriculumTask` (+10 XP per hands-on task), `completeChapter` (+50 XP per chapter), `respecSkills`, and `importSaveData`.
   - Connected `src/components/CurriculumViewer.tsx` to `useGameStore` so hands-on task checkboxes and chapter mastery badges persist across sessions.
   - Added regression assertions in `src/__tests__/quests.test.ts` and `src/__tests__/gameStore.test.ts` (30/30 tests passing).
+
+- **[2026-10-20 09:55] Cycle 31: Trophy Room Save Export/Import, Open Practice Mode & Skill Tree Respec (Tests: PASS)**
+  - Upgraded `src/components/AchievementsModal.tsx`:
+    - Expanded operator telemetry bar with 6 metrics: `Rank`, `Level`, `Quests (X/24)`, `Bosses (X/12)`, `Stars (X/72 ★)`, and `Chapters (X/13)`.
+    - Added "Export Save JSON" and "Import Save" backup/restore controls so learners never lose progress.
+    - Added "Unlock All 12 Realms (Open Practice)" button (`unlockAllRealms()` in `gameStore.ts`) allowing learners to jump into any advanced realm immediately.
+  - Upgraded `src/components/SkillTreeModal.tsx` with an Active Cybernetic Buffs summary banner and a "Respec Skills" button (`respecSkills()`) to refund and reallocate skill points freely.
+  - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000` route probes (`200 OK`, zero errors).

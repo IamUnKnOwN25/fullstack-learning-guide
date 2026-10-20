@@ -29,6 +29,7 @@ interface PlayerActions {
   defeatBoss: (realmId: string, badgeId: string, xpReward: number) => void;
   unlockSkill: (skillId: string, cost: number) => boolean;
   respecSkills: () => void;
+  unlockAllRealms: () => void;
   toggleCurriculumTask: (taskId: string) => boolean;
   completeChapter: (filename: string, xpReward?: number) => boolean;
   importSaveData: (data: Partial<PlayerStats>) => boolean;
@@ -216,6 +217,26 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
       respecSkills: () => {
         set({ unlockedSkills: [] });
         soundEngine.playSfx("click");
+      },
+
+      unlockAllRealms: () => {
+        set({
+          unlockedRealms: [
+            "html",
+            "css",
+            "javascript",
+            "typescript",
+            "react",
+            "backend",
+            "databases",
+            "devops",
+            "testing",
+            "cs",
+            "security",
+            "capstone",
+          ],
+        });
+        soundEngine.playSfx("level-up");
       },
 
       toggleCurriculumTask: (taskId: string) => {
