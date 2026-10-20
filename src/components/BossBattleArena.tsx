@@ -389,11 +389,23 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
                 {scanOpen && (
                   <div className="p-3.5 border-t border-yellow-500/20 bg-matrix-dark/80 text-xs font-mono space-y-2 text-yellow-200 animate-fadeIn">
-                    <div className="flex items-center gap-1.5 text-matrix-neonCyan text-[11px] font-bold">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Target Vulnerability Signature:</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-matrix-neonCyan text-[11px] font-bold">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Target Vulnerability Signature:</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playSfx("click");
+                          setCode(phase.hint);
+                        }}
+                        className="px-2 py-0.5 rounded bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/40 text-yellow-300 text-[10px] font-bold transition-colors"
+                      >
+                        Load Tactical Patch
+                      </button>
                     </div>
-                    <p className="leading-relaxed text-gray-300 bg-black/40 p-2.5 rounded border border-matrix-border/50">
+                    <p className="leading-relaxed text-gray-300 bg-black/40 p-2.5 rounded border border-matrix-border/50 whitespace-pre-wrap">
                       {phase.hint}
                     </p>
                   </div>
@@ -425,7 +437,15 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               </button>
             </div>
 
-            <div className="p-4 bg-matrix-dark flex-1 min-h-[220px]">
+            <div className="p-4 bg-matrix-dark flex-1 min-h-[220px] flex gap-3">
+              <div
+                aria-hidden="true"
+                className="select-none text-right pr-2 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-relaxed"
+              >
+                {code.split("\n").map((_, i) => (
+                  <div key={i}>{i + 1}</div>
+                ))}
+              </div>
               <textarea
                 value={code}
                 onChange={(e) => setCode(e.target.value)}

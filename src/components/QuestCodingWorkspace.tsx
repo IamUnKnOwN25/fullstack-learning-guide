@@ -20,6 +20,10 @@ import {
   ShieldAlert,
   BookOpen,
   Layers,
+  Copy,
+  Check,
+  Swords,
+  Lightbulb,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
@@ -53,6 +57,9 @@ export function QuestCodingWorkspace({
   const [code, setCode] = useState(quest?.starterCode || "");
   const [activeTab, setActiveTab] = useState<"editor" | "preview" | "terminal" | "visualizer">("editor");
   const [showHintIndex, setShowHintIndex] = useState<number>(-1);
+  const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showMentorGuide, setShowMentorGuide] = useState(false);
   const [testResult, setTestResult] = useState<{
     passed?: boolean;
     message?: string;
@@ -84,6 +91,8 @@ export function QuestCodingWorkspace({
       setCode(quest.starterCode);
       setTestResult(null);
       setShowHintIndex(-1);
+      setCheckedTasks({});
+      setShowMentorGuide(false);
       setActiveTab("editor");
     }
   }, [quest]);
@@ -165,7 +174,41 @@ export function QuestCodingWorkspace({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {/* Realm Trial & Boss Quick Switcher */}
+          <div className="hidden md:flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs">
+            {realmQuests.map((rq) => {
+              const active = rq.id === quest.id;
+              const solved = completedQuests.includes(rq.id);
+              return (
+                <Link
+                  key={rq.id}
+                  href={`/quest/${realmId}/${rq.id}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className={`px-2.5 py-1 rounded flex items-center gap-1 transition-all ${
+                    active
+                      ? "bg-matrix-accent text-matrix-dark font-bold"
+                      : solved
+                      ? "text-matrix-accent hover:bg-matrix-card"
+                      : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <span>Trial {rq.order}</span>
+                  {solved && <CheckCircle2 className="w-3 h-3" />}
+                </Link>
+              );
+            })}
+            <Link
+              href={`/boss/${realmId}`}
+              onClick={() => soundEngine.playSfx("click")}
+              className="px-2.5 py-1 rounded flex items-center gap-1 text-matrix-neonRed hover:bg-red-950/40 font-bold transition-all"
+              title="Challenge Realm Guardian Boss"
+            >
+              <Swords className="w-3 h-3" />
+              <span>Boss</span>
+            </Link>
+          </div>
+
           {realm && (
             <Link
               href={`/curriculum?file=${realm.fileRef}`}
@@ -233,25 +276,56 @@ export function QuestCodingWorkspace({
 
             {/* Task Objectives Checklist */}
             <div className="space-y-2.5">
-              <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-neonGold font-bold">
-                Objectives Checklist
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-mono text-xs uppercase tracking-wider text-matrix-neonGold font-bold">
+                  Objectives Checklist (Click to Track)
+                </h3>
+                <span className="font-mono text-[10px] text-gray-400">
+                  {isCompleted
+                    ? `${quest.tasks.length}/${quest.tasks.length} Verified`
+                    : `${Object.values(checkedTasks).filter(Boolean).length}/${quest.tasks.length} Checked`}
+                </span>
+              </div>
               <div className="space-y-2">
-                {quest.tasks.map((task, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2.5 text-xs bg-matrix-dark/30 p-2.5 rounded-lg border border-matrix-border/70"
-                  >
-                    <div className="w-4 h-4 rounded bg-matrix-card border border-matrix-border text-matrix-accent flex items-center justify-center shrink-0 mt-0.5">
-                      {isCompleted ? <CheckCircle2 className="w-3 h-3 text-matrix-accent" /> : <span className="text-[9px]">{idx + 1}</span>}
-                    </div>
-                    <span className="text-gray-200">{task}</span>
-                  </div>
-                ))}
+                {quest.tasks.map((task, idx) => {
+                  const isTaskChecked = isCompleted || !!checkedTasks[idx];
+                  return (
+                    <button
+                      type="button"
+                      key={idx}
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setCheckedTasks((prev) => ({ ...prev, [idx]: !prev[idx] }));
+                      }}
+                      className={`w-full text-left flex items-start gap-2.5 text-xs p-2.5 rounded-lg border transition-all cursor-pointer ${
+                        isTaskChecked
+                          ? "bg-matrix-accent/10 border-matrix-accent/40 text-white"
+                          : "bg-matrix-dark/30 border-matrix-border/70 hover:border-gray-600 text-gray-200"
+                      }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${
+                          isTaskChecked
+                            ? "bg-matrix-accent border-matrix-accent text-matrix-dark font-bold"
+                            : "bg-matrix-card border-matrix-border text-matrix-accent"
+                        }`}
+                      >
+                        {isTaskChecked ? (
+                          <Check className="w-3 h-3" />
+                        ) : (
+                          <span className="text-[9px]">{idx + 1}</span>
+                        )}
+                      </div>
+                      <span className={isTaskChecked ? "line-through text-gray-400" : "text-gray-200"}>
+                        {task}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Hints Accordion */}
+            {/* Hints & Guided Mentor Accordion */}
             <div className="pt-2 border-t border-matrix-border/60 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-gray-400 flex items-center gap-1.5">
@@ -259,17 +333,31 @@ export function QuestCodingWorkspace({
                   Need Tactical Support?
                 </span>
 
-                {showHintIndex < quest.hints.length - 1 && (
+                <div className="flex items-center gap-3">
+                  {showHintIndex < quest.hints.length - 1 && (
+                    <button
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setShowHintIndex((prev) => prev + 1);
+                      }}
+                      className="text-xs font-mono text-matrix-neonPurple hover:underline cursor-pointer"
+                    >
+                      Reveal Hint ({showHintIndex + 2}/{quest.hints.length})
+                    </button>
+                  )}
+
                   <button
+                    type="button"
                     onClick={() => {
                       soundEngine.playSfx("click");
-                      setShowHintIndex((prev) => prev + 1);
+                      setShowMentorGuide(!showMentorGuide);
                     }}
-                    className="text-xs font-mono text-matrix-neonPurple hover:underline cursor-pointer"
+                    className="text-xs font-mono text-matrix-neonCyan hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    Reveal Hint ({showHintIndex + 2}/{quest.hints.length})
+                    <Lightbulb className="w-3 h-3" />
+                    {showMentorGuide ? "Hide Walkthrough" : "Mentor Walkthrough"}
                   </button>
-                )}
+                </div>
               </div>
 
               {showHintIndex >= 0 && (
@@ -285,6 +373,39 @@ export function QuestCodingWorkspace({
                       {hint}
                     </div>
                   ))}
+                </div>
+              )}
+
+              {showMentorGuide && (
+                <div className="p-3.5 rounded-xl bg-matrix-neonCyan/10 border border-matrix-neonCyan/30 font-mono text-xs space-y-2.5 text-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-matrix-neonCyan font-bold flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      Mentor Reference Pattern
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        const combinedHint = quest.hints[quest.hints.length - 1] || quest.starterCode;
+                        if (quest.starterCode.includes("<!--") || quest.starterCode.includes("//")) {
+                          setCode(quest.starterCode + "\n\n" + combinedHint);
+                        } else {
+                          setCode(combinedHint);
+                        }
+                        setActiveTab("editor");
+                      }}
+                      className="px-2 py-1 rounded bg-matrix-neonCyan text-matrix-dark font-bold text-[10px] hover:opacity-90"
+                    >
+                      Insert Snippet into Editor
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-300 leading-relaxed">
+                    <strong>Why this works:</strong> {quest.conceptSummary}
+                  </p>
+                  <pre className="p-2.5 rounded bg-black/60 border border-matrix-border text-matrix-accent overflow-x-auto text-[11px]">
+                    <code>{quest.hints.join("\n\n")}</code>
+                  </pre>
                 </div>
               )}
             </div>
@@ -398,30 +519,76 @@ export function QuestCodingWorkspace({
 
           {/* Tab 1: Code Editor */}
           {activeTab === "editor" && (
-            <div className="flex-1 p-4 bg-matrix-dark flex flex-col font-mono text-xs">
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="Type your code solution here..."
-                spellCheck={false}
-                className="w-full flex-1 bg-transparent text-gray-200 outline-none resize-none font-mono leading-relaxed selection:bg-matrix-accent/30 selection:text-white"
-                style={{ tabSize: 2 }}
-                onKeyDown={(e) => {
-                  if (e.key === "Tab") {
-                    e.preventDefault();
-                    const target = e.target as HTMLTextAreaElement;
-                    const start = target.selectionStart;
-                    const end = target.selectionEnd;
-                    setCode(code.substring(0, start) + "  " + code.substring(end));
-                    setTimeout(() => {
-                      target.selectionStart = target.selectionEnd = start + 2;
-                    }, 0);
-                  } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                    e.preventDefault();
-                    handleRunCode();
-                  }
-                }}
-              />
+            <div className="flex-1 bg-matrix-dark flex flex-col font-mono text-xs overflow-hidden">
+              <div className="flex-1 flex overflow-y-auto p-3 sm:p-4 gap-3">
+                {/* Line Numbers Gutter */}
+                <div
+                  aria-hidden="true"
+                  className="select-none text-right pr-2 border-r border-matrix-border/60 text-gray-600 font-mono text-xs leading-relaxed"
+                >
+                  {code.split("\n").map((_, i) => (
+                    <div key={i}>{i + 1}</div>
+                  ))}
+                </div>
+
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Type your code solution here..."
+                  spellCheck={false}
+                  className="w-full flex-1 bg-transparent text-gray-200 outline-none resize-none font-mono leading-relaxed selection:bg-matrix-accent/30 selection:text-white"
+                  style={{ tabSize: 2 }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Tab") {
+                      e.preventDefault();
+                      const target = e.target as HTMLTextAreaElement;
+                      const start = target.selectionStart;
+                      const end = target.selectionEnd;
+                      setCode(code.substring(0, start) + "  " + code.substring(end));
+                      setTimeout(() => {
+                        target.selectionStart = target.selectionEnd = start + 2;
+                      }, 0);
+                    } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                      e.preventDefault();
+                      handleRunCode();
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Editor Status & Copy Toolbar */}
+              <div className="px-4 py-1.5 border-t border-matrix-border bg-matrix-card/60 flex items-center justify-between text-[10px] text-gray-400">
+                <div className="flex items-center gap-3">
+                  <span>Lines: {code.split("\n").length}</span>
+                  <span>•</span>
+                  <span>Chars: {code.length}</span>
+                  <span className="hidden sm:inline">• Tab: 2 Spaces</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof navigator !== "undefined" && navigator.clipboard) {
+                      navigator.clipboard.writeText(code);
+                    }
+                    soundEngine.playSfx("click");
+                    setCopiedCode(true);
+                    setTimeout(() => setCopiedCode(false), 1800);
+                  }}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white transition-colors"
+                >
+                  {copiedCode ? (
+                    <>
+                      <Check className="w-3 h-3 text-matrix-accent" />
+                      <span className="text-matrix-accent font-bold">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
