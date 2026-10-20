@@ -22,6 +22,21 @@ interface Props {
   realmId: string;
 }
 
+export const SUPPORTED_VISUALIZER_REALMS = [
+  "html",
+  "css",
+  "javascript",
+  "typescript",
+  "react",
+  "backend",
+  "databases",
+  "devops",
+  "testing",
+  "cs",
+  "security",
+  "capstone",
+] as const;
+
 export function RealmConceptVisualizer({ realmId }: Props) {
   // Common interactive state
   const [activeStep, setActiveStep] = useState(0);
@@ -36,22 +51,40 @@ export function RealmConceptVisualizer({ realmId }: Props) {
   // JS Event Loop visualizer state
   const [eventLoopStep, setEventLoopStep] = useState(0);
 
+  // TypeScript Discriminated Union state
+  const [tsUnionState, setTsUnionState] = useState<"loading" | "success" | "error">("success");
+  const [tsStrictMode, setTsStrictMode] = useState(true);
+
   // Binary Search visualizer state
-  const [searchTarget, setSearchTarget] = useState(42);
+  const [searchTarget] = useState(42);
   const [searchStep, setSearchStep] = useState(0);
   const binaryArray = [2, 7, 14, 19, 25, 33, 42, 58, 64, 77, 89, 95];
 
   // React Re-render Heatmap state
   const [memoEnabled, setMemoEnabled] = useState(true);
-  const [renderCount, setRenderCount] = useState(0);
+  const [renderCount, setRenderCount] = useState(1);
+  const [unmemoizedChildRenders, setUnmemoizedChildRenders] = useState(1);
   const [flashParent, setFlashParent] = useState(false);
+
+  // Backend Express Middleware state
+  const [backendScenario, setBackendScenario] = useState<"valid" | "unauth" | "ratelimit">("valid");
 
   // Security XSS visualizer state
   const [sanitizeOn, setSanitizeOn] = useState(true);
   const [xssInput, setXssInput] = useState("<img src=x onerror=alert('PWNED') />");
 
-  // Database SQL Injection state
+  // Database SQL Injection & B-Tree state
   const [isParameterized, setIsParameterized] = useState(true);
+  const [hasBtreeIndex, setHasBtreeIndex] = useState(true);
+
+  // DevOps Multi-Stage Docker state
+  const [multiStageDocker, setMultiStageDocker] = useState(true);
+
+  // Testing TDD state
+  const [tddPhase, setTddPhase] = useState<"red" | "green" | "refactor">("green");
+
+  // Capstone traffic scenario state
+  const [capstoneFlow, setCapstoneFlow] = useState<"cache-hit" | "cache-miss" | "websocket">("cache-hit");
 
   // Render Visualizer per realm
   switch (realmId) {
@@ -516,6 +549,561 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "typescript": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Discriminated Union & Type Narrowing Lab
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Simulate API response states and compare compile-time narrowing vs unsafe &apos;any&apos; casts.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setTsStrictMode(!tsStrictMode);
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
+                tsStrictMode
+                  ? "bg-matrix-accent text-matrix-dark"
+                  : "bg-matrix-neonRed text-white"
+              }`}
+            >
+              {tsStrictMode ? "strictNullChecks: ON" : "Unsafe 'any' Mode: ON"}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-gray-400">Union Discriminant (state.status):</span>
+            {(["loading", "success", "error"] as const).map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setTsUnionState(status);
+                }}
+                className={`px-3 py-1 rounded-lg border text-xs font-bold transition-all ${
+                  tsUnionState === status
+                    ? "bg-matrix-neonCyan/20 border-matrix-neonCyan text-matrix-neonCyan"
+                    : "bg-matrix-dark border-matrix-border text-gray-400"
+                }`}
+              >
+                &quot;{status}&quot;
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-matrix-neonGold font-bold">
+                Active Runtime Payload
+              </span>
+              <pre className="text-xs text-matrix-accent bg-black/50 p-3 rounded border border-matrix-border overflow-x-auto">
+                {tsUnionState === "loading"
+                  ? `{ status: "loading" }`
+                  : tsUnionState === "success"
+                  ? `{ status: "success",\n  data: { operator: "Trinity", level: 12 }\n}`
+                  : `{ status: "error",\n  error: "503 Matrix Gateway Timeout"\n}`}
+              </pre>
+            </div>
+
+            <div className="p-4 rounded-xl bg-matrix-card border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-matrix-neonCyan font-bold">
+                TypeScript Compiler & Runtime Verdict
+              </span>
+              {tsStrictMode ? (
+                <div className="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800 text-matrix-accent space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Narrowed Type: {tsUnionState === "loading" ? "LoadingState" : tsUnionState === "success" ? "SuccessState" : "ErrorState"}
+                  </div>
+                  <p className="text-gray-300 text-[11px]">
+                    {tsUnionState === "success"
+                      ? "Compiler permits safe access to state.data.operator ('Trinity')."
+                      : `Compiler blocks state.data access at build time! Must handle '${tsUnionState}' branch first.`}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-red-950/30 border border-red-800 text-matrix-neonRed space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4" />
+                    {tsUnionState === "success" ? "Lucky Pass (Unchecked)" : "RUNTIME CRASH: TypeError!"}
+                  </div>
+                  <p className="text-gray-300 text-[11px]">
+                    {tsUnionState === "success"
+                      ? "state.data.operator worked by luck, but zero compile-time protection exists."
+                      : "Cannot read properties of undefined (reading 'operator'). Using 'any' bypassed compiler wards!"}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "react": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                React Render Flamegraph & Memoization Lab
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Trigger parent state updates and observe how React.memo + useCallback prevent wasted child re-renders.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setMemoEnabled(!memoEnabled);
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs border transition-all ${
+                  memoEnabled
+                    ? "bg-matrix-accent/20 border-matrix-accent text-matrix-accent"
+                    : "bg-matrix-neonRed/20 border-matrix-neonRed text-matrix-neonRed"
+                }`}
+              >
+                React.memo: {memoEnabled ? "ENABLED" : "DISABLED"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("attack");
+                  setRenderCount((c) => c + 1);
+                  if (!memoEnabled) {
+                    setUnmemoizedChildRenders((c) => c + 1);
+                  }
+                  setFlashParent(true);
+                  setTimeout(() => setFlashParent(false), 350);
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-all"
+              >
+                Trigger Parent setState (+1)
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-4">
+            <div
+              className={`p-3.5 rounded-xl border transition-all flex items-center justify-between ${
+                flashParent
+                  ? "bg-matrix-neonCyan/20 border-matrix-neonCyan"
+                  : "bg-matrix-card border-matrix-border"
+              }`}
+            >
+              <div>
+                <span className="text-[10px] uppercase text-matrix-neonCyan font-bold block">
+                  Root Parent Component
+                </span>
+                <span className="font-bold text-white">&lt;MatrixDashboard /&gt;</span>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-black/60 text-matrix-neonCyan font-bold">
+                Renders: {renderCount}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-4 border-l-2 border-matrix-border">
+              <div className="p-3 rounded-xl bg-matrix-card border border-matrix-accent/40 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-matrix-accent block">Stateful Target</span>
+                  <span className="font-bold text-white">&lt;CounterBadge count={renderCount} /&gt;</span>
+                </div>
+                <span className="px-2 py-1 rounded bg-matrix-accent/20 text-matrix-accent font-bold">
+                  Renders: {renderCount}
+                </span>
+              </div>
+
+              <div
+                className={`p-3 rounded-xl border flex items-center justify-between transition-all ${
+                  memoEnabled
+                    ? "bg-matrix-card border-matrix-border text-gray-300"
+                    : "bg-red-950/30 border-matrix-neonRed text-matrix-neonRed"
+                }`}
+              >
+                <div>
+                  <span className="text-[10px] block">
+                    {memoEnabled ? "Memoized Heavy Child (Skipped!)" : "Un-memoized Heavy Child (Wasted Render!)"}
+                  </span>
+                  <span className="font-bold text-white">&lt;HeavyAnalyticsChart /&gt;</span>
+                </div>
+                <span className="px-2 py-1 rounded bg-black/60 font-bold">
+                  Renders: {unmemoizedChildRenders}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "backend": {
+      const pipeline =
+        backendScenario === "valid"
+          ? [
+              { stage: "1. CORS & JSON Parser", status: "PASS", detail: "Origin allowed, body parsed" },
+              { stage: "2. Token Bucket Rate Limiter", status: "PASS", detail: "12/100 reqs in window" },
+              { stage: "3. verifyToken JWT Guard", status: "PASS", detail: "HS256 signature valid (req.user = op-01)" },
+              { stage: "4. POST /api/tasks Controller", status: "201 CREATED", detail: "{ id: 'task-1', status: 'created' }" },
+            ]
+          : backendScenario === "unauth"
+          ? [
+              { stage: "1. CORS & JSON Parser", status: "PASS", detail: "Origin allowed" },
+              { stage: "2. Token Bucket Rate Limiter", status: "PASS", detail: "13/100 reqs in window" },
+              { stage: "3. verifyToken JWT Guard", status: "401 BLOCKED", detail: "JsonWebTokenError: invalid signature" },
+              { stage: "4. POST /api/tasks Controller", status: "SKIPPED", detail: "Short-circuited by auth guard" },
+            ]
+          : [
+              { stage: "1. CORS & JSON Parser", status: "PASS", detail: "Origin allowed" },
+              { stage: "2. Token Bucket Rate Limiter", status: "429 BLOCKED", detail: "Rate limit exceeded (Retry-After: 60s)" },
+              { stage: "3. verifyToken JWT Guard", status: "SKIPPED", detail: "Protected from CPU exhaustion" },
+              { stage: "4. POST /api/tasks Controller", status: "SKIPPED", detail: "Database pool protected" },
+            ];
+
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-accent flex items-center gap-2">
+                <Cpu className="w-4 h-4" />
+                Express Middleware & JWT Pipeline Simulator
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Dispatch simulated HTTP requests through the Express middleware pipeline.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "valid", label: "Valid Bearer JWT Request" },
+              { id: "unauth", label: "Tampered / Missing JWT" },
+              { id: "ratelimit", label: "DDoS Traffic Spike (250 req/s)" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setBackendScenario(item.id as "valid" | "unauth" | "ratelimit");
+                }}
+                className={`px-3 py-1.5 rounded-lg border font-bold text-xs transition-all ${
+                  backendScenario === item.id
+                    ? "bg-matrix-neonCyan/20 border-matrix-neonCyan text-matrix-neonCyan"
+                    : "bg-matrix-dark border-matrix-border text-gray-400"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            {pipeline.map((step, i) => (
+              <div
+                key={i}
+                className="p-3 rounded-xl bg-matrix-dark border border-matrix-border flex items-center justify-between gap-4"
+              >
+                <div>
+                  <div className="font-bold text-white">{step.stage}</div>
+                  <div className="text-[11px] text-gray-400">{step.detail}</div>
+                </div>
+                <span
+                  className={`px-2.5 py-1 rounded text-[10px] font-bold shrink-0 ${
+                    step.status.includes("PASS") || step.status.includes("201")
+                      ? "bg-matrix-accent/20 text-matrix-accent"
+                      : step.status.includes("BLOCKED")
+                      ? "bg-matrix-neonRed/20 text-matrix-neonRed"
+                      : "bg-gray-800 text-gray-500"
+                  }`}
+                >
+                  {step.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    case "databases": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-neonPurple flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                PostgreSQL Parameterized Queries & B-Tree Index Planner
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Compare prepared statements ($1) and B-Tree index lookup speed on a 1,000,000-row table.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setIsParameterized(!isParameterized);
+                }}
+                className={`px-3 py-1 rounded-lg border font-bold text-[11px] ${
+                  isParameterized
+                    ? "bg-matrix-accent/20 border-matrix-accent text-matrix-accent"
+                    : "bg-matrix-neonRed/20 border-matrix-neonRed text-matrix-neonRed"
+                }`}
+              >
+                {isParameterized ? "Parameterized ($1)" : "Raw Concatenation"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setHasBtreeIndex(!hasBtreeIndex);
+                }}
+                className={`px-3 py-1 rounded-lg border font-bold text-[11px] ${
+                  hasBtreeIndex
+                    ? "bg-matrix-neonCyan/20 border-matrix-neonCyan text-matrix-neonCyan"
+                    : "bg-amber-500/20 border-amber-500 text-amber-300"
+                }`}
+              >
+                {hasBtreeIndex ? "B-Tree Index: ON" : "B-Tree Index: OFF"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-gray-400 font-bold block">
+                SQL Execution Plan (input: &quot;admin&apos; OR 1=1 --&quot;)
+              </span>
+              <code className="block p-3 rounded bg-black/60 border border-matrix-border text-matrix-neonCyan">
+                {isParameterized
+                  ? "SELECT * FROM users WHERE email = $1;\n-- Bind Param $1: \"admin' OR 1=1 --\" (Literal String)"
+                  : "SELECT * FROM users WHERE email = 'admin' OR 1=1 --';\n-- CRITICAL: Always evaluates TRUE, dumps entire table!"}
+              </code>
+            </div>
+
+            <div className="p-4 rounded-xl bg-matrix-card border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-gray-400 font-bold block">
+                EXPLAIN ANALYZE Telemetry
+              </span>
+              <div className="p-3 rounded bg-black/60 border border-matrix-border space-y-1">
+                <div className="font-bold text-matrix-accent">
+                  Strategy: {hasBtreeIndex ? "Index Scan using idx_users_email (O(log N))" : "Seq Scan on users (O(N) Full Table Scan)"}
+                </div>
+                <div className="text-gray-300">
+                  Execution Time: <strong>{hasBtreeIndex ? "0.38 ms (3 tree hops)" : "148.60 ms (1,000,000 rows checked)"}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "devops": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-neonCyan flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                Multi-Stage Docker Image Size & Layer Optimizer
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Toggle Multi-Stage Alpine builds to strip build toolchains and shrink container attack surface.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setMultiStageDocker(!multiStageDocker);
+              }}
+              className={`px-3.5 py-1.5 rounded-lg font-bold text-xs ${
+                multiStageDocker
+                  ? "bg-matrix-accent text-matrix-dark"
+                  : "bg-amber-500 text-matrix-dark"
+              }`}
+            >
+              {multiStageDocker ? "Mode: Multi-Stage Alpine (138 MB)" : "Mode: Single-Stage Fat Image (1.18 GB)"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-matrix-neonCyan font-bold">
+                Stage 1: Builder Container (node:20-alpine)
+              </span>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="p-2 rounded bg-matrix-card border border-matrix-border">✓ OS Base + Node 20 Runtime (110 MB)</div>
+                <div className="p-2 rounded bg-matrix-card border border-matrix-border">✓ devDependencies + TypeScript Compiler (640 MB)</div>
+                <div className="p-2 rounded bg-matrix-card border border-matrix-border">✓ Compiled Production Bundle /app/dist (28 MB)</div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-matrix-card border border-matrix-border space-y-2">
+              <span className="text-[10px] uppercase text-matrix-accent font-bold">
+                Final Shipped Production Container
+              </span>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="p-2 rounded bg-matrix-dark border border-matrix-accent/40 text-matrix-accent">
+                  ✓ node:20-alpine Minimal Runtime (110 MB)
+                </div>
+                <div className="p-2 rounded bg-matrix-dark border border-matrix-accent/40 text-matrix-accent">
+                  ✓ COPY --from=builder /app/dist (28 MB)
+                </div>
+                {!multiStageDocker && (
+                  <div className="p-2 rounded bg-red-950/40 border border-matrix-neonRed text-matrix-neonRed">
+                    ✗ BLOAT: 1,040 MB of devDependencies, compilers & source caches shipped to prod!
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case "testing": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-accent flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                TDD Red-Green-Refactor & Vitest Spy Lab
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Inspect each phase of the Test-Driven Development loop and deterministic mock isolation.
+              </p>
+            </div>
+            <div className="flex gap-1.5">
+              {(["red", "green", "refactor"] as const).map((phase) => (
+                <button
+                  key={phase}
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    setTddPhase(phase);
+                  }}
+                  className={`px-3 py-1 rounded-lg font-bold uppercase text-[11px] border ${
+                    tddPhase === phase
+                      ? phase === "red"
+                        ? "bg-matrix-neonRed text-white border-matrix-neonRed"
+                        : phase === "green"
+                        ? "bg-matrix-accent text-matrix-dark border-matrix-accent"
+                        : "bg-matrix-neonCyan text-matrix-dark border-matrix-neonCyan"
+                      : "bg-matrix-dark border-matrix-border text-gray-400"
+                  }`}
+                >
+                  {phase}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-matrix-dark border border-matrix-border space-y-3">
+            <div className="text-sm font-bold text-white">
+              {tddPhase === "red"
+                ? "1. RED Phase: Write a Failing Specification First"
+                : tddPhase === "green"
+                ? "2. GREEN Phase: Write Minimal Code to Pass Assertions"
+                : "3. REFACTOR Phase: Clean Up Structure While Tests Guard Behavior"}
+            </div>
+            <p className="text-gray-300 leading-relaxed">
+              {tddPhase === "red"
+                ? "Before writing implementation code, express the exact business requirement using expect(calculateXp(100)).toBe(125). Watching it fail proves the test cannot produce a false positive."
+                : tddPhase === "green"
+                ? "Implement the simplest pure function or mock spy (vi.fn().mockResolvedValue(...)) that satisfies the test contract in <10ms without external network calls."
+                : "Extract helpers, eliminate duplication, and tighten types with 100% confidence—if any edge case breaks, the Vitest suite alerts you in milliseconds."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    case "capstone": {
+      return (
+        <div className="p-4 sm:p-6 space-y-5 text-gray-200 font-mono text-xs">
+          <div className="flex items-center justify-between border-b border-matrix-border pb-3">
+            <div>
+              <h4 className="text-sm font-bold text-matrix-neonGold flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Full-Stack Capstone System Architecture Simulator
+              </h4>
+              <p className="text-[11px] text-gray-400">
+                Simulate production traffic across Edge Next.js, Node API Gateway, Redis Cache, and PostgreSQL.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "cache-hit", label: "GET /tasks (Redis Cache Hit • 2ms)" },
+              { id: "cache-miss", label: "POST /tasks (Postgres ACID Write + Cache Invalidate • 34ms)" },
+              { id: "websocket", label: "WebSocket Board Broadcast (Real-Time Sync • 8ms)" },
+            ].map((flow) => (
+              <button
+                key={flow.id}
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setCapstoneFlow(flow.id as "cache-hit" | "cache-miss" | "websocket");
+                }}
+                className={`px-3 py-1.5 rounded-lg border font-bold text-xs transition-all ${
+                  capstoneFlow === flow.id
+                    ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold"
+                    : "bg-matrix-dark border-matrix-border text-gray-400"
+                }`}
+              >
+                {flow.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            {[
+              { name: "1. Next.js 15 Edge UI", role: "Optimistic UI + RSC", active: true },
+              { name: "2. Node API Gateway", role: "JWT + Zod + Rate Limit", active: true },
+              {
+                name: "3. Redis 7 Cluster",
+                role: capstoneFlow === "cache-hit" ? "HIT: Sub-2ms Return" : capstoneFlow === "cache-miss" ? "DEL key (Invalidated)" : "Pub/Sub Channel",
+                active: true,
+              },
+              {
+                name: "4. PostgreSQL 16",
+                role: capstoneFlow === "cache-hit" ? "Bypassed (0 DB Load)" : capstoneFlow === "cache-miss" ? "INSERT + B-Tree Index" : "Read Replica Sync",
+                active: capstoneFlow !== "cache-hit",
+              },
+            ].map((node, idx) => (
+              <div
+                key={idx}
+                className={`p-3.5 rounded-xl border space-y-1 ${
+                  node.active
+                    ? "bg-matrix-card border-matrix-accent text-white shadow-sm shadow-matrix-accent/20"
+                    : "bg-matrix-dark/40 border-matrix-border text-gray-500"
+                }`}
+              >
+                <div className="font-bold text-matrix-neonCyan">{node.name}</div>
+                <div className="text-[11px] text-gray-300">{node.role}</div>
+              </div>
+            ))}
           </div>
         </div>
       );

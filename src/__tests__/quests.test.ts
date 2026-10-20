@@ -83,9 +83,17 @@ describe("DevQuest Quests Matrix", () => {
       "html", "css", "javascript", "typescript", "react", "backend",
       "databases", "devops", "testing", "cs", "security", "capstone"
     ];
+    const visualizerSource = fs.readFileSync(
+      path.join(process.cwd(), "src/components/RealmConceptVisualizer.tsx"),
+      "utf-8"
+    );
     for (const r of realms) {
       const realm = REALMS.find((item) => item.id === r);
       expect(realm).toBeDefined();
+      expect(
+        visualizerSource.includes(`case "${r}":`),
+        `RealmConceptVisualizer must implement interactive case "${r}":`
+      ).toBe(true);
       const filePath = path.join(process.cwd(), realm!.fileRef);
       expect(
         fs.existsSync(filePath),
