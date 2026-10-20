@@ -50,6 +50,10 @@ interface Props {
   realmId: string;
 }
 
+const PROGRAMMER_SYMBOLS = [
+  "Tab", "{", "}", "(", ")", "[", "]", ";", "=>", '"', "'", "=", "<", ">", "/", ":", ".", "!"
+];
+
 export function QuestCodingWorkspace({
   quest: initialQuest,
   questId,
@@ -73,6 +77,24 @@ export function QuestCodingWorkspace({
   const [code, setCode] = useState(quest?.starterCode || "");
   const [activeTab, setActiveTab] = useState<"editor" | "split" | "preview" | "terminal" | "visualizer">("editor");
   const [directiveTab, setDirectiveTab] = useState<"directive" | "warmup" | "deepdive">("directive");
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  const insertSymbolAtCursor = (symbol: string) => {
+    soundEngine.playSfx("click");
+    const target = textareaRef.current;
+    if (!target) return;
+    const start = target.selectionStart || 0;
+    const end = target.selectionEnd || 0;
+    const insertion = symbol === "Tab" ? "  " : symbol;
+    const nextCode = code.substring(0, start) + insertion + code.substring(end);
+    setCode(nextCode);
+    const nextPos = start + insertion.length;
+    setTimeout(() => {
+      target.focus();
+      target.selectionStart = nextPos;
+      target.selectionEnd = nextPos;
+    }, 0);
+  };
   const [warmupCode, setWarmupCode] = useState<string>(warmupDrill?.starterCode || "");
   const [warmupResult, setWarmupResult] = useState<{ passed: boolean; message: string } | null>(null);
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null);
@@ -1060,6 +1082,21 @@ export function QuestCodingWorkspace({
                     activeTab === "split" ? "border-b xl:border-b-0 xl:border-r border-matrix-border" : ""
                   }`}
                 >
+                  {/* Mobile Programmer Keyboard Accessory Bar */}
+                  <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 bg-matrix-card/95 border-b border-matrix-border overflow-x-auto shrink-0 select-none">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Symbols:</span>
+                    {PROGRAMMER_SYMBOLS.map((sym) => (
+                      <button
+                        key={sym}
+                        type="button"
+                        onClick={() => insertSymbolAtCursor(sym)}
+                        className="px-2.5 py-1 rounded bg-matrix-dark hover:bg-matrix-cardHover active:bg-matrix-accent/20 border border-matrix-border/80 text-matrix-accent active:scale-95 text-xs font-mono font-bold shrink-0 shadow-sm cursor-pointer"
+                      >
+                        {sym === "Tab" ? "⇥ Tab" : sym}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="flex-1 flex overflow-hidden">
                     {/* Line Numbers Gutter */}
                     <div
@@ -1073,6 +1110,7 @@ export function QuestCodingWorkspace({
                     </div>
 
                     <textarea
+                      ref={textareaRef}
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       onScroll={(e) => {

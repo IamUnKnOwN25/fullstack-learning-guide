@@ -42,6 +42,10 @@ interface FloatingDamage {
   type: "player-hit" | "boss-hit" | "shield-deflect";
 }
 
+const PROGRAMMER_SYMBOLS = [
+  "Tab", "{", "}", "(", ")", "[", "]", ";", "=>", '"', "'", "=", "<", ">", "/", ":", ".", "!"
+];
+
 export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const boss = initialBoss || BOSSES[realmId];
   const { hp, maxHp, takeDamage, defeatBoss, completedBosses, completedQuests, unlockedSkills } =
@@ -67,6 +71,24 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const [laserActive, setLaserActive] = useState(false);
   const [postMortemOpen, setPostMortemOpen] = useState(true);
   const gutterRef = React.useRef<HTMLDivElement | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  const insertSymbolAtCursor = (symbol: string) => {
+    soundEngine.playSfx("click");
+    const target = textareaRef.current;
+    if (!target) return;
+    const start = target.selectionStart || 0;
+    const end = target.selectionEnd || 0;
+    const insertion = symbol === "Tab" ? "  " : symbol;
+    const nextCode = code.substring(0, start) + insertion + code.substring(end);
+    setCode(nextCode);
+    const nextPos = start + insertion.length;
+    setTimeout(() => {
+      target.focus();
+      target.selectionStart = nextPos;
+      target.selectionEnd = nextPos;
+    }, 0);
+  };
 
   const postMortem = BOSS_INCIDENT_POST_MORTEMS[realmId];
 
@@ -179,7 +201,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-4 space-y-6 pb-16 md:pb-6">
+    <div className="w-full max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-4 space-y-6 pb-24 md:pb-6">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border">
         <Link
@@ -584,6 +606,21 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               </button>
             </div>
 
+            {/* Mobile Programmer Keyboard Accessory Bar */}
+            <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 bg-matrix-card/95 border-b border-matrix-border overflow-x-auto shrink-0 select-none">
+              <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Symbols:</span>
+              {PROGRAMMER_SYMBOLS.map((sym) => (
+                <button
+                  key={sym}
+                  type="button"
+                  onClick={() => insertSymbolAtCursor(sym)}
+                  className="px-2.5 py-1 rounded bg-matrix-dark hover:bg-matrix-cardHover active:bg-matrix-neonRed/20 border border-matrix-border/80 text-matrix-neonRed active:scale-95 text-xs font-mono font-bold shrink-0 shadow-sm cursor-pointer"
+                >
+                  {sym === "Tab" ? "⇥ Tab" : sym}
+                </button>
+              ))}
+            </div>
+
             <div className="bg-matrix-dark flex-1 min-h-[240px] flex overflow-hidden">
               <div
                 ref={gutterRef}
@@ -595,6 +632,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                 ))}
               </div>
               <textarea
+                ref={textareaRef}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onScroll={(e) => {

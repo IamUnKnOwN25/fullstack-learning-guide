@@ -86,6 +86,10 @@ const CODE_SNIPPETS = [
   },
 ];
 
+const PROGRAMMER_SYMBOLS = [
+  "Tab", "{", "}", "(", ")", "[", "]", ";", "=>", '"', "'", "=", "<", ">", "/", ":", ".", "!"
+];
+
 export function OnlineMatrixIde({ initialQuestId }: Props) {
   const { completeQuest, completedQuests, addXp } = useGameStore();
 
@@ -107,6 +111,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   const [activeFileName, setActiveFileName] = useState<string>(
     IDE_PROJECT_TEMPLATES[0].files[0].name
   );
+
+  // Mobile Segmented Mode state
+  const [mobileIdeTab, setMobileIdeTab] = useState<"editor" | "preview" | "files" | "terminal">("editor");
 
   // Sidebar & Layout state
   const [sidebarTab, setSidebarTab] = useState<"explorer" | "search" | "snippets" | null>(
@@ -255,6 +262,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setLinkedQuestId("");
     setLinkedWarmupId("");
     setQuestVerifyBanner(null);
+    setMobileIdeTab("editor");
     const cloned = tpl.files.map((f) => ({ ...f }));
     setFiles(cloned);
     setOpenTabs(cloned.map((f) => f.name));
@@ -267,6 +275,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setLinkedQuestId(quest.id);
     setLinkedWarmupId("");
     setQuestVerifyBanner(null);
+    setMobileIdeTab("editor");
 
     const extMap: Record<string, string> = {
       html: "index.html",
@@ -313,6 +322,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setLinkedQuestId("");
     setLinkedWarmupId(drill.realmId);
     setQuestVerifyBanner(null);
+    setMobileIdeTab("editor");
 
     const ext =
       drill.realmId === "html"
@@ -350,6 +360,25 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setOpenTabs(drillFiles.map((f) => f.name));
     setActiveFileName(mainFileName);
     saveWorkspace(drillFiles, false);
+  };
+
+  const insertSymbolAtCursor = (sym: string) => {
+    if (!editorRef.current || !activeFile) return;
+    soundEngine.playSfx("click");
+    const el = editorRef.current;
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const val = activeFile.content;
+    const insertion = sym === "Tab" ? "  " : sym;
+    const next = val.substring(0, start) + insertion + val.substring(end);
+    updateActiveFileContent(next);
+    const nextPos = start + insertion.length;
+    setTimeout(() => {
+      el.focus();
+      el.selectionStart = nextPos;
+      el.selectionEnd = nextPos;
+      updateCursorMetrics(el);
+    }, 0);
   };
 
   const updateActiveFileContent = (newContent: string) => {
@@ -646,8 +675,113 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col gap-2 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none pb-16 md:pb-3">
-      {/* Top VS Code Title & Action Bar */}
-      <div className="bg-matrix-card border border-matrix-border rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2 shadow-lg">
+      {/* Mobile Streamlined Title & Action Bar */}
+      <div className="md:hidden bg-matrix-card border border-matrix-border rounded-xl p-2.5 flex flex-col gap-2 shadow-lg">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href="/"
+              onClick={() => soundEngine.playSfx("click")}
+              className="p-1.5 rounded-lg bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors shrink-0"
+              title="Return to World Map"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-bold text-white truncate">Matrix IDE</span>
+              <span className="px-1.5 py-0.5 rounded bg-matrix-accent/15 border border-matrix-accent/40 text-matrix-accent text-[9px] uppercase font-bold shrink-0">
+                {activeFile?.language || "CODE"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleFormatCode}
+              className="p-1.5 rounded-lg bg-matrix-dark border border-matrix-border text-gray-300 hover:text-white transition-colors"
+              title="Format Active Code"
+            >
+              <Wand2 className="w-3.5 h-3.5 text-matrix-neonPurple" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                if (linkedQuest) {
+                  loadQuestIntoIde(linkedQuest);
+                } else if (linkedWarmupId && REALM_WARMUP_DRILLS[linkedWarmupId]) {
+                  loadWarmupDrillIntoIde(REALM_WARMUP_DRILLS[linkedWarmupId]);
+                } else {
+                  loadTemplate(activeTemplateId);
+                }
+              }}
+              className="p-1.5 rounded-lg bg-matrix-dark border border-matrix-border text-gray-300 hover:text-white transition-colors"
+              title="Reset Project Code"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleRunProject}
+              className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-bold text-xs flex items-center gap-1.5 shadow-md shadow-matrix-accent/20 active:scale-95 transition-all"
+            >
+              <Play className="w-3.5 h-3.5 fill-matrix-dark shrink-0" />
+              <span>{linkedQuest ? "Verify" : "Run"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Unified Project / Quest / Drill Selector */}
+        <select
+          aria-label="Select Project, Quest, or Drill"
+          value={
+            linkedQuestId
+              ? `quest:${linkedQuestId}`
+              : linkedWarmupId
+              ? `drill:${linkedWarmupId}`
+              : `tpl:${activeTemplateId}`
+          }
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val.startsWith("tpl:")) {
+              loadTemplate(val.replace("tpl:", ""));
+            } else if (val.startsWith("quest:")) {
+              const q = allQuests.find((item) => item.id === val.replace("quest:", ""));
+              if (q) loadQuestIntoIde(q);
+            } else if (val.startsWith("drill:")) {
+              const d = REALM_WARMUP_DRILLS[val.replace("drill:", "")];
+              if (d) loadWarmupDrillIntoIde(d);
+            }
+          }}
+          className="w-full bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-matrix-neonCyan outline-none focus:border-matrix-neonCyan cursor-pointer truncate"
+        >
+          <optgroup label="📦 Starter Templates">
+            {IDE_PROJECT_TEMPLATES.map((tpl) => (
+              <option key={tpl.id} value={`tpl:${tpl.id}`}>
+                Template: {tpl.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="⚔️ Quest Trials (24 Quests)">
+            {allQuests.map((q) => (
+              <option key={q.id} value={`quest:${q.id}`}>
+                [{q.realmId.toUpperCase()}] {q.order}. {q.title}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="⚡ Warm-Up Drills (12 Realms)">
+            {Object.values(REALM_WARMUP_DRILLS).map((drill) => (
+              <option key={drill.realmId} value={`drill:${drill.realmId}`}>
+                [{drill.realmId.toUpperCase()}] {drill.title}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+      </div>
+
+      {/* Desktop VS Code Title & Action Bar */}
+      <div className="hidden md:flex bg-matrix-card border border-matrix-border rounded-xl px-3 py-2 flex-wrap items-center justify-between gap-2 shadow-lg">
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/"
@@ -805,6 +939,71 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         </div>
       </div>
 
+      {/* Mobile Segmented Mode Switcher */}
+      <div className="md:hidden grid grid-cols-4 gap-1 p-1 bg-matrix-card border border-matrix-border rounded-xl text-xs font-bold shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("editor");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "editor"
+              ? "bg-matrix-accent/20 text-matrix-accent border border-matrix-accent/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Code className="w-3.5 h-3.5" />
+          <span>Code</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("preview");
+            handleRunProject();
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "preview"
+              ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Preview</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("files");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "files"
+              ? "bg-matrix-neonPurple/20 text-matrix-neonPurple border border-matrix-neonPurple/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          <span>Files ({files.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("terminal");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "terminal"
+              ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Terminal className="w-3.5 h-3.5" />
+          <span>Shell</span>
+        </button>
+      </div>
+
       {/* Linked Quest Verification Banner */}
       {questVerifyBanner && (
         <div
@@ -836,7 +1035,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
       <div className="flex-1 min-h-0 flex flex-col bg-matrix-card border border-matrix-border rounded-xl overflow-hidden shadow-2xl">
         <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Far-Left VS Code Activity Bar */}
-          <div className="w-11 bg-matrix-dark border-r border-matrix-border flex flex-col items-center py-2 gap-2 shrink-0">
+          <div className="hidden md:flex w-11 bg-matrix-dark border-r border-matrix-border flex-col items-center py-2 gap-2 shrink-0">
             <button
               type="button"
               onClick={() =>
@@ -899,8 +1098,50 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           </div>
 
           {/* Collapsible VS Code Sidebar (Explorer / Search / Snippets) */}
-          {sidebarTab && (
-            <div className="w-56 sm:w-64 bg-matrix-dark/70 border-r border-matrix-border flex flex-col shrink-0 overflow-hidden">
+          {(sidebarTab || mobileIdeTab === "files") && (
+            <div
+              className={`bg-matrix-dark/70 border-matrix-border flex flex-col overflow-hidden ${
+                mobileIdeTab === "files"
+                  ? "w-full md:hidden flex-1"
+                  : "hidden md:flex w-56 sm:w-64 border-r shrink-0"
+              }`}
+            >
+              {/* On mobile screens, provide category tabs within Files */}
+              <div className="md:hidden flex items-center border-b border-matrix-border bg-matrix-card/90 p-1 gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab("explorer")}
+                  className={`flex-1 py-1 rounded text-center text-[11px] font-bold ${
+                    (sidebarTab || "explorer") === "explorer"
+                      ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Files ({files.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab("search")}
+                  className={`flex-1 py-1 rounded text-center text-[11px] font-bold ${
+                    sidebarTab === "search"
+                      ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab("snippets")}
+                  className={`flex-1 py-1 rounded text-center text-[11px] font-bold ${
+                    sidebarTab === "snippets"
+                      ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40"
+                      : "text-gray-400"
+                  }`}
+                >
+                  Snippets
+                </button>
+              </div>
               {sidebarTab === "explorer" && (
                 <div className="flex-1 flex flex-col overflow-hidden">
                   <div className="px-3 py-2 border-b border-matrix-border flex items-center justify-between text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -959,6 +1200,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                               setOpenTabs([...openTabs, file.name]);
                             }
                             setActiveFileName(file.name);
+                            setMobileIdeTab("editor");
                           }}
                           className={`group px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between gap-2 cursor-pointer transition-all ${
                             isActive
@@ -1050,6 +1292,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                         onClick={() => {
                           if (!openTabs.includes(m.file)) setOpenTabs([...openTabs, m.file]);
                           setActiveFileName(m.file);
+                          setMobileIdeTab("editor");
                         }}
                         className="w-full text-left p-2 rounded bg-matrix-card border border-matrix-border hover:border-matrix-neonCyan space-y-0.5"
                       >
@@ -1085,6 +1328,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                           updateActiveFileContent(
                             activeFile.content + "\n\n" + snip.code
                           );
+                          setMobileIdeTab("editor");
                         }}
                         className="w-full py-1 rounded bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent font-bold text-[10px] hover:bg-matrix-accent hover:text-matrix-dark transition-colors"
                       >
@@ -1098,126 +1342,150 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           )}
 
           {/* Center + Right Split Area: Multi-Tab Code Editor & Live Browser Preview */}
-          <div className="flex-1 min-w-0 flex flex-col lg:flex-row overflow-hidden">
+          <div
+            className={`flex-1 min-w-0 flex flex-col lg:flex-row overflow-hidden ${
+              mobileIdeTab === "files" || mobileIdeTab === "terminal"
+                ? "hidden md:flex"
+                : "flex"
+            }`}
+          >
             {/* Code Editor Pane */}
-            {viewMode !== "preview" && (
-              <div
-                className={`flex-1 min-w-0 flex flex-col overflow-hidden ${
-                  viewMode === "split" ? "lg:border-r border-matrix-border" : ""
-                }`}
-              >
-                {/* Open File Tabs Bar */}
-                <div className="bg-matrix-dark border-b border-matrix-border flex items-center overflow-x-auto">
-                  {openTabs.map((tabName) => {
-                    const tabFile = files.find((f) => f.name === tabName);
-                    if (!tabFile) return null;
-                    const isCurrent = tabFile.name === activeFile?.name;
-                    return (
-                      <div
-                        key={tabName}
-                        onClick={() => {
-                          soundEngine.playSfx("click");
-                          setActiveFileName(tabName);
-                        }}
-                        className={`px-3 py-2 border-r border-matrix-border flex items-center gap-2 text-xs cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
-                          isCurrent
-                            ? "bg-matrix-card text-white font-bold border-t-2 border-t-matrix-neonCyan"
-                            : "bg-matrix-dark text-gray-400 hover:text-gray-200 hover:bg-matrix-card/50"
-                        }`}
-                      >
-                        <FileCode className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
-                        <span>{tabName}</span>
-                        {openTabs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const remaining = openTabs.filter((t) => t !== tabName);
-                              setOpenTabs(remaining);
-                              if (isCurrent && remaining.length > 0) {
-                                setActiveFileName(remaining[remaining.length - 1]);
-                              }
-                            }}
-                            className="text-gray-500 hover:text-white p-0.5 rounded"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Editor Breadcrumb & Settings Strip */}
-                <div className="px-3 py-1.5 bg-matrix-card/70 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span>workspace</span>
-                    <span>›</span>
-                    <span className="text-matrix-neonCyan font-bold">
-                      {activeFile?.name}
-                    </span>
-                    {savedToast && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded bg-matrix-accent/20 text-matrix-accent text-[10px] font-bold">
-                        Saved ✓
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setWordWrap((w) => !w)}
-                      className={`px-2 py-0.5 rounded border text-[10px] whitespace-nowrap shrink-0 ${
-                        wordWrap
-                          ? "border-matrix-neonCyan/40 text-matrix-neonCyan bg-matrix-neonCyan/10"
-                          : "border-matrix-border text-gray-400"
+            <div
+              className={`flex-1 min-w-0 flex flex-col overflow-hidden ${
+                viewMode === "split" ? "lg:border-r border-matrix-border" : ""
+              } ${
+                mobileIdeTab === "editor" ? "flex" : "hidden"
+              } ${
+                viewMode !== "preview" ? "md:flex" : "md:hidden"
+              }`}
+            >
+              {/* Open File Tabs Bar */}
+              <div className="bg-matrix-dark border-b border-matrix-border flex items-center overflow-x-auto">
+                {openTabs.map((tabName) => {
+                  const tabFile = files.find((f) => f.name === tabName);
+                  if (!tabFile) return null;
+                  const isCurrent = tabFile.name === activeFile?.name;
+                  return (
+                    <div
+                      key={tabName}
+                      onClick={() => {
+                        soundEngine.playSfx("click");
+                        setActiveFileName(tabName);
+                      }}
+                      className={`px-3 py-2 border-r border-matrix-border flex items-center gap-2 text-xs cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
+                        isCurrent
+                          ? "bg-matrix-card text-white font-bold border-t-2 border-t-matrix-neonCyan"
+                          : "bg-matrix-dark text-gray-400 hover:text-gray-200 hover:bg-matrix-card/50"
                       }`}
                     >
-                      Wrap: {wordWrap ? "ON" : "OFF"}
-                    </button>
-
-                    <select
-                      aria-label="Editor Font Size"
-                      value={fontSize}
-                      onChange={(e) =>
-                        setFontSize(e.target.value as "text-xs" | "text-sm" | "text-base")
-                      }
-                      className="bg-matrix-dark border border-matrix-border rounded px-1.5 py-0.5 text-[10px] text-gray-300 outline-none"
-                    >
-                      <option value="text-xs">12px</option>
-                      <option value="text-sm">14px</option>
-                      <option value="text-base">16px</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!activeFile) return;
-                        if (typeof navigator !== "undefined" && navigator.clipboard) {
-                          navigator.clipboard.writeText(activeFile.content);
-                        }
-                        soundEngine.playSfx("click");
-                        setCopiedToast(true);
-                        setTimeout(() => setCopiedToast(false), 1500);
-                      }}
-                      className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1 text-[10px] whitespace-nowrap shrink-0"
-                    >
-                      {copiedToast ? (
-                        <>
-                          <Check className="w-3 h-3 text-matrix-accent" />
-                          <span className="text-matrix-accent font-bold">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-3 h-3" />
-                          <span>Copy</span>
-                        </>
+                      <FileCode className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
+                      <span>{tabName}</span>
+                      {openTabs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const remaining = openTabs.filter((t) => t !== tabName);
+                            setOpenTabs(remaining);
+                            if (isCurrent && remaining.length > 0) {
+                              setActiveFileName(remaining[remaining.length - 1]);
+                            }
+                          }}
+                          className="text-gray-500 hover:text-white p-0.5 rounded"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
                       )}
-                    </button>
-                  </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Editor Breadcrumb & Settings Strip */}
+              <div className="px-3 py-1.5 bg-matrix-card/70 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400">
+                <div className="flex items-center gap-1.5 whitespace-nowrap">
+                  <span>workspace</span>
+                  <span>›</span>
+                  <span className="text-matrix-neonCyan font-bold">
+                    {activeFile?.name}
+                  </span>
+                  {savedToast && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded bg-matrix-accent/20 text-matrix-accent text-[10px] font-bold">
+                      Saved ✓
+                    </span>
+                  )}
                 </div>
 
-                {/* Line-Numbered Code Surface (Single Scrollbar via Synchronized Gutter) */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setWordWrap((w) => !w)}
+                    className={`px-2 py-0.5 rounded border text-[10px] whitespace-nowrap shrink-0 ${
+                      wordWrap
+                        ? "border-matrix-neonCyan/40 text-matrix-neonCyan bg-matrix-neonCyan/10"
+                        : "border-matrix-border text-gray-400"
+                    }`}
+                  >
+                    Wrap: {wordWrap ? "ON" : "OFF"}
+                  </button>
+
+                  <select
+                    aria-label="Editor Font Size"
+                    value={fontSize}
+                    onChange={(e) =>
+                      setFontSize(e.target.value as "text-xs" | "text-sm" | "text-base")
+                    }
+                    className="bg-matrix-dark border border-matrix-border rounded px-1.5 py-0.5 text-[10px] text-gray-300 outline-none"
+                  >
+                    <option value="text-xs">12px</option>
+                    <option value="text-sm">14px</option>
+                    <option value="text-base">16px</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!activeFile) return;
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(activeFile.content);
+                      }
+                      soundEngine.playSfx("click");
+                      setCopiedToast(true);
+                      setTimeout(() => setCopiedToast(false), 1500);
+                    }}
+                    className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1 text-[10px] whitespace-nowrap shrink-0"
+                  >
+                    {copiedToast ? (
+                      <>
+                        <Check className="w-3 h-3 text-matrix-accent" />
+                        <span className="text-matrix-accent font-bold">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Programmer Keyboard Accessory Bar */}
+              <div className="flex md:hidden items-center gap-1.5 px-2 py-1.5 bg-matrix-card/95 border-b border-matrix-border overflow-x-auto shrink-0 select-none">
+                <span className="text-[10px] text-gray-500 font-bold uppercase shrink-0">Symbols:</span>
+                {PROGRAMMER_SYMBOLS.map((sym) => (
+                  <button
+                    key={sym}
+                    type="button"
+                    onClick={() => insertSymbolAtCursor(sym)}
+                    className="px-2.5 py-1 rounded bg-matrix-dark hover:bg-matrix-cardHover active:bg-matrix-neonCyan/20 border border-matrix-border/80 text-matrix-neonCyan active:scale-95 text-xs font-mono font-bold shrink-0 shadow-sm cursor-pointer"
+                  >
+                    {sym === "Tab" ? "⇥ Tab" : sym}
+                  </button>
+                ))}
+              </div>
+
+              {/* Line-Numbered Code Surface (Single Scrollbar via Synchronized Gutter) */}
                 <div
                   className={`flex-1 bg-matrix-dark flex overflow-hidden ${fontSize} min-h-[260px]`}
                 >
@@ -1307,12 +1575,16 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   />
                 </div>
               </div>
-            )}
 
             {/* Right Pane: Live Browser Preview */}
-            {viewMode !== "editor" && (
-              <div className="flex-1 min-w-0 flex flex-col bg-matrix-dark overflow-hidden min-h-[260px]">
-                {/* Simulated Browser Chrome Bar */}
+            <div
+              className={`flex-1 min-w-0 flex flex-col bg-matrix-dark overflow-hidden min-h-[260px] ${
+                mobileIdeTab === "preview" ? "flex" : "hidden"
+              } ${
+                viewMode !== "editor" ? "md:flex" : "md:hidden"
+              }`}
+            >
+              {/* Simulated Browser Chrome Bar */}
                 <div className="px-3 py-1.5 bg-matrix-card border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-matrix-accent animate-pulse shrink-0" />
@@ -1394,12 +1666,17 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   </div>
                 </div>
               </div>
-            )}
           </div>
         </div>
 
         {/* Bottom Panel: Integrated Terminal, Live Console & Linter Problems */}
-        <div className="border-t border-matrix-border bg-matrix-dark flex flex-col">
+        <div
+          className={`border-t border-matrix-border bg-matrix-dark flex-col ${
+            mobileIdeTab === "terminal" ? "flex flex-1" : "hidden"
+          } ${
+            bottomPanelOpen ? "md:flex" : "md:hidden"
+          }`}
+        >
           <div className="px-3 py-1.5 bg-matrix-card/90 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2 overflow-x-auto">
               <button
@@ -1409,7 +1686,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   setBottomTab("console");
                 }}
                 className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                  bottomPanelOpen && bottomTab === "console"
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "console"
                     ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40"
                     : "text-gray-400 hover:text-white"
                 }`}
@@ -1425,7 +1702,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   setBottomTab("terminal");
                 }}
                 className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                  bottomPanelOpen && bottomTab === "terminal"
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "terminal"
                     ? "bg-matrix-accent/20 text-matrix-accent border border-matrix-accent/40"
                     : "text-gray-400 hover:text-white"
                 }`}
@@ -1441,7 +1718,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   setBottomTab("problems");
                 }}
                 className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
-                  bottomPanelOpen && bottomTab === "problems"
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "problems"
                     ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/40"
                     : "text-gray-400 hover:text-white"
                 }`}
@@ -1452,7 +1729,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {bottomPanelOpen && bottomTab === "console" && (
+              {(bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "console" && (
                 <button
                   type="button"
                   onClick={() => setConsoleLogs([])}
@@ -1464,7 +1741,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               <button
                 type="button"
                 onClick={() => setBottomPanelOpen((prev) => !prev)}
-                className="text-gray-400 hover:text-white p-1"
+                className="hidden md:flex text-gray-400 hover:text-white p-1"
                 title={bottomPanelOpen ? "Minimize Panel" : "Expand Panel"}
               >
                 {bottomPanelOpen ? (
@@ -1476,8 +1753,12 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
             </div>
           </div>
 
-          {bottomPanelOpen && (
-            <div className="h-40 overflow-y-auto p-3 text-xs font-mono space-y-1.5 select-text">
+          {(bottomPanelOpen || mobileIdeTab === "terminal") && (
+            <div
+              className={`${
+                mobileIdeTab === "terminal" ? "flex-1 min-h-[260px] h-auto" : "h-40"
+              } overflow-y-auto p-3 text-xs font-mono space-y-1.5 select-text`}
+            >
               {bottomTab === "console" && (
                 <div className="space-y-1">
                   {consoleLogs.length === 0 ? (
@@ -1554,6 +1835,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                         onClick={() => {
                           if (!openTabs.includes(d.file)) setOpenTabs([...openTabs, d.file]);
                           setActiveFileName(d.file);
+                          setMobileIdeTab("editor");
                         }}
                         className="w-full text-left px-3 py-1.5 rounded bg-matrix-card border border-matrix-border hover:border-matrix-neonGold flex items-center justify-between gap-2"
                       >

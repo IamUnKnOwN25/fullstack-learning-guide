@@ -92,4 +92,28 @@ describe("UI Layout & Overflow Regression Guards", () => {
     const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
     expect(curriculumContent).toContain("Mobile Chapter Picker");
   });
+
+  it("overhauls Online Matrix IDE with mobile segmented mode switcher, programmer symbol bar, and touch navigation", () => {
+    const ideContent = fs.readFileSync(idePath, "utf-8");
+    expect(ideContent).toContain("Mobile Segmented Mode Switcher");
+    expect(ideContent).toContain("mobileIdeTab");
+    expect(ideContent).toContain("PROGRAMMER_SYMBOLS");
+    expect(ideContent).toContain("insertSymbolAtCursor");
+    expect(ideContent).toContain("Mobile Streamlined Title & Action Bar");
+    expect(ideContent).toContain('optgroup label="📦 Starter Templates"');
+    expect(ideContent).toContain('optgroup label="⚔️ Quest Trials (24 Quests)"');
+    expect(ideContent).toContain('optgroup label="⚡ Warm-Up Drills (12 Realms)"');
+    expect(ideContent).toContain("hidden md:flex w-11 bg-matrix-dark border-r");
+
+    const workspaceContent = fs.readFileSync(workspacePath, "utf-8");
+    expect(workspaceContent).toContain("Mobile Programmer Keyboard Accessory Bar");
+    expect(workspaceContent).toContain("PROGRAMMER_SYMBOLS");
+    expect(workspaceContent).toContain("insertSymbolAtCursor");
+
+    const bossContent = fs.readFileSync(bossPath, "utf-8");
+    expect(bossContent).toContain("Mobile Programmer Keyboard Accessory Bar");
+    expect(bossContent).toContain("PROGRAMMER_SYMBOLS");
+    expect(bossContent).toContain("insertSymbolAtCursor");
+    expect(bossContent).toContain("pb-24 md:pb-6");
+  });
 });

@@ -432,3 +432,20 @@ This document records each autonomous improvement cycle, deterministic verificat
     - `globals.css`: Eliminated aggressive iOS Safari auto-zoom on input focus (`font-size: 16px !important` on `< 768px`) and enabled smooth momentum touch scrolling (`-webkit-overflow-scrolling: touch`).
     - `src/__tests__/uiLayoutGuard.test.ts`: Added regression tests verifying mobile bottom navigation, Byte floating offset, segmented workspace toggles, and mobile chapter selector.
   - Verified with `tsc --noEmit` (0 errors) and `vitest run` (45/45 tests passing across 9 test suites).
+
+- **[2026-10-20 14:32] Cycle 52: Deep Mobile Overhaul for Matrix IDE, Touch Programmer Keyboard Accessory Bars & Viewport Ergonomics (Tests: PASS)**
+  - Addressed direct user feedback ("some still need improvements, not all is mobile friendly like the ide etc"):
+    - **Matrix IDE Mobile Overhaul (`OnlineMatrixIde.tsx`)**:
+      - **Mobile Segmented Mode Switcher (`md:hidden`)**: Added a 4-tab top mode control: `[ 💻 Code ]` | `[ 👁️ Preview ]` | `[ 📁 Files (N) ]` | `[ 🖥️ Shell ]`. On mobile screens, only the active pane is rendered full-width and full-height, eliminating cramped sidebars, squashed multi-split panes, and off-screen wrapping.
+      - **Streamlined Mobile Top Bar**: Replaced 3 separate wrapped `<select>`s with a sleek 2-row layout: Row 1 features back navigation, Matrix IDE title, language pill, quick format, quick reset, and prominent `▶ Run & Test` button; Row 2 features a unified selector combining Starter Templates, 24 Quest Trials, and 12 Warm-Up Drills via `<optgroup>`.
+      - **Touch Navigation Routing**: Selecting any file from the Files tab, selecting a search match, inserting a code snippet, or clicking a diagnostic problem automatically switches the mobile view to `Code` mode with the target file loaded and ready to edit.
+      - **Mobile Shell & Terminal**: Full-width interactive terminal, sandboxed console logs, and diagnostic problems tab with clear console button.
+      - **Programmer Keyboard Accessory Bar**: Added a horizontal swipeable quick-symbol bar (`Tab`, `{`, `}`, `(`, `)`, `[`, `]`, `;`, `=>`, `"`, `'`, `=`, `<`, `>`, `/`, `:`, `.`, `!`) right above the editor that inserts characters at the cursor without losing focus, eliminating tedious mobile keyboard layer switching.
+    - **Quest Workspace Mobile Accessory Bar (`QuestCodingWorkspace.tsx`)**:
+      - Added the Programmer Keyboard Accessory Bar above the quest editor with cursor-targeted insertion (`ref={textareaRef}`), enabling rapid touch coding during trials.
+    - **Boss Battle Arena Mobile Ergonomics (`BossBattleArena.tsx`)**:
+      - Added the Programmer Keyboard Accessory Bar above the combat debug workbench textarea for smooth mobile code refactoring during boss encounters.
+      - Updated bottom padding to `pb-24 md:pb-6` so the sticky bottom navigation bar never overlaps the combat action buttons or post-mortem reports.
+    - **UI Layout Invariant Regression Tests (`uiLayoutGuard.test.ts`)**:
+      - Added automated regression tests verifying the mobile segmented mode switcher, programmer symbol bars across all 3 coding surfaces (IDE, Quest, Boss Arena), and unified mobile loader.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (46/46 tests passing across 9 test suites), and HTTP 200 checks on `/`, `/ide`, `/curriculum`, `/quest/html/html-1`, and `/boss/html`.
