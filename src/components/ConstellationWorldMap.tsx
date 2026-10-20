@@ -23,6 +23,7 @@ interface Props {
   completedBosses: string[];
   completedQuests: string[];
   level: number;
+  highlightedRealmIds?: string[];
 }
 
 // 12-Node Map Coordinates in percent (x, y)
@@ -62,6 +63,7 @@ export function ConstellationWorldMap({
   completedBosses,
   completedQuests,
   level,
+  highlightedRealmIds,
 }: Props) {
   return (
     <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] max-h-[640px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none">
@@ -141,6 +143,8 @@ export function ConstellationWorldMap({
 
         // Frontier node: unlocked but boss not defeated yet
         const isFrontier = isUnlocked && !isBossDefeated;
+        const isFilterMatch =
+          !highlightedRealmIds || highlightedRealmIds.includes(realm.id);
 
         return (
           <div
@@ -156,7 +160,7 @@ export function ConstellationWorldMap({
             }}
             className={`absolute z-10 flex flex-col items-center group cursor-pointer transition-all ${
               isSelected ? "scale-125 z-20" : "hover:scale-115"
-            }`}
+            } ${isFilterMatch ? "opacity-100" : "opacity-25 scale-90"}`}
           >
             {/* Frontier Ping Halo */}
             {isFrontier && (

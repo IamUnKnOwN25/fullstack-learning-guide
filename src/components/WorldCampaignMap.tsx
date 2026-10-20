@@ -53,6 +53,30 @@ export function WorldCampaignMap() {
 
   const totalStars = Object.values(stars).reduce((sum, s) => sum + s, 0);
 
+  // Determine recommended next uncompleted quest or boss
+  const nextCampaignTarget = React.useMemo(() => {
+    for (const r of REALMS) {
+      const rQuests = QUESTS[r.id] || [];
+      for (const q of rQuests) {
+        if (!completedQuests.includes(q.id)) {
+          return {
+            type: "quest" as const,
+            label: `Continue: ${q.title}`,
+            href: `/quest/${r.id}/${q.id}`,
+          };
+        }
+      }
+      if (!completedBosses.includes(r.id) && BOSSES[r.id]) {
+        return {
+          type: "boss" as const,
+          label: `Boss Ready: ${BOSSES[r.id].name}`,
+          href: `/boss/${r.id}`,
+        };
+      }
+    }
+    return null;
+  }, [completedQuests, completedBosses]);
+
   const filteredRealms = REALMS.filter((realm) => {
     const category = REALM_CATEGORIES[realm.id] || "theory";
     const matchesCategory = activeCategory === "all" || category === activeCategory;
@@ -105,6 +129,17 @@ export function WorldCampaignMap() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+            {nextCampaignTarget && (
+              <Link
+                href={nextCampaignTarget.href}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg shadow-matrix-accent/20 hover:scale-105"
+                onClick={() => soundEngine.playSfx("click")}
+              >
+                <Sparkles className="w-4 h-4 fill-matrix-dark" />
+                <span>{nextCampaignTarget.label}</span>
+              </Link>
+            )}
+
             <Link
               href="/curriculum"
               className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
@@ -243,6 +278,7 @@ export function WorldCampaignMap() {
               completedBosses={completedBosses}
               completedQuests={completedQuests}
               level={level}
+              highlightedRealmIds={filteredRealms.map((r) => r.id)}
             />
           ) : filteredRealms.length === 0 ? (
             <div className="p-12 rounded-2xl bg-matrix-card/50 border border-dashed border-matrix-border text-center space-y-3 font-mono">
@@ -438,7 +474,18 @@ export function WorldCampaignMap() {
                             +{quest.xpReward} XP
                           </span>
                           {isQuestDone && (
-                            <Star className="w-3.5 h-3.5 text-matrix-neonGold fill-matrix-neonGold" />
+                            <span className="flex items-center gap-0.5" title={`${stars[quest.id] || 3}/3 Stars`}>
+                              {[1, 2, 3].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`w-3 h-3 ${
+                                    s <= (stars[quest.id] || 3)
+                                      ? "text-matrix-neonGold fill-matrix-neonGold"
+                                      : "text-gray-600"
+                                  }`}
+                                />
+                              ))}
+                            </span>
                           )}
                           <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                         </div>

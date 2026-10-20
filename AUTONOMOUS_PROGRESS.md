@@ -252,3 +252,10 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added interactive "Quick Quiz (+15 XP)" flashcard tab allowing learners to test their knowledge on Event Loop, B-Tree Indexes, SQLi Defense, and React hooks for bonus XP.
   - Upgraded `src/components/NavigationHud.tsx` with a global Quick-Jump Command Modal (`Ctrl+K` / Search button) searching across all 12 realms, 24 coding quests, 12 boss battles, and 13 curriculum guides.
   - Verified with `npm.cmd run validate` (26/26 tests passing, 0 TypeScript errors, 100% clean Next.js build).
+
+- **[2026-10-20 09:34] Cycle 28: World Campaign Map Smart Next-Step CTA, Constellation Filter Highlighting & 3-Star Telemetry (Tests: PASS)**
+  - Enhanced `src/components/WorldCampaignMap.tsx`:
+    - Added dynamic "Continue Campaign" CTA button in the Hero briefing header that automatically targets the player's next uncompleted quest or boss encounter.
+    - Synchronized category pills and search input with `ConstellationWorldMap.tsx` via `highlightedRealmIds` so matching constellation nodes stay illuminated while non-matching nodes dim.
+    - Added 3-star rating badges (`★★★`) on completed quests in the Realm Inspector.
+  - Verified with `tsc --noEmit` and `vitest run` (26/26 tests passing, 0 TypeScript errors).
