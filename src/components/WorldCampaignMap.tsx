@@ -101,12 +101,12 @@ export function WorldCampaignMap() {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+    <div className="w-full max-w-[1920px] mx-auto py-4 px-3 sm:px-6 space-y-5">
       {/* Hero Mission Briefing & World Map Header */}
-      <div className="relative rounded-2xl bg-gradient-to-r from-matrix-card via-matrix-dark to-matrix-card border border-matrix-border p-6 sm:p-8 overflow-hidden shadow-2xl">
+      <div className="relative rounded-2xl bg-gradient-to-r from-matrix-card via-matrix-dark to-matrix-card border border-matrix-border p-5 sm:p-6 overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-matrix-accent/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+          <div className="space-y-2.5 max-w-4xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-matrix-accent/10 border border-matrix-accent/30 text-matrix-accent text-xs font-mono font-bold">
               <MapPin className="w-3.5 h-3.5 animate-pulse text-matrix-neonCyan" />
               WORLD MAP • 12 CAMPAIGN REALMS
@@ -282,9 +282,9 @@ export function WorldCampaignMap() {
       </div>
 
       {/* Main Realm Grid & Detail Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column: Constellation Node Network OR 12 Realm Cards Grid */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-8 xl:col-span-9">
           {mapView === "constellation" ? (
             <ConstellationWorldMap
               selectedRealm={selectedRealm}
@@ -321,7 +321,7 @@ export function WorldCampaignMap() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredRealms.map((realm) => {
                 const isUnlocked = unlockedRealms.includes(realm.id) || level >= realm.requiredLevel;
                 const isCompleted = completedBosses.includes(realm.id);
@@ -446,12 +446,12 @@ export function WorldCampaignMap() {
         </div>
 
         {/* Right Column: Selected Realm Detail & Action Launcher */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-4 xl:col-span-3">
           {selectedRealm ? (
             <div
               key={selectedRealm.id}
               id="realm-inspector"
-              className="sticky top-20 bg-matrix-card border border-matrix-border rounded-2xl p-6 shadow-2xl space-y-6 scroll-mt-24 animate-fadeIn"
+              className="sticky top-16 bg-matrix-card border border-matrix-border rounded-2xl p-5 shadow-2xl space-y-5 scroll-mt-20 animate-fadeIn"
             >
               <div>
                 <div className="flex items-center gap-2 mb-2 font-mono text-xs text-matrix-neonCyan font-bold">

@@ -81,8 +81,8 @@ export function NavigationHud() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-matrix-border bg-matrix-dark/90 backdrop-blur-md px-4 py-2.5 transition-colors">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 border-b border-matrix-border bg-matrix-dark/90 backdrop-blur-md px-3 sm:px-5 py-2 transition-colors">
+        <div className="w-full max-w-[1920px] mx-auto flex flex-wrap items-center justify-between gap-3">
           {/* Logo & Navigation */}
           <div className="flex items-center gap-4">
             <Link

@@ -82,7 +82,7 @@ export function ConstellationWorldMap({
   };
 
   return (
-    <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] max-h-[640px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none">
+    <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[500px] lg:h-[calc(100vh-17rem)] max-h-[820px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none">
       {/* Background Cyber Grid */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"

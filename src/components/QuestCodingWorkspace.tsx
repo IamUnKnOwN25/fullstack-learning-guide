@@ -26,6 +26,8 @@ import {
   Lightbulb,
   Timer,
   Zap,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { REALMS } from "@/data/realms";
 import { QUESTS, Quest } from "@/data/quests";
@@ -63,6 +65,7 @@ export function QuestCodingWorkspace({
   const [checkedTasks, setCheckedTasks] = useState<Record<number, boolean>>({});
   const [copiedCode, setCopiedCode] = useState(false);
   const [showMentorGuide, setShowMentorGuide] = useState(false);
+  const [focusWorkbench, setFocusWorkbench] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const gutterRef = React.useRef<HTMLDivElement | null>(null);
   const [testResult, setTestResult] = useState<{
@@ -179,9 +182,9 @@ export function QuestCodingWorkspace({
     .replace(/['"]$/, "");
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-6 px-4 sm:px-6 flex flex-col gap-6 min-h-[calc(100vh-4.5rem)] lg:h-[calc(100vh-4.5rem)]">
+    <div className="w-full max-w-[1920px] mx-auto py-2.5 px-3 sm:px-5 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)]">
       {/* Top Breadcrumb & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-matrix-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/"
@@ -305,11 +308,15 @@ export function QuestCodingWorkspace({
         </div>
       </div>
 
-      {/* Dual Pane Grid: 50% Left Briefing, 50% Right Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+      {/* Dual Pane Grid: Left Briefing (5 cols), Right Coding Workbench (7 cols or 12 cols in Focus Mode) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
         {/* Left Pane: Story, Concepts, Checklist, Hints */}
-        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0">
-          <div className="p-4 border-b border-matrix-border bg-matrix-dark/50 flex items-center gap-2 font-mono text-xs text-gray-300">
+        <div
+          className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0 ${
+            focusWorkbench ? "lg:hidden" : "lg:col-span-5"
+          }`}
+        >
+          <div className="p-3.5 border-b border-matrix-border bg-matrix-dark/50 flex items-center gap-2 font-mono text-xs text-gray-300">
             <Terminal className="w-4 h-4 text-matrix-accent shrink-0" />
             <span>MISSION DIRECTIVE</span>
           </div>
@@ -524,7 +531,11 @@ export function QuestCodingWorkspace({
         </div>
 
         {/* Right Pane: Code Editor + Live Preview + Terminal */}
-        <div className="bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0">
+        <div
+          className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0 ${
+            focusWorkbench ? "lg:col-span-12" : "lg:col-span-7"
+          }`}
+        >
           {/* Workspace Tab Header */}
           <div className="px-3 sm:px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between gap-2 overflow-x-auto">
             <div className="flex items-center gap-1.5 shrink-0">
@@ -596,9 +607,44 @@ export function QuestCodingWorkspace({
               </button>
             </div>
 
-            <span className="px-2 py-0.5 rounded bg-matrix-card border border-matrix-border font-mono text-[10px] uppercase text-matrix-neonCyan font-bold whitespace-nowrap shrink-0">
-              {quest.language.toUpperCase()}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {focusWorkbench && (
+                <button
+                  type="button"
+                  onClick={handleRunCode}
+                  className="px-3 py-1 rounded-lg bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-bold flex items-center gap-1.5 shadow-sm whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <Play className="w-3 h-3 fill-matrix-dark shrink-0" />
+                  <span>Verify Code</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setFocusWorkbench((prev) => !prev);
+                }}
+                className="hidden lg:flex items-center gap-1 px-2.5 py-1 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-[11px] whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+                title={focusWorkbench ? "Restore Split Briefing + Workbench" : "Maximize Coding Workbench (100% Width)"}
+              >
+                {focusWorkbench ? (
+                  <>
+                    <Minimize2 className="w-3 h-3 text-matrix-neonCyan shrink-0" />
+                    <span>Split View</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="w-3 h-3 text-matrix-neonCyan shrink-0" />
+                    <span>Maximize</span>
+                  </>
+                )}
+              </button>
+
+              <span className="px-2 py-0.5 rounded bg-matrix-card border border-matrix-border font-mono text-[10px] uppercase text-matrix-neonCyan font-bold whitespace-nowrap shrink-0">
+                {quest.language.toUpperCase()}
+              </span>
+            </div>
           </div>
 
           {/* Tab 1: Code Editor */}
