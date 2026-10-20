@@ -339,3 +339,9 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Replaced `overflow-y-auto` on the outer wrapper with `overflow-hidden`, set `overflow-hidden` on the line-number gutter (`gutterRef`), made `<textarea>` the sole scroll container (`overflow-y-auto`), and synchronized `gutterRef.current.scrollTop = e.currentTarget.scrollTop` on `onScroll`.
     - Defaulted `wordWrap` to `false` (`wrap="off"`) with matching `leading-6` line heights so every line number aligns 1-to-1 with its corresponding code line.
   - Added regression test in `src/__tests__/uiLayoutGuard.test.ts` (37/37 tests passing across 8 test suites).
+
+- **[2026-10-20 12:37] Cycle 41: Lock Byte Companion Button Position When Drawer Opens (Tests: PASS)**
+  - Fixed `src/components/CyberCompanionByte.tsx` so the floating `Byte` button never shifts left when the companion drawer is opened:
+    - Added `flex flex-col items-end` on the `fixed bottom-5 right-5` container and positioned the speech bubble drawer with `absolute bottom-full right-0 mb-3`.
+    - Kept the status indicator dot (`w-2 h-2 rounded-full`) rendered in both open and closed states so the button width never changes by even 1px.
+  - Added regression test in `src/__tests__/uiLayoutGuard.test.ts` (38/38 tests passing across 8 test suites).

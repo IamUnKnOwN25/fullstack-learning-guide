@@ -183,10 +183,10 @@ export function CyberCompanionByte() {
   const currentCard = FLASHCARDS[quizIndex];
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 font-mono select-none">
+    <div className="fixed bottom-5 right-5 z-40 font-mono select-none flex flex-col items-end">
       {/* Speech Bubble / Mini Dialog Drawer */}
       {isOpen && (
-        <div className="mb-3 w-80 sm:w-96 p-4 rounded-2xl bg-matrix-card/95 backdrop-blur-md border border-matrix-accent/50 shadow-2xl shadow-black/80 space-y-3 animate-fadeIn">
+        <div className="absolute bottom-full right-0 mb-3 w-80 sm:w-96 p-4 rounded-2xl bg-matrix-card/95 backdrop-blur-md border border-matrix-accent/50 shadow-2xl shadow-black/80 space-y-3 animate-fadeIn">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-matrix-border pb-2.5">
             <div className="flex items-center gap-2">
@@ -422,9 +422,11 @@ export function CyberCompanionByte() {
           Byte
         </span>
 
-        {!isOpen && (
-          <span className="w-2 h-2 rounded-full bg-matrix-neonCyan animate-pulse" />
-        )}
+        <span
+          className={`w-2 h-2 rounded-full shrink-0 ${
+            isOpen ? "bg-matrix-accent" : "bg-matrix-neonCyan animate-pulse"
+          }`}
+        />
       </button>
     </div>
   );

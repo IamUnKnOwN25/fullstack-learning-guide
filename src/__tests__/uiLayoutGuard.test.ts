@@ -7,6 +7,7 @@ describe("UI Layout & Overflow Regression Guards", () => {
   const workspacePath = path.join(process.cwd(), "src/components/QuestCodingWorkspace.tsx");
   const idePath = path.join(process.cwd(), "src/components/OnlineMatrixIde.tsx");
   const bossPath = path.join(process.cwd(), "src/components/BossBattleArena.tsx");
+  const bytePath = path.join(process.cwd(), "src/components/CyberCompanionByte.tsx");
 
   it("prevents combining w-full with inline marginLeft in RealmConceptVisualizer DOM tree", () => {
     const content = fs.readFileSync(visualizerPath, "utf-8");
@@ -31,5 +32,11 @@ describe("UI Layout & Overflow Regression Guards", () => {
       const content = fs.readFileSync(filePath, "utf-8");
       expect(content).toContain("gutterRef.current.scrollTop = e.currentTarget.scrollTop");
     }
+  });
+
+  it("keeps CyberCompanionByte button anchored in the exact bottom-right corner when opened", () => {
+    const content = fs.readFileSync(bytePath, "utf-8");
+    expect(content).toContain("flex flex-col items-end");
+    expect(content).toContain("absolute bottom-full right-0 mb-3");
   });
 });
