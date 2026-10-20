@@ -321,3 +321,14 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Updated Capstone System Architecture Simulator (`case "capstone"` in `src/components/RealmConceptVisualizer.tsx`) from `sm:grid-cols-4` to `sm:grid-cols-2` so the 4 architecture nodes fit comfortably inside the 50%-width right pane without narrow text wrapping.
   - Added a 12-Realm Concept Lab Switcher bar at the top of `RealmConceptVisualizer.tsx` so learners can explore any of the 12 interactive concept visualizers directly inside the `Visualizer` tab.
   - Verified with `tsc --noEmit`, `vitest run` (32/32 tests passing across 7 suites), and live HTTP 200 verification across `/`, `/quest/html/html_1_skeleton`, `/quest/html/2`, `/boss/html`, and `/curriculum`.
+
+- **[2026-10-20 11:39] Cycle 39: Full VS Code-Style Multi-File Online Matrix IDE (`/ide`) (Tests: PASS)**
+  - Created `src/lib/ideBundler.ts` and `src/__tests__/ideBundler.test.ts` for multi-file HTML + CSS + JS/TS/SQL project bundling, real-time `postMessage` console streaming, and static code analysis (`Problems` panel).
+  - Built `src/components/OnlineMatrixIde.tsx` and route `src/app/ide/page.tsx` (`/ide`):
+    - **VS Code Activity Bar & Collapsible Sidebar**: File Explorer (create/switch/delete files, reset template), Multi-File Search & Replace, and 1-Click Full-Stack Code Snippets.
+    - **Multi-Tab Code Editor**: Open file tabs, breadcrumb bar, line numbers with active line highlight, `Ln/Col` cursor tracking, auto-closing brackets/quotes, `Ctrl+S` localStorage persistence, `Ctrl+Enter` Run & Verify, Prettify/Format Code, Word Wrap toggle, Font Size selector (`12px`/`14px`/`16px`), and Download File.
+    - **Project Templates & 24-Quest Loader**: Switch between 3 multi-file starter projects or load any of the 24 DevQuest coding trials directly into the IDE (with live Quest Test Verification & XP rewards).
+    - **Live Sandboxed Browser Preview**: Simulated browser address bar, Desktop/Tablet/Mobile viewport switcher, and Split/Editor-Only/Preview-Only layout modes.
+    - **Integrated Terminal (`matrix-sh`), Console & Problems Panel**: Interactive shell supporting `help`, `ls`, `cat`, `node <file>`, `run`, `touch`, `rm`, `whoami`, `clear`, plus real-time `console.log`/`warn`/`error` streaming and static linter diagnostics.
+  - Added `Matrix IDE` navigation buttons in `NavigationHud.tsx`, `WorldCampaignMap.tsx`, and `QuestCodingWorkspace.tsx` (`Open in Matrix IDE`).
+  - Verified with `tsc --noEmit`, `vitest run` (36/36 tests passing across 8 test suites), and live HTTP 200 verification on `/ide` and `/ide?quest=html_1_skeleton`.

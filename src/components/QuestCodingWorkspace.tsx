@@ -240,6 +240,16 @@ export function QuestCodingWorkspace({
             </Link>
           </div>
 
+          <Link
+            href={`/ide?quest=${quest.id}`}
+            onClick={() => soundEngine.playSfx("click")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-matrix-neonPurple/15 hover:bg-matrix-neonPurple/25 border border-matrix-neonPurple/50 text-matrix-neonPurple text-xs font-mono font-bold transition-colors shadow-sm whitespace-nowrap shrink-0"
+            title="Open this quest inside the full VS Code-style Multi-File Matrix IDE"
+          >
+            <Code className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Open in Matrix IDE</span>
+          </Link>
+
           {realm && (
             <Link
               href={`/curriculum?file=${realm.fileRef}`}

@@ -114,11 +114,20 @@ export function NavigationHud() {
               </Link>
               <Link
                 href="/curriculum"
-                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card transition-colors"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono text-gray-300 hover:text-matrix-neonCyan hover:bg-matrix-card transition-colors whitespace-nowrap shrink-0"
                 onClick={() => soundEngine.playSfx("click")}
               >
-                <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
                 <span className="hidden sm:inline">Curriculum Vault</span>
+              </Link>
+              <Link
+                href="/ide"
+                className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-md text-xs font-mono bg-matrix-neonCyan/10 border border-matrix-neonCyan/40 text-matrix-neonCyan hover:bg-matrix-neonCyan hover:text-matrix-dark font-bold transition-all whitespace-nowrap shrink-0"
+                onClick={() => soundEngine.playSfx("click")}
+                title="Open Full Multi-File Online Matrix IDE (VS Code Mode)"
+              >
+                <Code className="w-3.5 h-3.5 shrink-0" />
+                <span>Matrix IDE</span>
               </Link>
             </div>
           </div>

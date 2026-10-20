@@ -154,12 +154,21 @@ export function WorldCampaignMap() {
             )}
 
             <Link
-              href="/curriculum"
-              className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md"
+              href="/ide"
+              className="px-4 py-2.5 rounded-xl bg-matrix-neonCyan/15 hover:bg-matrix-neonCyan/25 border border-matrix-neonCyan/50 text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md whitespace-nowrap shrink-0"
               onClick={() => soundEngine.playSfx("click")}
             >
-              <BookOpen className="w-4 h-4 text-matrix-neonCyan" />
-              Curriculum Vault
+              <Terminal className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <span>Online Matrix IDE</span>
+            </Link>
+
+            <Link
+              href="/curriculum"
+              className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md whitespace-nowrap shrink-0"
+              onClick={() => soundEngine.playSfx("click")}
+            >
+              <BookOpen className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <span>Curriculum Vault</span>
             </Link>
           </div>
         </div>
