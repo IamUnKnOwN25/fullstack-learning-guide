@@ -101,4 +101,27 @@ describe("DevQuest Quests Matrix", () => {
       ).toBe(true);
     }
   });
+
+  it("verifies both canonical modules and HMR-safe compatibility shims exist on disk", () => {
+    const requiredFiles = [
+      "src/components/QuestCodingWorkspace.tsx",
+      "src/components/DualPaneWorkspace.tsx",
+      "src/components/NavigationHud.tsx",
+      "src/components/HUD.tsx",
+      "src/components/AchievementsModal.tsx",
+      "src/components/InventoryModal.tsx",
+      "src/components/WorldCampaignMap.tsx",
+      "src/components/QuestMap.tsx",
+      "src/lib/gameStore.ts",
+      "src/lib/store.ts",
+      "src/lib/soundEngine.ts",
+      "src/lib/audio.ts",
+    ];
+    for (const relPath of requiredFiles) {
+      expect(
+        fs.existsSync(path.join(process.cwd(), relPath)),
+        `Required module '${relPath}' must exist on disk to prevent Webpack HMR errors`
+      ).toBe(true);
+    }
+  });
 });

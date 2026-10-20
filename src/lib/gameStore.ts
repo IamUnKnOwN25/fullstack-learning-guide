@@ -17,6 +17,8 @@ export interface PlayerStats {
   stars: Record<string, number>;
   unlockedSkills: string[];
   badges: string[];
+  completedCurriculumTasks: string[];
+  completedChapters: string[];
   audioMuted: boolean;
   bgmActive: boolean;
 }
@@ -26,6 +28,10 @@ interface PlayerActions {
   completeQuest: (questId: string, realmId: string, stars: number, xpReward: number) => void;
   defeatBoss: (realmId: string, badgeId: string, xpReward: number) => void;
   unlockSkill: (skillId: string, cost: number) => boolean;
+  respecSkills: () => void;
+  toggleCurriculumTask: (taskId: string) => boolean;
+  completeChapter: (filename: string, xpReward?: number) => boolean;
+  importSaveData: (data: Partial<PlayerStats>) => boolean;
   takeDamage: (amount: number) => number;
   healPlayer: (amount: number) => void;
   resetHealth: () => void;
@@ -79,6 +85,8 @@ const INITIAL_STATE: PlayerStats = {
   stars: {},
   unlockedSkills: [],
   badges: ["welcome_recruit"],
+  completedCurriculumTasks: [],
+  completedChapters: [],
   audioMuted: false,
   bgmActive: false,
 };
@@ -202,6 +210,76 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           badges: Array.from(badges),
         });
         soundEngine.playSfx("skill-unlock");
+        return true;
+      },
+
+      respecSkills: () => {
+        set({ unlockedSkills: [] });
+        soundEngine.playSfx("click");
+      },
+
+      toggleCurriculumTask: (taskId: string) => {
+        const state = get();
+        const tasks = new Set(state.completedCurriculumTasks || []);
+        const isChecking = !tasks.has(taskId);
+        if (isChecking) {
+          tasks.add(taskId);
+          set({ completedCurriculumTasks: Array.from(tasks) });
+          get().addXp(10);
+          soundEngine.playSfx("correct");
+          return true;
+        } else {
+          tasks.delete(taskId);
+          set({ completedCurriculumTasks: Array.from(tasks) });
+          soundEngine.playSfx("click");
+          return false;
+        }
+      },
+
+      completeChapter: (filename: string, xpReward: number = 50) => {
+        const state = get();
+        const chapters = new Set(state.completedChapters || []);
+        if (chapters.has(filename)) {
+          return false;
+        }
+        chapters.add(filename);
+        set({ completedChapters: Array.from(chapters) });
+        get().addXp(xpReward);
+        soundEngine.playSfx("victory");
+        return true;
+      },
+
+      importSaveData: (data: Partial<PlayerStats>) => {
+        if (!data || typeof data !== "object") return false;
+        const safeXp = typeof data.xp === "number" && data.xp >= 0 ? data.xp : 0;
+        const safeLevel = calculateLevel(safeXp);
+        const safeRank = calculateRank(safeLevel);
+        const safeMaxHp = 100 + (safeLevel - 1) * 10;
+
+        set({
+          xp: safeXp,
+          level: safeLevel,
+          rankTitle: safeRank,
+          maxHp: safeMaxHp,
+          hp: safeMaxHp,
+          completedQuests: Array.isArray(data.completedQuests) ? data.completedQuests : [],
+          completedBosses: Array.isArray(data.completedBosses) ? data.completedBosses : [],
+          unlockedRealms:
+            Array.isArray(data.unlockedRealms) && data.unlockedRealms.length > 0
+              ? data.unlockedRealms
+              : ["html"],
+          stars: data.stars && typeof data.stars === "object" ? data.stars : {},
+          unlockedSkills: Array.isArray(data.unlockedSkills) ? data.unlockedSkills : [],
+          badges:
+            Array.isArray(data.badges) && data.badges.length > 0
+              ? data.badges
+              : ["welcome_recruit"],
+          completedCurriculumTasks: Array.isArray(data.completedCurriculumTasks)
+            ? data.completedCurriculumTasks
+            : [],
+          completedChapters: Array.isArray(data.completedChapters) ? data.completedChapters : [],
+        });
+        soundEngine.playSfx("level-up");
         return true;
       },
 

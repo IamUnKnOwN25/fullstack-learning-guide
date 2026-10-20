@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { soundEngine } from "@/lib/soundEngine";
+import { useGameStore } from "@/lib/gameStore";
 import { REALMS } from "@/data/realms";
 import { QUESTS } from "@/data/quests";
 import {
@@ -15,6 +16,7 @@ import {
   Check,
   Play,
   ListChecks,
+  Award,
 } from "lucide-react";
 
 export interface DocFile {
@@ -430,6 +432,13 @@ function RichMarkdownViewer({
 }
 
 export function CurriculumViewer({ docs, initialFile }: Props) {
+  const {
+    completedCurriculumTasks = [],
+    completedChapters = [],
+    toggleCurriculumTask,
+    completeChapter,
+  } = useGameStore();
+
   const [selectedFile, setSelectedFile] = useState<string>(() => {
     if (initialFile && docs.some((d) => d.filename === initialFile)) {
       return initialFile;
@@ -437,7 +446,14 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
     return docs[0]?.filename || "";
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [checkedBoxes, setCheckedBoxes] = useState<Record<string, boolean>>({});
+
+  const checkedBoxes = React.useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const key of completedCurriculumTasks) {
+      map[key] = true;
+    }
+    return map;
+  }, [completedCurriculumTasks]);
 
   React.useEffect(() => {
     if (initialFile && docs.some((d) => d.filename === initialFile)) {
@@ -448,6 +464,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   const activeDoc = docs.find((d) => d.filename === selectedFile) || docs[0];
   const matchingRealm = REALMS.find((r) => r.fileRef === activeDoc?.filename);
   const firstQuestId = matchingRealm ? QUESTS[matchingRealm.id]?.[0]?.id : undefined;
+  const isChapterMastered = activeDoc ? completedChapters.includes(activeDoc.filename) : false;
 
   // Extract ## headings for quick section jump bar
   const sectionHeadings = React.useMemo(() => {
@@ -500,7 +517,10 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
               Curriculum Knowledge Vault
             </h1>
             <p className="text-xs text-gray-400">
-              Complete reference documentation, concept deep-dives, and capstone specifications
+              Complete reference documentation, concept deep-dives, and capstone specifications •{" "}
+              <span className="text-matrix-accent font-mono font-bold">
+                {completedChapters.length}/{docs.length} Chapters Mastered
+              </span>
             </p>
           </div>
         </div>
@@ -531,6 +551,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {filteredDocs.map((doc) => {
               const isSelected = doc.filename === selectedFile;
+              const isMastered = completedChapters.includes(doc.filename);
 
               return (
                 <button
@@ -546,7 +567,11 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
                   }`}
                 >
                   <span className="truncate">{doc.title}</span>
-                  <FileText className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
+                  {isMastered ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-matrix-accent ml-2" />
+                  ) : (
+                    <FileText className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
+                  )}
                 </button>
               );
             })}
@@ -563,13 +588,30 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
               <span className="text-white font-bold">{activeDoc.title}</span>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               {totalCheckboxes > 0 && (
-                <span className="px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-accent flex items-center gap-1.5 text-[11px] font-bold">
+                <span
+                  className="px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-accent flex items-center gap-1.5 text-[11px] font-bold"
+                  title="Each completed hands-on task awards +10 XP"
+                >
                   <ListChecks className="w-3.5 h-3.5" />
-                  Tasks: {completedCheckboxesCount}/{totalCheckboxes}
+                  Tasks: {completedCheckboxesCount}/{totalCheckboxes} (+10 XP ea)
                 </span>
               )}
+
+              <button
+                type="button"
+                disabled={isChapterMastered}
+                onClick={() => completeChapter(activeDoc.filename, 50)}
+                className={`px-2.5 py-1 rounded-lg border font-bold text-xs flex items-center gap-1.5 transition-all ${
+                  isChapterMastered
+                    ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent cursor-default"
+                    : "bg-matrix-neonGold/15 hover:bg-matrix-neonGold/25 border-matrix-neonGold/50 text-matrix-neonGold cursor-pointer"
+                }`}
+              >
+                <Award className="w-3.5 h-3.5" />
+                <span>{isChapterMastered ? "Chapter Mastered ✓" : "Complete Chapter (+50 XP)"}</span>
+              </button>
 
               {matchingRealm && firstQuestId && (
                 <Link
@@ -606,9 +648,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
               content={activeDoc.content}
               docId={activeDoc.filename}
               checkedBoxes={checkedBoxes}
-              onToggleBox={(boxKey) =>
-                setCheckedBoxes((prev) => ({ ...prev, [boxKey]: !prev[boxKey] }))
-              }
+              onToggleBox={(boxKey) => toggleCurriculumTask(boxKey)}
               onSelectDoc={(filename) => {
                 const aliasMap: Record<string, string> = {
                   "00-README.md": "00-curriculum-overview.md",

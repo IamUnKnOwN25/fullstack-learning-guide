@@ -144,4 +144,54 @@ describe("DevQuest Game Store", () => {
     expect(() => soundEngine.toggleBgm()).not.toThrow();
     expect(() => soundEngine.setMuted(false)).not.toThrow();
   });
+
+  it("persists curriculum tasks, chapter mastery, skill respec, and save import", () => {
+    const store = useGameStore.getState();
+
+    // Curriculum task toggle awards +10 XP when checked
+    const checked = store.toggleCurriculumTask("01-html-and-semantics.md-line-10");
+    expect(checked).toBe(true);
+    expect(useGameStore.getState().completedCurriculumTasks).toContain(
+      "01-html-and-semantics.md-line-10"
+    );
+    expect(useGameStore.getState().xp).toBe(10);
+
+    // Unchecking removes from completedCurriculumTasks
+    const unchecked = useGameStore.getState().toggleCurriculumTask("01-html-and-semantics.md-line-10");
+    expect(unchecked).toBe(false);
+    expect(useGameStore.getState().completedCurriculumTasks).not.toContain(
+      "01-html-and-semantics.md-line-10"
+    );
+
+    // Chapter mastery awards +50 XP once
+    const mastered = useGameStore.getState().completeChapter("01-html-and-semantics.md", 50);
+    expect(mastered).toBe(true);
+    expect(useGameStore.getState().completedChapters).toContain("01-html-and-semantics.md");
+    expect(useGameStore.getState().xp).toBe(60);
+
+    // Duplicate chapter mastery does not double-award
+    const duplicateChapter = useGameStore.getState().completeChapter("01-html-and-semantics.md", 50);
+    expect(duplicateChapter).toBe(false);
+    expect(useGameStore.getState().xp).toBe(60);
+
+    // Skill respec refunds unlocked skills
+    useGameStore.getState().addXp(1000);
+    useGameStore.getState().unlockSkill("semantic_sight", 1);
+    expect(useGameStore.getState().unlockedSkills).toContain("semantic_sight");
+    useGameStore.getState().respecSkills();
+    expect(useGameStore.getState().unlockedSkills).toHaveLength(0);
+
+    // Save import restores full state
+    const imported = useGameStore.getState().importSaveData({
+      xp: 900,
+      completedQuests: ["html_1_skeleton", "css_1_flexbox"],
+      completedBosses: ["html"],
+      unlockedRealms: ["html", "css"],
+      completedChapters: ["01-html-and-semantics.md"],
+    });
+    expect(imported).toBe(true);
+    expect(useGameStore.getState().xp).toBe(900);
+    expect(useGameStore.getState().completedQuests).toHaveLength(2);
+    expect(useGameStore.getState().completedChapters).toContain("01-html-and-semantics.md");
+  });
 });

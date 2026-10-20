@@ -267,3 +267,9 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added a Speedrun Timer (`MM:SS`) in the top action bar that grants a `+25 Speedrun XP` bonus when a trial is solved within 90 seconds.
     - Enhanced the Matrix Terminal tab with a Per-Objective Diagnostic Breakdown showing `[PASS]` / `[PENDING]` status for every task in the quest.
   - Added `src/__tests__/questTaskEvaluator.test.ts` verifying starter code vs. canonical solutions across all 24 quests (28/28 tests passing).
+
+- **[2026-10-20 09:50] Cycle 30: Fix Live Dev Server Webpack HMR File-Rename Resolution & Persist Curriculum Study Progress (Tests: PASS)**
+  - Fixed live Next.js Webpack HMR `Failed to read source code from DualPaneWorkspace.tsx (os error 2)` by adding HMR-safe re-export shims (`DualPaneWorkspace.tsx`, `HUD.tsx`, `InventoryModal.tsx`, `QuestMap.tsx`, `store.ts`, `audio.ts`) alongside the renamed canonical modules and verifying live `http://localhost:3000` routes (`200 OK`, zero build errors).
+  - Enhanced `src/lib/gameStore.ts` with persistent `completedCurriculumTasks`, `completedChapters`, `toggleCurriculumTask` (+10 XP per hands-on task), `completeChapter` (+50 XP per chapter), `respecSkills`, and `importSaveData`.
+  - Connected `src/components/CurriculumViewer.tsx` to `useGameStore` so hands-on task checkboxes and chapter mastery badges persist across sessions.
+  - Added regression assertions in `src/__tests__/quests.test.ts` and `src/__tests__/gameStore.test.ts` (30/30 tests passing).
