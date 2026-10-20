@@ -163,3 +163,11 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Implemented laser refactor beam strike flash and screen shake on boss counter-attacks.
   - Added interactive Tactical Weakness Scanner drawer with scanline effects and target vulnerability signatures.
   - Added test coverage in `bosses.test.ts` (21/21 tests passing, 0 TypeScript errors).
+
+- **[2026-10-20 08:48] Cycle 19: Cybernetic Constellation World Map & Interactive View Switcher (Tests: PASS)**
+  - Created `ConstellationWorldMap.tsx` rendering an interactive 2D cybernetic constellation network connecting all 12 curriculum realms.
+  - Added SVG circuit conduits with glowing gradients, flowing pulse animations on active paths, and distinct sealed conduits for future realms.
+  - Implemented interactive realm node badges with status icons (Mastered checkmarks, Active Trial ping halos, Sealed padlocks), level gates, and quest tallies.
+  - Added dual view mode switcher in `QuestMap.tsx`: Constellation Map (Interactive Network) vs Grid View (Classic Cards).
+  - Synchronized selection across both views to keep the detailed Realm Inspector updated in real time.
+  - Verified with `tsc --noEmit` and `vitest run` (21/21 tests passing, 0 TypeScript errors).

@@ -22,7 +22,10 @@ import {
   Flame,
   Search,
   Filter,
+  Compass,
+  LayoutGrid,
 } from "lucide-react";
+import { ConstellationWorldMap } from "./ConstellationWorldMap";
 
 type RealmCategory = "all" | "frontend" | "backend" | "devops" | "theory";
 
@@ -46,6 +49,7 @@ export function QuestMap() {
   const [selectedRealm, setSelectedRealm] = useState<Realm | null>(REALMS[0]);
   const [activeCategory, setActiveCategory] = useState<RealmCategory>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [mapView, setMapView] = useState<"constellation" | "grid">("constellation");
 
   const totalStars = Object.values(stars).reduce((sum, s) => sum + s, 0);
 
@@ -170,24 +174,77 @@ export function QuestMap() {
           ))}
         </div>
 
-        {/* Quick Search Input */}
-        <div className="relative sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
-          <input
-            type="text"
-            placeholder="Search realms, skills..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
-          />
+        {/* Search & View Switcher Controls */}
+        <div className="flex items-center gap-3">
+          {/* View Switcher: Constellation Map vs Grid */}
+          <div className="flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setMapView("constellation");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+                mapView === "constellation"
+                  ? "bg-matrix-neonCyan text-matrix-dark shadow-sm"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Constellation</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setMapView("grid");
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold transition-all ${
+                mapView === "grid"
+                  ? "bg-matrix-accent text-matrix-dark shadow-sm"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Grid</span>
+            </button>
+          </div>
+
+          {/* Quick Search Input */}
+          <div className="relative sm:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search realms, skills..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
+            />
+          </div>
         </div>
       </div>
 
       {/* Main Realm Grid & Detail Inspector */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: 12 Realm Cards Grid (2 cols) */}
+        {/* Left Column: Constellation Node Network OR 12 Realm Cards Grid */}
         <div className="lg:col-span-2">
-          {filteredRealms.length === 0 ? (
+          {mapView === "constellation" ? (
+            <ConstellationWorldMap
+              selectedRealm={selectedRealm}
+              onSelectRealm={(realm) => {
+                setSelectedRealm(realm);
+                if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                  setTimeout(() => {
+                    document.getElementById("realm-inspector")?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }
+              }}
+              unlockedRealms={unlockedRealms}
+              completedBosses={completedBosses}
+              completedQuests={completedQuests}
+              level={level}
+            />
+          ) : filteredRealms.length === 0 ? (
             <div className="p-12 rounded-2xl bg-matrix-card/50 border border-dashed border-matrix-border text-center space-y-3 font-mono">
               <Search className="w-8 h-8 text-gray-600 mx-auto" />
               <h3 className="text-sm font-bold text-gray-300">No realms found</h3>
