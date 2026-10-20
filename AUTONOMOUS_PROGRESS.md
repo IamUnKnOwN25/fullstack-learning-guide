@@ -298,3 +298,7 @@ This document records each autonomous improvement cycle, deterministic verificat
   - Fixed SVG coordinate alignment in `src/components/ConstellationWorldMap.tsx` by adding `viewBox="0 0 800 500" preserveAspectRatio="none"` and unifying `<line>` and `<animateMotion>` coordinates so energy pulses travel accurately along the conduit paths at any viewport aspect ratio.
   - Added double-click direct trial launching (`onDoubleClick`) and keyboard accessibility (`role="button"`, `tabIndex={0}`, `Enter`/`Space` handling) on all 12 constellation realm nodes.
   - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000/` verification (`200 OK`, zero errors).
+
+- **[2026-10-20 10:11] Cycle 35: Expand AI Companion Flashcard Deck Across All 12 Full-Stack Realms (Tests: PASS)**
+  - Expanded `FLASHCARDS` in `src/components/CyberCompanionByte.tsx` from 4 questions to a complete 12-realm flashcard deck (`HTML`, `CSS`, `JS`, `TS`, `REACT`, `BACKEND`, `SQL`, `DEVOPS`, `TESTING`, `CS`, `SECURITY`, `CAPSTONE`) with realm badges and card progress indicators (`Card X/12`).
+  - Verified with `tsc --noEmit`, `vitest run` (30/30 tests passing), and live `http://localhost:3000/` verification (`200 OK`, zero errors).

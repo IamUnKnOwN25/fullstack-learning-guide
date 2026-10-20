@@ -33,28 +33,104 @@ const COMPANION_TIPS = [
 
 const FLASHCARDS = [
   {
+    realm: "HTML",
+    q: "Which HTML element defines the primary content landmark for screen readers?",
+    options: ["<div class='main'>", "<main>", "<section>"],
+    answer: 1,
+    explanation: "<main> is a semantic ARIA landmark that lets assistive technology jump directly to core content.",
+  },
+  {
+    realm: "CSS",
+    q: "Which CSS Grid rule creates responsive columns without media queries?",
+    options: [
+      "repeat(auto-fit, minmax(200px, 1fr))",
+      "display: inline-flex",
+      "float: left",
+    ],
+    answer: 0,
+    explanation: "repeat(auto-fit, minmax(200px, 1fr)) automatically wraps and stretches tracks to fill available space.",
+  },
+  {
+    realm: "JS",
     q: "Which queue runs first after the JavaScript Call Stack empties?",
     options: ["Macrotask Queue (setTimeout)", "Microtask Queue (Promises)", "requestIdleCallback"],
     answer: 1,
     explanation: "Microtasks (Promise.then / await) always drain completely before the next Macrotask!",
   },
   {
+    realm: "TS",
+    q: "Which TypeScript type is the safe alternative to 'any' that requires narrowing before use?",
+    options: ["unknown", "never", "Object"],
+    answer: 0,
+    explanation: "'unknown' forces compile-time type guards (typeof, in, discriminated unions) before property access.",
+  },
+  {
+    realm: "REACT",
+    q: "Which React hook caches a function reference across renders?",
+    options: ["useEffect", "useCallback", "useRef"],
+    answer: 1,
+    explanation: "useCallback memoizes a callback function so React.memo child components don't re-render unnecessarily.",
+  },
+  {
+    realm: "BACKEND",
+    q: "What HTTP status code should a POST endpoint return when a new resource is created?",
+    options: ["200 OK", "201 Created", "204 No Content"],
+    answer: 1,
+    explanation: "201 Created signals that the request succeeded and a new resource was persisted.",
+  },
+  {
+    realm: "SQL",
     q: "What SQL feature reduces a 1,000,000-row lookup from O(N) to O(log N)?",
     options: ["FOREIGN KEY", "B-Tree Index (CREATE INDEX)", "SELECT DISTINCT"],
     answer: 1,
     explanation: "A B-Tree index organizes column values into a balanced tree for logarithmic O(log N) lookups.",
   },
   {
+    realm: "DEVOPS",
+    q: "Why use multi-stage builds (FROM ... AS build / FROM ... AS runner) in Dockerfiles?",
+    options: [
+      "To strip build tools & devDependencies from the production image",
+      "To run multiple databases in one container",
+      "To bypass Docker layer caching",
+    ],
+    answer: 0,
+    explanation: "Multi-stage Docker builds keep only compiled artifacts and production dependencies, shrinking image size and attack surface.",
+  },
+  {
+    realm: "TESTING",
+    q: "In Vitest, how do you stub an async function to resolve deterministically?",
+    options: [
+      "vi.fn().mockResolvedValue(data)",
+      "setTimeout(fn, 1000)",
+      "expect.assertions(1)",
+    ],
+    answer: 0,
+    explanation: "vi.fn().mockResolvedValue(...) creates a spy that resolves immediately without network I/O.",
+  },
+  {
+    realm: "CS",
+    q: "What is the time complexity of Binary Search on a sorted array of N elements?",
+    options: ["O(N)", "O(log N)", "O(N log N)"],
+    answer: 1,
+    explanation: "Halving the search space on each comparison yields logarithmic O(log N) time complexity.",
+  },
+  {
+    realm: "SECURITY",
     q: "How do you prevent SQL Injection in Node.js / PostgreSQL queries?",
     options: ["Parameterized queries ($1, $2)", "String concatenation", "Base64 encoding"],
     answer: 0,
     explanation: "Parameterized queries separate the SQL command structure from untrusted user data.",
   },
   {
-    q: "Which React hook caches a function reference across renders?",
-    options: ["useEffect", "useCallback", "useRef"],
-    answer: 1,
-    explanation: "useCallback memoizes a callback function so React.memo child components don't re-render.",
+    realm: "CAPSTONE",
+    q: "How should a healthcheck endpoint query Database and Redis readiness concurrently?",
+    options: [
+      "Promise.all([db.isConnected(), cache.ping()])",
+      "Sequential blocking while loops",
+      "setInterval inside the route handler",
+    ],
+    answer: 0,
+    explanation: "Promise.all executes independent async health probes in parallel for minimal latency.",
   },
 ];
 
@@ -234,8 +310,16 @@ export function CyberCompanionByte() {
           ) : (
             /* Flashcard Mini-Quiz Mode */
             <div className="space-y-2.5 text-xs">
-              <div className="p-3 rounded-xl bg-matrix-dark border border-matrix-border text-white font-bold leading-relaxed">
-                {currentCard.q}
+              <div className="p-3 rounded-xl bg-matrix-dark border border-matrix-border space-y-1.5">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="px-1.5 py-0.5 rounded bg-matrix-neonCyan/20 text-matrix-neonCyan font-bold">
+                    {currentCard.realm} REALM
+                  </span>
+                  <span className="text-gray-400">
+                    Card {quizIndex + 1}/{FLASHCARDS.length}
+                  </span>
+                </div>
+                <div className="text-white font-bold leading-relaxed">{currentCard.q}</div>
               </div>
 
               <div className="space-y-1.5">
