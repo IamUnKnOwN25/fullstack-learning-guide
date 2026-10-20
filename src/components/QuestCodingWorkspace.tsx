@@ -83,6 +83,7 @@ export function QuestCodingWorkspace({
   const [copiedCode, setCopiedCode] = useState(false);
   const [showMentorGuide, setShowMentorGuide] = useState(false);
   const [focusWorkbench, setFocusWorkbench] = useState(false);
+  const [mobilePane, setMobilePane] = useState<"directive" | "workbench">("directive");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const gutterRef = React.useRef<HTMLDivElement | null>(null);
   const [testResult, setTestResult] = useState<{
@@ -256,7 +257,7 @@ export function QuestCodingWorkspace({
     .replace(/['"]$/, "");
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-3 px-4 sm:px-6 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] lg:h-[calc(100vh-3.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-3 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] pb-16 md:pb-3">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3 min-w-0">
@@ -382,13 +383,48 @@ export function QuestCodingWorkspace({
         </div>
       </div>
 
+      {/* Mobile & Tablet Segmented View Toggle (< lg screens) */}
+      <div className="flex lg:hidden bg-matrix-dark p-1 rounded-xl border border-matrix-border font-mono text-xs font-bold shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobilePane("directive");
+          }}
+          className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+            mobilePane === "directive"
+              ? "bg-matrix-accent text-matrix-dark shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Terminal className="w-3.5 h-3.5" />
+          <span>Mission Directive</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobilePane("workbench");
+          }}
+          className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+            mobilePane === "workbench"
+              ? "bg-matrix-neonCyan text-matrix-dark shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Code className="w-3.5 h-3.5" />
+          <span>Code Workbench</span>
+          {testResult?.passed && <CheckCircle2 className="w-3.5 h-3.5 text-matrix-accent" />}
+        </button>
+      </div>
+
       {/* Dual Pane Grid: Left Briefing, Right Coding Workbench */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 flex-1 min-h-0">
         {/* Left Pane: Story, Concepts, Checklist, Hints */}
         <div
-          className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0 ${
+          className={`bg-matrix-card border border-matrix-border rounded-2xl flex-col overflow-hidden shadow-xl min-h-[420px] lg:min-h-0 ${
             focusWorkbench ? "lg:hidden" : ""
-          }`}
+          } ${mobilePane === "workbench" ? "hidden lg:flex" : "flex"}`}
         >
           {/* Left Pane Sub-Tabs */}
           <div className="p-2 border-b border-matrix-border bg-matrix-dark/80 flex items-center justify-between gap-1 overflow-x-auto">
@@ -860,6 +896,7 @@ export function QuestCodingWorkspace({
                   soundEngine.playSfx("click");
                   setDirectiveTab("directive");
                   setActiveTab("editor");
+                  setMobilePane("workbench");
                 }}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-matrix-neonCyan to-matrix-accent text-matrix-dark font-mono text-xs font-bold flex items-center gap-2 shadow-lg shadow-matrix-neonCyan/20 hover:opacity-95 transition-all cursor-pointer"
               >
@@ -883,9 +920,9 @@ export function QuestCodingWorkspace({
 
         {/* Right Pane: Code Editor + Live Preview + Terminal */}
         <div
-          className={`bg-matrix-card border border-matrix-border rounded-2xl flex flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0 ${
+          className={`bg-matrix-card border border-matrix-border rounded-2xl flex-col overflow-hidden shadow-xl min-h-[460px] lg:min-h-0 ${
             focusWorkbench ? "lg:col-span-2" : ""
-          }`}
+          } ${mobilePane === "directive" ? "hidden lg:flex" : "flex"}`}
         >
           {/* Workspace Tab Header */}
           <div className="px-3 sm:px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between gap-2 overflow-x-auto">

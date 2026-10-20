@@ -503,7 +503,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-4 px-4 sm:px-6 flex flex-col gap-3 min-h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
+    <div className="w-full max-w-7xl mx-auto py-4 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] pb-16 md:pb-4">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3">
@@ -536,12 +536,31 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         </Link>
       </div>
 
+      {/* Mobile Chapter Picker (< md) */}
+      <div className="md:hidden bg-matrix-card border border-matrix-border rounded-xl p-2.5 flex items-center gap-2">
+        <BookOpen className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+        <select
+          value={selectedFile}
+          onChange={(e) => {
+            soundEngine.playSfx("click");
+            setSelectedFile(e.target.value);
+          }}
+          className="w-full bg-matrix-dark border border-matrix-border rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-matrix-neonCyan font-mono"
+        >
+          {docs.map((doc) => (
+            <option key={doc.filename} value={doc.filename}>
+              {completedChapters.includes(doc.filename) ? "✓ " : ""}{doc.title}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Main Split: Left Sidebar File Nav, Right Markdown Content */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
         {/* Left Sidebar: File List */}
         <div
-          className={`bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex flex-col gap-3 overflow-hidden ${
-            focusReader ? "md:hidden" : "md:col-span-4 lg:col-span-3"
+          className={`bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex-col gap-3 overflow-hidden ${
+            focusReader ? "hidden" : "hidden md:flex md:col-span-4 lg:col-span-3"
           }`}
         >
           <div className="relative">

@@ -179,8 +179,8 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slideUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">

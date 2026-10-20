@@ -179,7 +179,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto py-6 px-4 space-y-6">
+    <div className="w-full max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-4 space-y-6 pb-16 md:pb-6">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border">
         <Link

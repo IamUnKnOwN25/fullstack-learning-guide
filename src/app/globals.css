@@ -82,3 +82,18 @@ select:focus-visible {
     linear-gradient(to right, rgba(31, 46, 77, 0.24) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(31, 46, 77, 0.24) 1px, transparent 1px);
 }
+
+/* Mobile & Touch Device Ergonomics */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari aggressive auto-zoom on input/textarea focus */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Smooth momentum touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}

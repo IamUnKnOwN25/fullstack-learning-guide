@@ -419,3 +419,16 @@ This document records each autonomous improvement cycle, deterministic verificat
     - In `BossBattleArena.tsx`: Switched villain quotes and phase prompts to `font-sans` (`text-xs sm:text-sm text-gray-200 italic`), keeping code blocks and telemetry strictly `font-mono`.
     - In `QuestCodingWorkspace.tsx`: Switched Byte story intro and core concept summaries to `font-sans` (`text-xs sm:text-sm text-gray-100 leading-relaxed`) for comfortable reading while keeping directives, tokens, line numbers, and terminal output `font-mono`.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (44/44 tests passing across 9 test suites), and HTTP 200 on all routes.
+
+- **[2026-10-20 14:13] Cycle 51: Mobile & Tablet Responsiveness Engine — Bottom Nav, Segmented View Controls, Swipe Filters & Touch Ergonomics (Tests: PASS)**
+  - Transformed the platform into a mobile-first, tablet-optimized application for phones, iPads, and touchscreens:
+    - `NavigationHud.tsx`: Added a **Mobile Sticky Bottom Navigation Bar** (`md:hidden`) offering 44px thumb-accessible buttons for Map, Vault, IDE, Skills, Badges, and Jump; streamlined the top header into a single, non-wrapping row on small screens.
+    - `CyberCompanionByte.tsx`: Raised the floating Byte droid on mobile (`bottom-16 sm:bottom-5 right-4 sm:right-5`) to prevent overlapping the bottom navigation bar; adjusted drawer to responsive `w-[calc(100vw-2rem)] max-w-sm sm:w-96`.
+    - `QuestCodingWorkspace.tsx`: Added a mobile segmented view control (`Mission Directive` vs `Code Workbench`) on `< lg` screens so users on phones and tablets can toggle with one tap instead of scrolling hundreds of pixels past long tasks; auto-switches to the workbench when tapping "Apply in Trial Code".
+    - `OnlineMatrixIde.tsx`: Auto-collapsed sidebar and bottom panel on `< 768px` viewports to maximize mobile screen space for code typing; adopted dynamic viewport height (`100dvh`).
+    - `CurriculumViewer.tsx`: Added a mobile Chapter Picker dropdown (`md:hidden`) allowing instant chapter switching without scrolling through 13 items.
+    - `WorldCampaignMap.tsx`: Converted category filter pills into a smooth horizontal swipeable bar (`overflow-x-auto scrollbar-none whitespace-nowrap`).
+    - `AchievementsModal.tsx` & `SkillTreeModal.tsx`: Updated to `p-2 sm:p-4` with dynamic viewport limits (`max-h-[92dvh] sm:max-h-[90vh]`).
+    - `globals.css`: Eliminated aggressive iOS Safari auto-zoom on input focus (`font-size: 16px !important` on `< 768px`) and enabled smooth momentum touch scrolling (`-webkit-overflow-scrolling: touch`).
+    - `src/__tests__/uiLayoutGuard.test.ts`: Added regression tests verifying mobile bottom navigation, Byte floating offset, segmented workspace toggles, and mobile chapter selector.
+  - Verified with `tsc --noEmit` (0 errors) and `vitest run` (45/45 tests passing across 9 test suites).

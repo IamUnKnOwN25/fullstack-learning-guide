@@ -103,7 +103,7 @@ export function NavigationHud() {
               </div>
             </Link>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 border-l border-matrix-border/80 pl-2.5 sm:pl-4">
+            <div className="hidden md:flex items-center gap-1.5 sm:gap-2 border-l border-matrix-border/80 pl-2.5 sm:pl-4">
               <Link
                 href="/"
                 className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all whitespace-nowrap shrink-0 ${
@@ -203,7 +203,7 @@ export function NavigationHud() {
             </div>
 
             {/* Action Buttons: Quick Search, Skills & Trophies */}
-            <div className="flex items-center gap-1.5 border-l border-matrix-border/80 pl-2 sm:pl-4">
+            <div className="hidden sm:flex items-center gap-1.5 border-l border-matrix-border/80 pl-2 sm:pl-4">
               <button
                 type="button"
                 onClick={() => {
@@ -414,6 +414,91 @@ export function NavigationHud() {
           </div>
         </div>
       )}
+
+      {/* Mobile Sticky Bottom Navigation Bar (Visible only on < md screens) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-matrix-dark/95 backdrop-blur-lg border-t border-matrix-border px-2 py-1 shadow-2xl flex items-center justify-around font-mono text-[10px]"
+      >
+        <Link
+          href="/"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            if (typeof window !== "undefined" && window.location.pathname === "/") {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          className={`flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] transition-all ${
+            isMapActive ? "text-matrix-accent font-bold" : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <MapPin className="w-4 h-4 mb-0.5" />
+          <span>Map</span>
+        </Link>
+
+        <Link
+          href="/curriculum"
+          onClick={() => soundEngine.playSfx("click")}
+          className={`flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] transition-all ${
+            isCurriculumActive ? "text-matrix-neonCyan font-bold" : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <BookOpen className="w-4 h-4 mb-0.5" />
+          <span>Vault</span>
+        </Link>
+
+        <Link
+          href="/ide"
+          onClick={() => soundEngine.playSfx("click")}
+          className={`flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] transition-all ${
+            isIdeActive
+              ? "text-matrix-neonCyan font-bold bg-matrix-neonCyan/10 rounded-lg"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Code className="w-4 h-4 mb-0.5" />
+          <span>IDE</span>
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setSkillTreeOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-matrix-neonPurple transition-all"
+        >
+          <Shield className="w-4 h-4 mb-0.5" />
+          <span>Skills</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setInventoryOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-matrix-neonGold relative transition-all"
+        >
+          <Trophy className="w-4 h-4 mb-0.5" />
+          <span>Badges</span>
+          {badges.length > 0 && (
+            <span className="absolute top-1 right-2.5 w-2 h-2 bg-matrix-neonGold rounded-full ring-2 ring-matrix-dark" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setCommandOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-white transition-all"
+        >
+          <Search className="w-4 h-4 mb-0.5" />
+          <span>Jump</span>
+        </button>
+      </nav>
     </>
   );
 }

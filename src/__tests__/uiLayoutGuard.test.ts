@@ -72,4 +72,24 @@ describe("UI Layout & Overflow Regression Guards", () => {
     const skillContent = fs.readFileSync(skillPath, "utf-8");
     expect(skillContent).toContain("max-w-2xl");
   });
+
+  it("provides mobile-friendly bottom navigation, responsive drawer widths, and segmented directive toggles", () => {
+    const hudPath = path.join(process.cwd(), "src/components/NavigationHud.tsx");
+    const hudContent = fs.readFileSync(hudPath, "utf-8");
+    expect(hudContent).toContain('aria-label="Mobile Navigation"');
+    expect(hudContent).toContain("md:hidden fixed bottom-0");
+
+    const byteContent = fs.readFileSync(bytePath, "utf-8");
+    expect(byteContent).toContain("bottom-16 sm:bottom-5");
+    expect(byteContent).toContain("w-[calc(100vw-2rem)]");
+
+    const workspaceContent = fs.readFileSync(workspacePath, "utf-8");
+    expect(workspaceContent).toContain("Mobile & Tablet Segmented View Toggle");
+    expect(workspaceContent).toContain("Mission Directive");
+    expect(workspaceContent).toContain("Code Workbench");
+
+    const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+    const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+    expect(curriculumContent).toContain("Mobile Chapter Picker");
+  });
 });

@@ -102,7 +102,7 @@ export function WorldCampaignMap() {
   });
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+    <div className="w-full max-w-7xl mx-auto py-6 sm:py-8 px-3 sm:px-6 space-y-6 sm:space-y-8 pb-16 md:pb-8">
       {/* Hero Mission Briefing & World Map Header */}
       <div className="relative rounded-2xl bg-gradient-to-r from-matrix-card via-matrix-dark to-matrix-card border border-matrix-border p-6 sm:p-8 overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-matrix-accent/10 rounded-full blur-3xl pointer-events-none" />
@@ -204,8 +204,8 @@ export function WorldCampaignMap() {
 
       {/* Realm Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-matrix-card/60 p-3.5 rounded-xl border border-matrix-border">
-        {/* Category Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 font-mono text-xs">
+        {/* Category Filter Pills (Horizontal swipe on mobile) */}
+        <div className="flex items-center gap-1.5 font-mono text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
           {(
             [
               { id: "all", label: "All Realms (12)" },
@@ -221,7 +221,7 @@ export function WorldCampaignMap() {
                 soundEngine.playSfx("click");
                 setActiveCategory(cat.id);
               }}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap shrink-0 ${
                 activeCategory === cat.id
                   ? "bg-matrix-neonCyan/20 border border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/20"
                   : "bg-matrix-dark border border-matrix-border text-gray-400 hover:text-white"
