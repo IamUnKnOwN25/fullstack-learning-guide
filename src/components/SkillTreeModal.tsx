@@ -31,7 +31,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple shrink-0">
               <Shield className="w-5 h-5" />
@@ -164,7 +164,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-between text-xs font-mono text-gray-400">
+        <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-matrix-border bg-matrix-dark/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-gray-400">
           <div className="flex items-center gap-3">
             <span>Earn 1 Skill Point on every Level Up</span>
             {unlockedSkills.length > 0 && (

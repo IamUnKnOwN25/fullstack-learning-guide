@@ -68,9 +68,13 @@ describe("UI Layout & Overflow Regression Guards", () => {
 
     const achieveContent = fs.readFileSync(achievePath, "utf-8");
     expect(achieveContent).toContain("max-w-2xl");
+    expect(achieveContent).toContain("px-4 py-3 sm:px-6 sm:py-4");
+    expect(achieveContent).toContain("flex flex-wrap items-center justify-between gap-2");
 
     const skillContent = fs.readFileSync(skillPath, "utf-8");
     expect(skillContent).toContain("max-w-2xl");
+    expect(skillContent).toContain("px-4 py-3 sm:px-6 sm:py-4");
+    expect(skillContent).toContain("flex flex-wrap items-center justify-between gap-2");
   });
 
   it("provides mobile-friendly bottom navigation, responsive drawer widths, and segmented directive toggles", () => {

@@ -182,7 +182,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-matrix-border bg-matrix-dark/60">
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/60">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-matrix-neonGold/20 border border-matrix-neonGold/40 flex items-center justify-center text-matrix-neonGold">
               <Trophy className="w-5 h-5" />
@@ -209,7 +209,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Stats Summary Bar */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-6 py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono tabular-nums">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 py-2 sm:px-6 sm:py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono tabular-nums">
           <div>
             <div className="text-[10px] uppercase text-gray-400">Rank</div>
             <div className="text-xs font-bold text-matrix-accent truncate">{rankTitle}</div>
@@ -237,7 +237,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Sandbox Unlock & Backup Controls Bar */}
-        <div className="px-6 py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
+        <div className="px-4 py-2 sm:px-6 sm:py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -373,7 +373,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Footer with Reset Progress option */}
-        <div className="px-6 py-3 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-between text-xs font-mono">
+        <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-matrix-border bg-matrix-dark/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <button
             onClick={() => {
               if (confirm("Reset all game progress? This will reset your level, quests, and XP.")) {

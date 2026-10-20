@@ -481,3 +481,11 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **UI Layout Invariant Tests (`uiLayoutGuard.test.ts`)**:
       - Added test assertions for `handleImportWorkspaceFile`, `accept=".json,application/json"`, `setMobilePane("workbench")`, and `pb-24` mobile clearances.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (48/48 tests passing across 9 test suites), and HTTP 200 checks on all core routes.
+
+- **[2026-10-20 15:13] Cycle 55: Mobile Modal Touch Ergonomics & Responsive Footers (`SkillTreeModal.tsx`, `AchievementsModal.tsx`) (Tests: PASS)**
+  - Polished touch ergonomics and small-screen layouts in Cybernetic Skill Tree and Trophy Room modals:
+    - Updated modal headers and stats summary bars with responsive padding (`px-4 py-3 sm:px-6 sm:py-4` and `px-4 py-2 sm:px-6 sm:py-3`) to maximize content area on narrow phones.
+    - Updated modal footers with `flex flex-wrap items-center justify-between gap-2` to eliminate horizontal text and button overflow on small viewports.
+    - Maintained `max-w-2xl` boundaries and `max-h-[92dvh] sm:max-h-[90vh]` dynamic viewport limits.
+    - Added automated regression tests to `src/__tests__/uiLayoutGuard.test.ts` for modal padding and footer flexibility.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (48/48 tests passing across 9 test suites), and HTTP 200 checks on all routes.
