@@ -28,6 +28,7 @@ import {
   Check,
   Download,
   FolderArchive,
+  Upload,
   Sparkles,
   FileCode,
   Eye,
@@ -165,6 +166,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
   const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const gutterRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Load saved workspace from localStorage on mount (unless initialQuestId is passed)
   useEffect(() => {
@@ -516,6 +518,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         "  touch <filename>   Create a new file in workspace",
         "  rm <filename>      Remove a file from workspace",
         "  export             Export entire workspace bundle as JSON",
+        "  import             Import workspace JSON bundle from disk",
         "  clear              Clear terminal output",
         "  whoami             Display current operator status"
       );
@@ -571,6 +574,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     } else if (cmd === "export") {
       handleExportWorkspace();
       out.push(`Exported ${files.length} workspace file(s) as JSON bundle.`);
+    } else if (cmd === "import") {
+      fileInputRef.current?.click();
+      out.push("Opening file selector to import workspace JSON bundle...");
     } else if (cmd === "node" || cmd === "run") {
       const targetFile =
         (arg && files.find((f) => f.name === arg)) ||
@@ -657,6 +663,53 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportWorkspaceFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed.files) && parsed.files.length > 0) {
+          const importedFiles: IdeFile[] = parsed.files.map((f: { name?: string; language?: string; content?: string }) => ({
+            name: String(f.name || "untitled.js"),
+            language: (f.language as IdeFile["language"]) || detectFileLanguage(f.name || "untitled.js"),
+            content: String(f.content || ""),
+          }));
+          setFiles(importedFiles);
+          setOpenTabs(importedFiles.map((f) => f.name));
+          const targetActive =
+            parsed.activeFileName && importedFiles.some((f) => f.name === parsed.activeFileName)
+              ? parsed.activeFileName
+              : importedFiles[0].name;
+          setActiveFileName(targetActive);
+          saveWorkspace(importedFiles, true);
+          soundEngine.playSfx("correct");
+          setConsoleLogs((prev) => [
+            ...prev,
+            {
+              id: `${Date.now()}-import`,
+              level: "system",
+              text: `Successfully imported ${importedFiles.length} file(s) from ${file.name}.`,
+              timestamp: new Date().toLocaleTimeString(),
+            },
+          ]);
+        } else {
+          soundEngine.playSfx("error");
+          alert("Invalid workspace JSON: missing 'files' array.");
+        }
+      } catch {
+        soundEngine.playSfx("error");
+        alert("Failed to read or parse workspace JSON file.");
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Search results across all files
   const searchResults = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -700,7 +753,16 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col gap-2 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none pb-16 md:pb-3">
+    <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 py-3 flex flex-col gap-2 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] font-mono select-none pb-24 md:pb-3">
+      {/* Hidden File Input for Workspace Import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={handleImportWorkspaceFile}
+        className="hidden"
+        aria-hidden="true"
+      />
       {/* Mobile Streamlined Title & Action Bar */}
       <div className="md:hidden bg-matrix-card border border-matrix-border rounded-xl p-2.5 flex flex-col gap-2 shadow-lg">
         <div className="flex items-center justify-between gap-2">
@@ -963,6 +1025,16 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
           <button
             type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2.5 py-1.5 rounded-lg bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white text-xs flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+            title="Import Workspace Bundle (.json)"
+          >
+            <Upload className="w-3.5 h-3.5 text-matrix-neonPurple shrink-0" />
+            <span className="hidden 2xl:inline">Import Workspace</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleRunProject}
             className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-bold text-xs flex items-center gap-1.5 shadow-md shadow-matrix-accent/20 hover:opacity-95 transition-all whitespace-nowrap shrink-0 cursor-pointer"
           >
@@ -1190,6 +1262,22 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                         title="New File"
                       >
                         <Plus className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-1 rounded hover:bg-matrix-card text-matrix-neonPurple hover:text-white"
+                        title="Import Workspace (.json)"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportWorkspace}
+                        className="p-1 rounded hover:bg-matrix-card text-matrix-accent hover:text-white"
+                        title="Export Workspace (.json)"
+                      >
+                        <FolderArchive className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"

@@ -279,7 +279,7 @@ export function QuestCodingWorkspace({
     .replace(/['"]$/, "");
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-3 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] pb-16 md:pb-3">
+    <div className="w-full max-w-7xl mx-auto py-3 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] lg:h-[calc(100vh-3.5rem)] pb-24 md:pb-3">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3 min-w-0">
@@ -685,6 +685,7 @@ export function QuestCodingWorkspace({
                           setCode(combinedHint);
                         }
                         setActiveTab("editor");
+                        setMobilePane("workbench");
                       }}
                       className="px-2 py-1 rounded bg-matrix-neonCyan text-matrix-dark font-bold text-[10px] hover:opacity-90"
                     >

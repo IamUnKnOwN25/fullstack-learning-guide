@@ -555,7 +555,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto py-4 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] pb-16 md:pb-4">
+    <div className="w-full max-w-7xl mx-auto py-4 px-3 sm:px-6 flex flex-col gap-3 min-h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] pb-24 md:pb-4">
       {/* Top Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-matrix-border">
         <div className="flex items-center gap-3">

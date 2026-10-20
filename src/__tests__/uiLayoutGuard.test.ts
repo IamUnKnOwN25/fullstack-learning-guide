@@ -142,4 +142,22 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(ideContent).toContain("Export Entire Workspace (.json)");
     expect(ideContent).toContain("devquest-workspace-");
   });
+
+  it("enforces Cycle 54 workspace import & mobile bottom-clearance invariants", () => {
+    const idePath = path.join(process.cwd(), "src/components/OnlineMatrixIde.tsx");
+    const ideContent = fs.readFileSync(idePath, "utf-8");
+    expect(ideContent).toContain("handleImportWorkspaceFile");
+    expect(ideContent).toContain("Import Workspace Bundle (.json)");
+    expect(ideContent).toContain('accept=".json,application/json"');
+    expect(ideContent).toContain("pb-24 md:pb-3");
+
+    const workspacePath = path.join(process.cwd(), "src/components/QuestCodingWorkspace.tsx");
+    const workspaceContent = fs.readFileSync(workspacePath, "utf-8");
+    expect(workspaceContent).toContain('setMobilePane("workbench")');
+    expect(workspaceContent).toContain("pb-24 md:pb-3");
+
+    const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+    const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+    expect(curriculumContent).toContain("pb-24 md:pb-4");
+  });
 });
