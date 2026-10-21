@@ -114,7 +114,11 @@ describe("DevQuest Game Store", () => {
       useGameStore.getState().unlockedSkills.filter((s) => s === "lint_shield")
     ).toHaveLength(1);
 
-    // Unlock grandmaster
+    // Level up player by adding more XP so they can afford everything
+    store.addXp(50000);
+    // Unlock grandmaster (need to unlock prerequisites first)
+    useGameStore.getState().unlockSkill("clean_code_aura", 4);
+    useGameStore.getState().unlockSkill("zero_day_warden", 5);
     const grandmaster = useGameStore.getState().unlockSkill("matrix_grandmaster", 5);
     expect(grandmaster).toBe(true);
     expect(useGameStore.getState().unlockedSkills).toContain("matrix_grandmaster");
@@ -191,8 +195,8 @@ describe("DevQuest Game Store", () => {
 
     // Skill respec refunds unlocked skills
     useGameStore.getState().addXp(1000);
-    useGameStore.getState().unlockSkill("semantic_sight", 1);
-    expect(useGameStore.getState().unlockedSkills).toContain("semantic_sight");
+    useGameStore.getState().unlockSkill("lint_shield", 2);
+    expect(useGameStore.getState().unlockedSkills).toContain("lint_shield");
     useGameStore.getState().respecSkills();
     expect(useGameStore.getState().unlockedSkills).toHaveLength(0);
 

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { soundEngine } from "./soundEngine";
+import { validateSkillUnlock } from "./skillCalculator";
 import {
   calculateLevel,
   calculateRank,
@@ -247,9 +248,9 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
       unlockSkill: (skillId: string, cost: number) => {
         const state = get();
-        // Skill points = level - unlockedSkills.length
-        const availablePoints = state.level - state.unlockedSkills.length;
-        if (availablePoints < cost || state.unlockedSkills.includes(skillId)) {
+        const validation = validateSkillUnlock(skillId, state.level, state.unlockedSkills);
+
+        if (!validation.canUnlock) {
           return false;
         }
 

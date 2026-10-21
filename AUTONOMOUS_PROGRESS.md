@@ -762,3 +762,10 @@ pm run validate.
   - Added unit test suite in src/__tests__/pwaManifest.test.ts.
   - Verified with 
 pm run validate.
+
+
+- **[2026-10-21 15:50] Cycle 81: Skill Tree Prerequisite & Respec Calculator (Tests: PASS)**
+  - Implemented skill point allocation and respec calculation in src/lib/skillCalculator.ts.
+  - Added unit test suite in src/__tests__/skillCalculator.test.ts.
+  - Verified with 
+pm run validate.

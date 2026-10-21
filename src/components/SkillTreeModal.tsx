@@ -6,6 +6,7 @@ import { useGameStore } from "@/lib/gameStore";
 import { useAuthStore } from "@/lib/authStore";
 import { SKILL_TREE, SKILL_CATEGORIES, SkillCategory } from "@/data/skills";
 import { soundEngine } from "@/lib/soundEngine";
+import { calculateAvailableSkillPoints, validateSkillUnlock } from "@/lib/skillCalculator";
 import {
   X,
   Shield,
@@ -61,7 +62,7 @@ export function SkillTreeModal({
 
   if (!isOpen) return null;
 
-  const availableSkillPoints = Math.max(0, level - unlockedSkills.length);
+  const availableSkillPoints = calculateAvailableSkillPoints(level, unlockedSkills);
 
   const filteredSkills =
     selectedCategory === "all"
@@ -252,8 +253,8 @@ export function SkillTreeModal({
               const isUnlocked = unlockedSkills.includes(skill.id) || skill.unlockedByDefault;
               const hasPrereq = !skill.prerequisiteId || unlockedSkills.includes(skill.prerequisiteId);
               const prereqSkill = skill.prerequisiteId ? SKILL_TREE.find((s) => s.id === skill.prerequisiteId) : null;
-              const canAfford = availableSkillPoints >= skill.cost;
-              const canUnlock = !isUnlocked && hasPrereq && canAfford;
+              const validation = validateSkillUnlock(skill.id, level, unlockedSkills);
+              const canUnlock = validation.canUnlock;
               const isClassified = !isAuthenticated && skill.tier > 1;
 
               return (
