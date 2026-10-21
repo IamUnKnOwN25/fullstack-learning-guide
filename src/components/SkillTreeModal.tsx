@@ -117,14 +117,14 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Branch Filter Tabs */}
-        <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/50 flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap text-xs">
+        <div className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
           <button
             type="button"
             onClick={() => {
               soundEngine.playSfx("click");
               setSelectedCategory("all");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
               selectedCategory === "all"
                 ? "bg-matrix-neonPurple/20 border-matrix-neonPurple text-white font-bold"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
@@ -141,9 +141,9 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                 soundEngine.playSfx("click");
                 setSelectedCategory(cat.id);
               }}
-              className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
                 selectedCategory === cat.id
-                  ? "bg-matrix-neonPurple/20 border-matrix-neonPurple text-white font-bold"
+                  ? "bg-matrix-neonPurple/20 border-matrix-neonPurple text-white font-bold shadow-sm"
                   : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
               }`}
             >

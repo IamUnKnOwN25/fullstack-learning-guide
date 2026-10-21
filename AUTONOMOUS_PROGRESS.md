@@ -567,3 +567,15 @@ This document records each autonomous improvement cycle, deterministic verificat
       - Added 15 unit tests covering auth signup/login/guest flows, leaderboard rankings and sorting, skill tree prerequisite integrity, achievement progress evaluation and claim logic, and modal container layout guards.
       - Verified that all 81 tests across 12 test suites pass with 0 failures (`vitest run`).
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (81/81 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 09:14] Cycle 60: Modal Category Tabs Layout & Horizontal Scrollbar Elimination (Tests: PASS)**
+  - Addressed user feedback regarding clipped category tabs and horizontal scrollbars in `AchievementsModal.tsx`:
+    - **Modal Category Tab Wrapping (`AchievementsModal.tsx`, `SkillTreeModal.tsx`, `LeaderboardModal.tsx`)**:
+      - Converted rigid single-line containers (`overflow-x-auto whitespace-nowrap`) to responsive flex-wrapping rows (`flex flex-wrap items-center gap-1.5 sm:gap-2`).
+      - Updated category button paddings (`px-2.5 sm:px-3 py-1.5`) and streamlined labels (`All (18)`, `Bosses`, `Quests`, `Scholar`, `Mastery`) so tabs fit cleanly without clipping the rightmost tab (`Matrix Mastery`).
+      - Applied identical responsive wrapping across the Cybernetic Skill Tree and Global Leaderboard modals.
+    - **Global Scrollbar Hiding Utilities (`src/app/globals.css`)**:
+      - Added dedicated `.scrollbar-none` and `.no-scrollbar` classes targeting `::-webkit-scrollbar` (`display: none !important`), `scrollbar-width: none !important`, and `-ms-overflow-style: none !important` to eliminate browser-default scrollbars across Chrome, Safari, Edge, and Firefox.
+    - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
+      - Added unit test asserting `AchievementsModal` category tabs wrap cleanly without `overflow-x-auto` and `globals.css` defines strict scrollbar suppression.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (83/83 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

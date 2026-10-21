@@ -283,5 +283,17 @@ describe("RPG Progression Systems: Auth, Leaderboard, Skills & Achievements", ()
       expect(firstUseMemoIndex).toBeLessThan(ifNotOpenIndex);
       expect(lastUseMemoIndex).toBeLessThan(ifNotOpenIndex);
     });
+
+    it("ensures modal category tabs wrap cleanly without horizontal scrollbars or clipping", () => {
+      const achievePath = path.join(process.cwd(), "src/components/AchievementsModal.tsx");
+      const achieveContent = fs.readFileSync(achievePath, "utf-8");
+      expect(achieveContent).toContain("flex flex-wrap items-center gap-1.5 sm:gap-2");
+      expect(achieveContent).not.toContain("overflow-x-auto scrollbar-none whitespace-nowrap");
+
+      const cssPath = path.join(process.cwd(), "src/app/globals.css");
+      const cssContent = fs.readFileSync(cssPath, "utf-8");
+      expect(cssContent).toContain(".scrollbar-none::-webkit-scrollbar");
+      expect(cssContent).toContain("scrollbar-width: none !important;");
+    });
   });
 });

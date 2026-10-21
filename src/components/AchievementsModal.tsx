@@ -140,20 +140,21 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
         </div>
 
         {/* Category Tabs */}
-        <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/40 flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap text-xs">
+        <div className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/40 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
           <button
             type="button"
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("all");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
               activeCategory === "all"
-                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
             }`}
           >
-            All Achievements ({ACHIEVEMENTS.length})
+            <Trophy className="w-3.5 h-3.5" />
+            <span>All ({ACHIEVEMENTS.length})</span>
           </button>
 
           <button
@@ -162,9 +163,9 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               setActiveCategory("bosses");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
               activeCategory === "bosses"
-                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
             }`}
           >
@@ -178,9 +179,9 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               setActiveCategory("quests");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
               activeCategory === "quests"
-                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
             }`}
           >
@@ -194,9 +195,9 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               setActiveCategory("scholar");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
               activeCategory === "scholar"
-                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
             }`}
           >
@@ -210,14 +211,14 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               setActiveCategory("mastery");
             }}
-            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
               activeCategory === "mastery"
-                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
                 : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
             }`}
           >
             <Crown className="w-3.5 h-3.5 text-matrix-neonPurple" />
-            <span>Mastery & Feats</span>
+            <span>Matrix Mastery</span>
           </button>
         </div>
 

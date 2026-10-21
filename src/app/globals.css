@@ -74,6 +74,20 @@ select:focus-visible {
   background: #00e5ff;
 }
 
+/* Scrollbar Hiding Utilities */
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 /* Subtle Cybernetic Grid Pattern with Ambient Radial Glow */
 .bg-cyber-grid {
   background-size: 100% 100%, 40px 40px, 40px 40px;

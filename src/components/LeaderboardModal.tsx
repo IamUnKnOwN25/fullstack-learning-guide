@@ -148,7 +148,7 @@ export function LeaderboardModal({ isOpen, onClose, onOpenProfile }: Props) {
 
         {/* Tab Controls & Search Bar */}
         <div className="p-3 sm:p-4 border-b border-matrix-border bg-matrix-dark/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
               onClick={() => {
