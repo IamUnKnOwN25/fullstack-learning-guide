@@ -61,4 +61,54 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
       expect(doc.length).toBeGreaterThan(50);
     }
   });
+
+  it("prioritizes newly created or selected HTML files in live preview over default index.html", () => {
+    const files = [
+      { name: "index.html", language: "html" as const, content: "<h1>Index Home</h1>" },
+      { name: "about.html", language: "html" as const, content: "<h1>About Page</h1>" },
+      { name: "styles.css", language: "css" as const, content: "body { color: cyan; }" },
+    ];
+
+    // Previewing 'about.html' must render about.html's content, not index.html
+    const aboutDoc = bundleIdeProject(files, "about.html");
+    expect(aboutDoc).toContain("<h1>About Page</h1>");
+    expect(aboutDoc).not.toContain("<h1>Index Home</h1>");
+    expect(aboutDoc).toContain("body { color: cyan; }");
+
+    // Previewing 'index.html' renders index.html
+    const indexDoc = bundleIdeProject(files, "index.html");
+    expect(indexDoc).toContain("<h1>Index Home</h1>");
+    expect(indexDoc).not.toContain("<h1>About Page</h1>");
+  });
+
+  it("correctly injects styles and scripts into full HTML documents without duplicate doctype tags", () => {
+    const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Custom Document</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Full Document Header</h1>
+  <script src="main.js"></script>
+</body>
+</html>`;
+
+    const doc = bundleIdeProject([
+      { name: "page.html", language: "html", content: fullHtml },
+      { name: "styles.css", language: "css", content: "h1 { font-size: 32px; }" },
+      { name: "main.js", language: "javascript", content: "console.log('Script running');" },
+    ], "page.html");
+
+    expect(doc).toContain("Full Document Header");
+    expect(doc).toContain("h1 { font-size: 32px; }");
+    expect(doc).toContain("console.log('Script running');");
+    // Ensure local link and script tags are inlined cleanly
+    expect(doc).toContain("<!-- Inlined: styles.css -->");
+    expect(doc).toContain("<!-- Inlined: main.js -->");
+    // Ensure only 1 DOCTYPE exists
+    const doctypeMatches = doc.match(/<!DOCTYPE/gi);
+    expect(doctypeMatches?.length).toBe(1);
+  });
 });

@@ -621,3 +621,24 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
       - Added unit test verifying that `CurriculumViewer` enforces authentication gates, displays classified notices and locked syllabus, and integrates `AuthModal`.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (85/85 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 13:30] Cycle 63: Multi-File HTML Live Preview & Dynamic Target Page Resolution (Tests: PASS)**
+  - Addressed user feedback ("I tried creating new html file but its not rendering in preview"):
+    - **Root Cause Diagnosis**:
+      - `bundleIdeProject` previously used `files.find((f) => f.language === "html")`, which hard-coded resolution to the first HTML file in the array (`index.html`).
+      - As a result, when an operator created a new `.html` file (e.g., `about.html`, `test.html`), the live preview ignored the active file and stubbornly continued rendering `index.html`.
+      - Full HTML documents with `<!DOCTYPE>` were also previously nested inside a secondary outer `<!DOCTYPE>` wrapper, causing browser DOM parser anomalies.
+    - **Dynamic HTML Preview Resolution (`src/lib/ideBundler.ts`)**:
+      - Updated `bundleIdeProject(files, activeFileName)` to prioritize the currently active or selected HTML file.
+      - Added full document vs fragment detection (`isFullDocument`). Full HTML documents now inject `<style>` into `<head>` and console/bridge `<script>` before `</body>` with 0 duplicate `<!DOCTYPE>` tags.
+      - Automatically comments out workspace `<link rel="stylesheet">` and `<script src="...">` tags pointing to local files, eliminating browser 404 network errors.
+      - Added local link click interceptor inside the preview iframe: clicking `<a href="page2.html">` inside the live preview sends a postMessage that dynamically navigates to `page2.html` within the IDE!
+    - **Interactive Multi-Page Selector in Browser Chrome Bar (`src/components/OnlineMatrixIde.tsx`)**:
+      - Added `previewTargetFile` state and `currentPreviewFile` memoization.
+      - Whenever the user creates, opens, or edits an HTML file, the Live Preview automatically targets and renders that specific HTML file.
+      - When multiple HTML files exist in the project, the simulated browser address bar transforms into an interactive `PAGE: [about.html ▾]` dropdown so users can toggle preview targets anytime.
+      - Updated file creation (`handleCreateFile`) and terminal `touch` command to generate a clean, modern HTML5 boilerplate.
+    - **Automated Regression Guards (`src/__tests__/ideBundler.test.ts`)**:
+      - Added unit tests asserting that previewing newly created or selected HTML files prioritizes that file over `index.html`.
+      - Verified full HTML document injection without duplicate doctype tags and inlining of local links/scripts.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (87/87 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

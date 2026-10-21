@@ -117,6 +117,10 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
   const [activeFileName, setActiveFileName] = useState<string>(
     IDE_PROJECT_TEMPLATES[0].files[0].name
   );
+  const [previewTargetFile, setPreviewTargetFile] = useState<string>(() => {
+    const firstHtml = IDE_PROJECT_TEMPLATES[0].files.find((f) => f.language === "html");
+    return firstHtml ? firstHtml.name : IDE_PROJECT_TEMPLATES[0].files[0].name;
+  });
 
   // Mobile Segmented Mode state
   const [mobileIdeTab, setMobileIdeTab] = useState<"editor" | "preview" | "files" | "terminal">("editor");
@@ -203,10 +207,25 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     }
   }, [initialQuestId, allQuests]);
 
-  // Listen for console messages from the sandboxed preview iframe
+  // Listen for console messages and internal page navigation from the sandboxed preview iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.source === "devquest-ide-preview") {
+        if (event.data.type === "navigate" && event.data.target) {
+          const target = String(event.data.target).trim();
+          const match = files.find(
+            (f) => f.name.toLowerCase() === target.toLowerCase()
+          );
+          if (match) {
+            setActiveFileName(match.name);
+            if (match.language === "html") {
+              setPreviewTargetFile(match.name);
+            }
+            setOpenTabs((prev) => (prev.includes(match.name) ? prev : [...prev, match.name]));
+          }
+          return;
+        }
+
         const time = new Date().toLocaleTimeString();
         setConsoleLogs((prev) => [
           ...prev.slice(-49),
@@ -221,7 +240,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [files]);
 
   // Global keyboard shortcut: Ctrl+B to toggle File Sidebar
   useEffect(() => {
@@ -263,10 +282,34 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
   const diagnostics = useMemo(() => analyzeWorkspaceDiagnostics(files), [files]);
 
+  const allHtmlFiles = useMemo(
+    () => files.filter((f) => f.language === "html"),
+    [files]
+  );
+
+  const currentPreviewFile = useMemo(() => {
+    // 1. If currently active file is an HTML file, prioritize it!
+    const active = files.find((f) => f.name === activeFileName);
+    if (active && active.language === "html") return active.name;
+
+    // 2. If previewTargetFile is set and exists in workspace, use it
+    const target = files.find((f) => f.name === previewTargetFile);
+    if (target && target.language === "html") return target.name;
+
+    // 3. Fallback to index.html if present
+    const index = files.find((f) => f.name.toLowerCase() === "index.html");
+    if (index) return index.name;
+
+    // 4. Fallback to first HTML file
+    if (allHtmlFiles.length > 0) return allHtmlFiles[0].name;
+
+    return activeFileName;
+  }, [files, activeFileName, previewTargetFile, allHtmlFiles]);
+
   const bundledSrcDoc = useMemo(
-    () => bundleIdeProject(files, activeFile?.name),
+    () => bundleIdeProject(files, currentPreviewFile),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [files, activeFile?.name, previewVersion]
+    [files, currentPreviewFile, previewVersion]
   );
 
   const linkedQuest = useMemo(
@@ -287,6 +330,8 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
     setFiles(cloned);
     setOpenTabs(cloned.map((f) => f.name));
     setActiveFileName(cloned[0].name);
+    const firstHtml = cloned.find((f) => f.language === "html");
+    setPreviewTargetFile(firstHtml ? firstHtml.name : cloned[0].name);
     saveWorkspace(cloned, false);
   };
 
@@ -427,7 +472,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
       language: lang,
       content:
         lang === "html"
-          ? `<!-- ${finalName} -->\n<section>\n  <h2>New HTML Component</h2>\n</section>`
+          ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n  <title>${finalName}</title>\n</head>\n<body>\n  <main style="padding: 24px; font-family: system-ui, sans-serif;">\n    <h1 style="color: #00ff9d; margin-top: 0;">${finalName}</h1>\n    <p style="color: #94a3b8;">New HTML page created in DevQuest Matrix IDE.</p>\n  </main>\n</body>\n</html>`
           : lang === "css"
           ? `/* ${finalName} */\nbody {\n  \n}`
           : lang === "sql"
@@ -440,6 +485,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
       setOpenTabs([...openTabs, finalName]);
     }
     setActiveFileName(finalName);
+    if (lang === "html") {
+      setPreviewTargetFile(finalName);
+    }
     setIsCreatingFile(false);
     setNewFileName("");
     soundEngine.playSfx("click");
@@ -572,10 +620,21 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         out.push(`touch: '${arg}' already exists`);
       } else {
         const lang = detectFileLanguage(arg);
-        const nextFiles = [...files, { name: arg, language: lang, content: `// ${arg}\n` }];
+        const templateContent =
+          lang === "html"
+            ? `<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n  <title>${arg}</title>\n</head>\n<body>\n  <main style="padding: 24px; font-family: system-ui, sans-serif;">\n    <h1 style="color: #00ff9d; margin-top: 0;">${arg}</h1>\n    <p style="color: #94a3b8;">New HTML page created in DevQuest Matrix IDE.</p>\n  </main>\n</body>\n</html>`
+            : lang === "css"
+            ? `/* ${arg} */\nbody {\n  \n}`
+            : lang === "sql"
+            ? `-- ${arg}\nSELECT 1;`
+            : `// ${arg}\nconsole.log("Loaded ${arg}");\n`;
+        const nextFiles = [...files, { name: arg, language: lang, content: templateContent }];
         setFiles(nextFiles);
         setOpenTabs((prev) => (prev.includes(arg) ? prev : [...prev, arg]));
         setActiveFileName(arg);
+        if (lang === "html") {
+          setPreviewTargetFile(arg);
+        }
         saveWorkspace(nextFiles, false);
         out.push(`Created file '${arg}'`);
       }
@@ -1352,6 +1411,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                               setOpenTabs([...openTabs, file.name]);
                             }
                             setActiveFileName(file.name);
+                            if (file.language === "html") {
+                              setPreviewTargetFile(file.name);
+                            }
                             setMobileIdeTab("editor");
                           }}
                           className={`group px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between gap-2 cursor-pointer transition-all ${
@@ -1549,6 +1611,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                       onClick={() => {
                         soundEngine.playSfx("click");
                         setActiveFileName(tabName);
+                        if (tabFile.language === "html") {
+                          setPreviewTargetFile(tabFile.name);
+                        }
                       }}
                       className={`px-3 py-2 border-r border-matrix-border flex items-center gap-2 text-xs cursor-pointer whitespace-nowrap shrink-0 transition-colors ${
                         isCurrent
@@ -1825,9 +1890,37 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                 <div className="px-3 py-1.5 bg-matrix-card border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-matrix-accent animate-pulse shrink-0" />
-                    <span className="px-2.5 py-0.5 rounded bg-matrix-dark border border-matrix-border text-[11px] text-gray-300 truncate">
-                      http://localhost:3000/preview/{activeFile?.name}
+                    <span className="text-[11px] text-gray-400 font-mono hidden sm:inline">
+                      http://localhost:3000/
                     </span>
+                    {allHtmlFiles.length > 1 ? (
+                      <div className="flex items-center gap-1.5 bg-matrix-dark border border-matrix-border hover:border-matrix-neonCyan rounded px-2 py-0.5">
+                        <span className="text-[10px] text-matrix-neonCyan font-bold">PAGE:</span>
+                        <select
+                          value={currentPreviewFile}
+                          onChange={(e) => {
+                            soundEngine.playSfx("click");
+                            setPreviewTargetFile(e.target.value);
+                            setActiveFileName(e.target.value);
+                            if (!openTabs.includes(e.target.value)) {
+                              setOpenTabs((prev) => [...prev, e.target.value]);
+                            }
+                          }}
+                          className="bg-transparent text-[11px] text-matrix-neonCyan font-mono outline-none cursor-pointer"
+                          title="Switch Live Preview HTML Document"
+                        >
+                          {allHtmlFiles.map((hf) => (
+                            <option key={hf.name} value={hf.name} className="bg-matrix-card text-white">
+                              {hf.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded bg-matrix-dark border border-matrix-border text-[11px] text-matrix-neonCyan font-mono truncate">
+                        {currentPreviewFile}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">

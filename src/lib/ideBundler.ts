@@ -40,12 +40,24 @@ export function detectFileLanguage(
  * that forwards console logs and runtime errors back to the parent IDE window via postMessage.
  */
 export function bundleIdeProject(files: IdeFile[], activeFileName?: string): string {
-  const htmlFile = files.find((f) => f.language === "html");
+  const activeFile = files.find((f) => f.name === activeFileName) || files[0];
+  const allHtmlFiles = files.filter((f) => f.language === "html");
   const cssFiles = files.filter((f) => f.language === "css");
   const jsTsFiles = files.filter(
     (f) => f.language === "javascript" || f.language === "typescript"
   );
-  const activeFile = files.find((f) => f.name === activeFileName) || files[0];
+
+  // Determine target HTML file:
+  // 1. If an active file is provided and is an HTML file, prioritize rendering it!
+  // 2. If activeFileName matches an HTML file by name, use it
+  // 3. If there is an 'index.html', use it
+  // 4. Fallback to first HTML file in workspace
+  const htmlFile =
+    (activeFile && activeFile.language === "html")
+      ? activeFile
+      : allHtmlFiles.find((f) => f.name.toLowerCase() === activeFileName?.toLowerCase()) ||
+        allHtmlFiles.find((f) => f.name.toLowerCase() === "index.html") ||
+        allHtmlFiles[0];
 
   // If the active file is SQL, JSON, or Markdown and there is no HTML file, use sandboxBuilder
   if (!htmlFile && activeFile) {
@@ -58,6 +70,10 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
       "console"
     );
   }
+
+  const rawHtml =
+    htmlFile?.content ||
+    `<div id="app" style="padding:16px;font-family:monospace;color:#00ff9d;">Running scripts...</div>`;
 
   const combinedCss = cssFiles.map((f) => `/* ${f.name} */\n${f.content}`).join("\n\n");
 
@@ -80,19 +96,10 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
     })
     .join("\n\n");
 
-  const baseHtml =
-    htmlFile?.content ||
-    `<div id="app" style="padding:16px;font-family:monospace;color:#00ff9d;">Running scripts...</div>`;
-
   // Escape closing script tags inside user JS
   const safeJs = combinedJs.replace(/<\/script>/gi, "<\\/script>");
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
+  const injectedStyle = `<style data-devquest-theme="true">
     body {
       background: #0b0f19;
       color: #e2e8f0;
@@ -101,11 +108,9 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
       padding: 16px;
     }
     ${combinedCss}
-  </style>
-</head>
-<body>
-  ${baseHtml}
-  <script>
+  </style>`;
+
+  const injectedScript = `<script data-devquest-engine="true">
     (function() {
       const sendToIde = (level, args) => {
         try {
@@ -132,13 +137,87 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
         sendToIde('error', [event.message + (event.lineno ? ' (line ' + event.lineno + ')' : '')]);
       });
 
+      // Intercept local relative links (e.g. href="page2.html" or href="./about.html") to navigate in Matrix IDE
+      document.addEventListener('click', function(e) {
+        const anchor = e.target && e.target.closest ? e.target.closest('a') : null;
+        if (anchor) {
+          const href = anchor.getAttribute('href');
+          if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('mailto:') && !href.startsWith('javascript:')) {
+            e.preventDefault();
+            const targetName = href.replace(/^(\\.\\/|\\/)/, '');
+            window.parent.postMessage({
+              source: 'devquest-ide-preview',
+              type: 'navigate',
+              target: targetName
+            }, '*');
+          }
+        }
+      });
+
       try {
         ${safeJs}
       } catch (err) {
         sendToIde('error', [err instanceof Error ? err.message : String(err)]);
       }
     })();
-  </script>
+  </script>`;
+
+  const isFullDocument = /<!DOCTYPE|<html|<head|<body/i.test(rawHtml);
+
+  if (isFullDocument) {
+    let processedHtml = rawHtml;
+
+    // Prevent 404 network requests for workspace CSS files linked via <link rel="stylesheet">
+    cssFiles.forEach((cf) => {
+      const escaped = cf.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(
+        `<link\\s+[^>]*href=["'](?:\\.\\/)?${escaped}["'][^>]*>`,
+        "gi"
+      );
+      processedHtml = processedHtml.replace(re, `<!-- Inlined: ${cf.name} -->`);
+    });
+
+    // Prevent 404 network requests for workspace JS/TS files linked via <script src="...">
+    jsTsFiles.forEach((jf) => {
+      const escaped = jf.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const re = new RegExp(
+        `<script\\s+[^>]*src=["'](?:\\.\\/)?${escaped}["'][^>]*>\\s*<\\/script>`,
+        "gi"
+      );
+      processedHtml = processedHtml.replace(re, `<!-- Inlined: ${jf.name} -->`);
+    });
+
+    // Inject styles
+    if (/<\/head>/i.test(processedHtml)) {
+      processedHtml = processedHtml.replace(/<\/head>/i, `${injectedStyle}\n</head>`);
+    } else if (/<body/i.test(processedHtml)) {
+      processedHtml = processedHtml.replace(/<body/i, `${injectedStyle}\n<body`);
+    } else {
+      processedHtml = `${injectedStyle}\n${processedHtml}`;
+    }
+
+    // Inject scripts
+    if (/<\/body>/i.test(processedHtml)) {
+      processedHtml = processedHtml.replace(/<\/body>/i, `${injectedScript}\n</body>`);
+    } else if (/<\/html>/i.test(processedHtml)) {
+      processedHtml = processedHtml.replace(/<\/html>/i, `${injectedScript}\n</html>`);
+    } else {
+      processedHtml = `${processedHtml}\n${injectedScript}`;
+    }
+
+    return processedHtml;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  ${injectedStyle}
+</head>
+<body>
+  ${rawHtml}
+  ${injectedScript}
 </body>
 </html>`;
 }
