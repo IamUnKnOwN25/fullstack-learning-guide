@@ -2,6 +2,8 @@
 
 An interactive **Next.js 15 + TypeScript + Tailwind CSS RPG Learning Platform** paired with a comprehensive 13-module **Full-Stack Web Development Curriculum**.
 
+> 📖 **Looking for gameplay guides & instructions?** See the full [**Official Game Manual (`GAME_MANUAL.md`)**](GAME_MANUAL.md) for complete details on campaign realms, boss battles, IDE shortcuts, RPG progression, and skill tree perks.
+
 ## Quick Start
 
 ```bash
