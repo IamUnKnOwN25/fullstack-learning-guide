@@ -13,6 +13,7 @@ import {
   detectFileLanguage,
   analyzeWorkspaceDiagnostics,
 } from "@/lib/ideBundler";
+import { executeTerminalCommand } from "@/lib/ideTerminalCommands";
 import {
   Code,
   Play,
@@ -572,22 +573,22 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
     const out: string[] = [`$ ${raw}`];
 
-    if (cmd === "help") {
-      out.push(
-        "Available matrix-sh commands:",
-        "  ls                 List all files in workspace",
-        "  cat <filename>     Print file contents",
-        "  node <filename>    Execute JS/TS file and print console output",
-        "  run                Bundle & refresh live preview",
-        "  drill <realm>      Load beginner warm-up drill into workspace",
-        "  touch <filename>   Create a new file in workspace",
-        "  rm <filename>      Remove a file from workspace",
-        "  export             Export entire workspace bundle as JSON",
-        "  import             Import workspace JSON bundle from disk",
-        "  clear              Clear terminal output",
-        "  whoami             Display current operator status"
-      );
-    } else if (cmd === "drill") {
+    const commandResult = executeTerminalCommand(raw, { files });
+    if (commandResult.handled) {
+      if (commandResult.clear) {
+        setTerminalHistory([]);
+        setTerminalInput("");
+        return;
+      }
+      if (commandResult.output) {
+        out.push(...commandResult.output);
+      }
+      setTerminalHistory((prev) => [...prev, ...out]);
+      setTerminalInput("");
+      return;
+    }
+
+    if (cmd === "drill") {
       const drillKey = arg?.toLowerCase();
       const drill = drillKey ? REALM_WARMUP_DRILLS[drillKey] : undefined;
       if (!drill) {
@@ -598,23 +599,10 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         loadWarmupDrillIntoIde(drill);
         out.push(`Loaded ${drill.title} into workspace (${drill.difficulty}). Press 'Run / Test' to verify.`);
       }
-    } else if (cmd === "clear") {
-      setTerminalHistory([]);
-      setTerminalInput("");
-      return;
-    } else if (cmd === "ls") {
-      out.push(files.map((f) => `${f.name} (${f.content.length}B)`).join("   "));
     } else if (cmd === "whoami") {
       out.push(
         `Operator Profile • Quests Solved: ${completedQuests.length}/24 • Active Workspace Files: ${files.length}`
       );
-    } else if (cmd === "cat") {
-      const target = files.find((f) => f.name === arg);
-      if (!target) {
-        out.push(`cat: ${arg || "<missing>"}: No such file in workspace`);
-      } else {
-        out.push(target.content);
-      }
     } else if (cmd === "touch" && arg) {
       if (files.some((f) => f.name === arg)) {
         out.push(`touch: '${arg}' already exists`);
