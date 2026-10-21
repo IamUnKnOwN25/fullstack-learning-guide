@@ -293,25 +293,24 @@ describe("DevQuest Game Store", () => {
   it("handles bad save data in importSaveData", () => {
     const store = useGameStore.getState();
     
-    // Test with missing/bad data
+    // Test with missing/bad data - should be safely rejected by schema validator
     const imported = store.importSaveData({
-      xp: -50, // Bad XP
-      completedQuests: null as unknown as string[], // Bad quests array
-      completedBosses: "not_an_array" as unknown as string[], // Bad bosses array
+      xp: -50,
+      completedQuests: null as unknown as string[],
+      completedBosses: "not_an_array" as unknown as string[],
     });
-    
-    expect(imported).toBe(true);
-    const state = useGameStore.getState();
-    
-    // Fallbacks should be applied
-    expect(state.xp).toBe(0);
-    expect(state.level).toBe(1);
-    expect(state.completedQuests).toEqual([]);
-    expect(state.completedBosses).toEqual([]);
-    expect(state.unlockedRealms).toEqual(["html"]);
+    expect(imported).toBe(false);
     
     // Should fail cleanly when not given an object
-    const badImport = store.importSaveData(null as unknown as Partial<typeof state>);
+    const badImport = store.importSaveData(null as unknown as Partial<PlayerStats>);
     expect(badImport).toBe(false);
+
+    // Should succeed with valid partial data
+    const validImport = store.importSaveData({
+      xp: 250,
+      completedQuests: ["html_1"],
+    });
+    expect(validImport).toBe(true);
+    expect(useGameStore.getState().xp).toBe(250);
   });
 });
