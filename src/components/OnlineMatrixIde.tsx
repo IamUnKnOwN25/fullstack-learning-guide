@@ -502,7 +502,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         setQuestVerifyBanner(result);
         if (result.passed) {
           soundEngine.playSfx("correct");
-          addXp(15);
+          addXp(20, "IDE Warm-Up Drill");
           confetti({
             particleCount: 50,
             spread: 55,
@@ -629,7 +629,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           } else {
             out.push(...captured);
           }
-          addXp(5);
+          addXp(10, "IDE Code Run");
         } catch (err) {
           out.push(
             `RuntimeError in ${targetFile.name}: ${

@@ -1,6 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { soundEngine } from "./soundEngine";
+import {
+  calculateLevel,
+  calculateRank,
+  calculateHpForLevel,
+  calculateManaForLevel,
+  calculateStreakBonus,
+  RANKS,
+  LevelUpNotification,
+  XpGainEvent,
+} from "./levelSystem";
+
+export { calculateLevel, calculateRank, RANKS };
+export type { LevelUpNotification, XpGainEvent };
 
 export interface PlayerStats {
   xp: number;
@@ -21,10 +34,14 @@ export interface PlayerStats {
   completedChapters: string[];
   audioMuted: boolean;
   bgmActive: boolean;
+  pendingLevelUp: LevelUpNotification | null;
+  recentXpGain: XpGainEvent | null;
 }
 
 interface PlayerActions {
-  addXp: (amount: number) => { leveledUp: boolean; newLevel: number };
+  addXp: (amount: number, source?: string) => { leveledUp: boolean; newLevel: number };
+  dismissLevelUp: () => void;
+  dismissRecentXpGain: () => void;
   completeQuest: (questId: string, realmId: string, stars: number, xpReward: number) => void;
   defeatBoss: (realmId: string, badgeId: string, xpReward: number) => void;
   unlockSkill: (skillId: string, cost: number) => boolean;
@@ -39,36 +56,6 @@ interface PlayerActions {
   toggleAudio: () => void;
   toggleBgm: () => void;
   resetProgress: () => void;
-}
-
-const RANKS = [
-  { level: 1, title: "Novice Byte" },
-  { level: 3, title: "Markup Apprentice" },
-  { level: 6, title: "Style Weaver" },
-  { level: 10, title: "DOM Enchanter" },
-  { level: 15, title: "Type Warden" },
-  { level: 20, title: "Component Artisan" },
-  { level: 26, title: "Backend Conduit" },
-  { level: 32, title: "Relational Sage" },
-  { level: 40, title: "DevOps Fleet Admiral" },
-  { level: 50, title: "Full-Stack Grandmaster" },
-];
-
-function calculateRank(level: number): string {
-  let currentRank = RANKS[0].title;
-  for (const r of RANKS) {
-    if (level >= r.level) {
-      currentRank = r.title;
-    } else {
-      break;
-    }
-  }
-  return currentRank;
-}
-
-function calculateLevel(xp: number): number {
-  // xp curve: Level 1: 0, Level 2: 100, Level 3: 250, Level 4: 450, etc.
-  return Math.floor(Math.sqrt(xp / 25)) + 1;
 }
 
 const INITIAL_STATE: PlayerStats = {
@@ -90,6 +77,8 @@ const INITIAL_STATE: PlayerStats = {
   completedChapters: [],
   audioMuted: false,
   bgmActive: false,
+  pendingLevelUp: null,
+  recentXpGain: null,
 };
 
 export const useGameStore = create<PlayerStats & PlayerActions>()(
@@ -97,19 +86,50 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
     (set, get) => ({
       ...INITIAL_STATE,
 
-      addXp: (amount: number) => {
+      addXp: (amount: number, source: string = "Quest Activity") => {
         const state = get();
-        const newXp = state.xp + amount;
+        const { multiplier, bonusPercent } = calculateStreakBonus(state.streak);
+        const finalAmount = Math.max(1, Math.round(amount * multiplier));
+        const streakBonus = finalAmount - amount;
+
+        const newXp = state.xp + finalAmount;
         const newLevel = calculateLevel(newXp);
-        const leveledUp = newLevel > state.level;
+        const previousLevel = state.level;
+        const leveledUp = newLevel > previousLevel;
+        const previousRank = state.rankTitle;
         const newRank = calculateRank(newLevel);
+        const isNewRank = newRank !== previousRank;
+
+        const maxHp = calculateHpForLevel(newLevel);
+        const maxMana = calculateManaForLevel(newLevel);
+
+        const pendingLevelUp: LevelUpNotification | null = leveledUp
+          ? {
+              previousLevel,
+              newLevel,
+              newRankTitle: newRank,
+              isNewRank,
+              unlockedSkillPoints: newLevel - previousLevel,
+              maxHp,
+              maxMana,
+            }
+          : state.pendingLevelUp;
 
         set({
           xp: newXp,
           level: newLevel,
           rankTitle: newRank,
-          maxHp: 100 + (newLevel - 1) * 10,
-          hp: leveledUp ? 100 + (newLevel - 1) * 10 : state.hp,
+          maxHp,
+          hp: leveledUp ? maxHp : state.hp,
+          maxMana,
+          mana: leveledUp ? maxMana : state.mana,
+          pendingLevelUp,
+          recentXpGain: {
+            amount: finalAmount,
+            source,
+            streakBonus,
+            timestamp: Date.now(),
+          },
         });
 
         if (leveledUp) {
@@ -118,6 +138,9 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
         return { leveledUp, newLevel };
       },
+
+      dismissLevelUp: () => set({ pendingLevelUp: null }),
+      dismissRecentXpGain: () => set({ recentXpGain: null }),
 
       completeQuest: (questId: string, realmId: string, stars: number, xpReward: number) => {
         const state = get();
@@ -140,7 +163,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         });
 
         if (isNewCompletion) {
-          get().addXp(xpReward);
+          get().addXp(xpReward, `Quest: ${questId}`);
           soundEngine.playSfx("correct");
         }
       },
@@ -187,7 +210,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         });
 
         if (isNewBoss) {
-          get().addXp(xpReward);
+          get().addXp(xpReward, `Boss Vanquished: ${realmId.toUpperCase()}`);
           soundEngine.playSfx("victory");
         }
       },
@@ -246,7 +269,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         if (isChecking) {
           tasks.add(taskId);
           set({ completedCurriculumTasks: Array.from(tasks) });
-          get().addXp(10);
+          get().addXp(10, "Curriculum Task");
           soundEngine.playSfx("correct");
           return true;
         } else {
@@ -265,7 +288,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         }
         chapters.add(filename);
         set({ completedChapters: Array.from(chapters) });
-        get().addXp(xpReward);
+        get().addXp(xpReward, `Chapter Mastered: ${filename.replace(/\.md$/, "")}`);
         soundEngine.playSfx("victory");
         return true;
       },
@@ -275,7 +298,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         const safeXp = typeof data.xp === "number" && data.xp >= 0 ? data.xp : 0;
         const safeLevel = calculateLevel(safeXp);
         const safeRank = calculateRank(safeLevel);
-        const safeMaxHp = 100 + (safeLevel - 1) * 10;
+        const safeMaxHp = calculateHpForLevel(safeLevel);
+        const safeMaxMana = calculateManaForLevel(safeLevel);
 
         set({
           xp: safeXp,
@@ -283,6 +307,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           rankTitle: safeRank,
           maxHp: safeMaxHp,
           hp: safeMaxHp,
+          maxMana: safeMaxMana,
+          mana: safeMaxMana,
           completedQuests: Array.isArray(data.completedQuests) ? data.completedQuests : [],
           completedBosses: Array.isArray(data.completedBosses) ? data.completedBosses : [],
           unlockedRealms:

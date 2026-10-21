@@ -335,7 +335,7 @@ export function CyberCompanionByte() {
                         setSelectedOption(idx);
                         if (idx === currentCard.answer) {
                           soundEngine.playSfx("correct");
-                          addXp(15);
+                          addXp(25, "Byte Quiz Drill");
                           setMood("cool");
                         } else {
                           soundEngine.playSfx("error");

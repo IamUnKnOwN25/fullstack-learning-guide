@@ -27,6 +27,10 @@ import {
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { AchievementsModal } from "./AchievementsModal";
+import { LevelUpModal } from "./LevelUpModal";
+import { LevelJourneyModal } from "./LevelJourneyModal";
+import { XpGainFloatie } from "./XpGainFloatie";
+import { getLevelProgress } from "@/lib/levelSystem";
 
 export function NavigationHud() {
   const {
@@ -54,6 +58,7 @@ export function NavigationHud() {
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [levelJourneyOpen, setLevelJourneyOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
 
@@ -72,12 +77,7 @@ export function NavigationHud() {
   }, []);
 
   // Level curve: xp needed for current level vs next level
-  const prevLevelXp = Math.pow(level - 1, 2) * 25;
-  const nextLevelXp = Math.pow(level, 2) * 25;
-  const progressPercent = Math.min(
-    100,
-    Math.max(0, ((xp - prevLevelXp) / Math.max(1, nextLevelXp - prevLevelXp)) * 100)
-  );
+  const progress = getLevelProgress(xp);
 
   return (
     <>
@@ -151,23 +151,38 @@ export function NavigationHud() {
 
           {/* Player Vitals (Level, Rank, XP Bar, HP) */}
           <div className="flex items-center gap-3 sm:gap-6">
-            {/* Rank & Level */}
-            <div className="flex items-center gap-2.5">
-              <div
-                className={`w-9 h-9 rounded-full bg-matrix-card border-2 flex items-center justify-center font-mono font-bold text-xs shadow-md transition-all ${
-                  isGrandmaster
-                    ? "border-matrix-neonGold text-matrix-neonGold shadow-matrix-neonGold/40 animate-pulse"
-                    : "border-matrix-accent text-matrix-accent shadow-matrix-accent/20"
-                }`}
-              >
-                L{level}
+            {/* Interactive Rank & Level Trigger Button */}
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setLevelJourneyOpen(true);
+              }}
+              className="flex items-center gap-2 sm:gap-2.5 p-1 rounded-xl hover:bg-matrix-card/80 transition-all cursor-pointer group text-left"
+              title="View Level & Rank Progression Journey"
+            >
+              <div className="relative">
+                <div
+                  className={`w-9 h-9 rounded-full bg-matrix-card border-2 flex items-center justify-center font-mono font-bold text-xs shadow-md group-hover:scale-105 transition-all ${
+                    isGrandmaster
+                      ? "border-matrix-neonGold text-matrix-neonGold shadow-matrix-neonGold/40 animate-pulse"
+                      : "border-matrix-accent text-matrix-accent shadow-matrix-accent/20 group-hover:border-matrix-neonCyan group-hover:text-matrix-neonCyan"
+                  }`}
+                >
+                  L{level}
+                </div>
+                {/* Mobile compact progress pill */}
+                <div className="sm:hidden absolute -bottom-1 -right-1 px-1 rounded bg-matrix-dark border border-matrix-border text-[9px] font-mono text-matrix-accent font-bold">
+                  {Math.round(progress.progressPercent)}%
+                </div>
               </div>
+
               <div className="hidden sm:block">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     {isGrandmaster && <Crown className="w-3.5 h-3.5 text-matrix-neonGold animate-bounce" />}
                     <span
-                      className={`text-xs font-bold font-mono ${
+                      className={`text-xs font-bold font-mono group-hover:underline ${
                         isGrandmaster ? "text-matrix-neonGold" : "text-matrix-accent"
                       }`}
                     >
@@ -175,18 +190,18 @@ export function NavigationHud() {
                     </span>
                   </div>
                   <span className="text-[10px] text-gray-400 font-mono">
-                    {xp} XP
+                    {progress.xpIntoCurrentLevel}/{progress.nextLevelTargetXp - progress.currentLevelBaseXp} XP
                   </span>
                 </div>
                 {/* XP Bar */}
-                <div className="w-28 sm:w-36 h-2 rounded-full bg-matrix-border overflow-hidden mt-1">
+                <div className="w-28 sm:w-36 h-2 rounded-full bg-matrix-border overflow-hidden mt-1 relative">
                   <div
-                    className="h-full bg-gradient-to-r from-matrix-accent to-matrix-neonCyan transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
+                    className="h-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500"
+                    style={{ width: `${progress.progressPercent}%` }}
                   />
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Health Bar */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-matrix-card border border-matrix-border">
@@ -283,6 +298,21 @@ export function NavigationHud() {
       {/* Modals */}
       <SkillTreeModal isOpen={skillTreeOpen} onClose={() => setSkillTreeOpen(false)} />
       <AchievementsModal isOpen={inventoryOpen} onClose={() => setInventoryOpen(false)} />
+      <LevelJourneyModal
+        isOpen={levelJourneyOpen}
+        onClose={() => setLevelJourneyOpen(false)}
+        onOpenSkillTree={() => {
+          setLevelJourneyOpen(false);
+          setSkillTreeOpen(true);
+        }}
+      />
+      <LevelUpModal
+        onOpenSkillTree={() => setSkillTreeOpen(true)}
+        onOpenLevelJourney={() => setLevelJourneyOpen(true)}
+      />
+
+      {/* Floating XP Gain Notification */}
+      <XpGainFloatie />
 
       {/* Global Quick-Jump Command Modal (Ctrl+K) */}
       {commandOpen && (

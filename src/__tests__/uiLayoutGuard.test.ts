@@ -198,4 +198,27 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(curriculumContent).toContain("id={idSlug}");
     expect(curriculumContent).toContain("scroll-mt-6");
   });
+
+  it("enforces Leveling & EXP System invariants in NavigationHud and celebration modals", () => {
+    const hudPath = path.join(process.cwd(), "src/components/NavigationHud.tsx");
+    const hudContent = fs.readFileSync(hudPath, "utf-8");
+
+    expect(hudContent).toContain("LevelUpModal");
+    expect(hudContent).toContain("LevelJourneyModal");
+    expect(hudContent).toContain("XpGainFloatie");
+    expect(hudContent).toContain("View Level & Rank Progression Journey");
+    expect(hudContent).toContain("getLevelProgress");
+
+    const levelModalPath = path.join(process.cwd(), "src/components/LevelUpModal.tsx");
+    const levelModalContent = fs.readFileSync(levelModalPath, "utf-8");
+    expect(levelModalContent).toContain("Level Up!");
+    expect(levelModalContent).toContain("Cybernetic Ascension");
+    expect(levelModalContent).toContain("unlockedSkillPoints");
+
+    const journeyModalPath = path.join(process.cwd(), "src/components/LevelJourneyModal.tsx");
+    const journeyModalContent = fs.readFileSync(journeyModalPath, "utf-8");
+    expect(journeyModalContent).toContain("Level & Rank Progression");
+    expect(journeyModalContent).toContain("Career Rank Ladder");
+    expect(journeyModalContent).toContain("How to Earn EXP");
+  });
 });

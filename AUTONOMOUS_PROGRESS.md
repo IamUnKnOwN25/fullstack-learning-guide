@@ -511,3 +511,29 @@ This document records each autonomous improvement cycle, deterministic verificat
       - Added 6 dedicated unit tests verifying italics, bold, bold-italics, strikethrough, code spans, links, and snake_case preservation.
       - Added regression guard in `uiLayoutGuard.test.ts` ensuring `CurriculumViewer.tsx` never reintroduces literal `#` span prefixes.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (56/56 tests passing across 10 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 08:46] Cycle 58: Comprehensive Leveling & EXP System Overhaul (`levelSystem.ts`, `LevelUpModal.tsx`, `LevelJourneyModal.tsx`, `XpGainFloatie.tsx`) (Tests: PASS)**
+  - Addressed direct user feedback ("improve the leveling//exp system"):
+    - **Centralized Level & EXP Architecture (`src/lib/levelSystem.ts`)**:
+      - Engineered dedicated mathematical progression engine exporting `calculateLevel`, `getXpForLevel`, `getNextLevelXp`, `getLevelProgress`, `calculateRank`, `getRankTier`, `calculateStreakBonus`, `calculateHpForLevel`, and `calculateManaForLevel`.
+      - Built an 11-tier Full-Stack Developer Rank Roadmap connecting player progression to all 12 curriculum realms (from Novice Byte to Full-Stack Grandmaster).
+      - Added Daily Streak Bonus XP multipliers (+5% per streak day up to +30% bonus XP).
+    - **Celebratory Level-Up Modal (`LevelUpModal.tsx`)**:
+      - Created a celebratory arcade ascension modal that automatically triggers whenever a cadet reaches a new level.
+      - Features multi-colored confetti blasts via `canvas-confetti`, 8-bit fanfare audio, and explicit unlock summaries (+1 Skill Point, Max HP increase & full heal, Max Mana increase, and Rank Promotion banners).
+      - Provides 1-click action buttons to jump straight into spending points in the Cybernetic Skill Tree or continuing trials.
+    - **Interactive Level & Rank Journey Modal (`LevelJourneyModal.tsx`)**:
+      - Made the top header Level badge and XP progress clickable on both desktop and mobile viewports.
+      - Displays live career EXP, detailed XP progress bar (`{into}/{span} XP ({needed} remaining)`), percentage badge, active streak bonuses, full 11-tier rank ladder with unlock status, and an EXP earnings guide.
+    - **Floating XP Gain Notifications (`XpGainFloatie.tsx`)**:
+      - Added floating animated neon notifications (`+100 XP`, `+350 XP`, `+25 Streak Bonus!`) with source attribution whenever XP is awarded.
+    - **Mobile HUD Progress Ergonomics**:
+      - Added a touch-friendly compact level progress percentage pill (`L{level} • {pct}%`) to the mobile header so phone and tablet users can track their progress without opening submenus.
+    - **Rebalanced EXP Sources Across the Platform**:
+      - Increased Byte daily quizzes from 15 XP to 25 XP with source tracking.
+      - Added 20 XP for IDE warm-up drill verifications and 10 XP for custom code executions.
+      - Added 25 XP for deep-dive quiz checkpoints.
+    - **Automated Verification & Regression Guards**:
+      - Added 9 unit tests in `src/__tests__/levelSystem.test.ts` validating formulas, thresholds, progress mapping, rank ladder lore, and game store notifications.
+      - Added layout regression guards in `src/__tests__/uiLayoutGuard.test.ts` (12 tests total).
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (66/66 tests passing across 11 test suites), and full deterministic verification gate (`npm.cmd run validate`).

@@ -260,7 +260,7 @@ export function QuestCodingWorkspace({
     if (index === deepDive.quiz.correctIndex) {
       soundEngine.playSfx("correct");
       if (!quizBonusAwarded) {
-        useGameStore.getState().addXp(15);
+        useGameStore.getState().addXp(25, "Quiz Checkpoint");
         setQuizBonusAwarded(true);
         confetti({
           particleCount: 45,
