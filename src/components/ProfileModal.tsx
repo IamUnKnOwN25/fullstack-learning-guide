@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
+import { serializeSaveData } from "@/lib/saveManager";
 import {
   X,
   User,
@@ -77,22 +78,18 @@ export function ProfileModal({
   };
 
   const handleExportSave = () => {
-    const payload = JSON.stringify(
-      {
-        xp,
-        level,
-        rankTitle,
-        completedQuests,
-        completedBosses,
-        stars,
-        badges,
-        completedCurriculumTasks,
-        completedChapters,
-        streak,
-      },
-      null,
-      2
-    );
+    const payload = serializeSaveData({
+      xp,
+      level,
+      rankTitle,
+      completedQuests,
+      completedBosses,
+      stars,
+      badges,
+      completedCurriculumTasks,
+      completedChapters,
+      streak,
+    });
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(payload);
     }
@@ -103,8 +100,7 @@ export function ProfileModal({
 
   const handleImportSave = () => {
     try {
-      const parsed = JSON.parse(importText);
-      const ok = importSaveData(parsed);
+      const ok = importSaveData(importText);
       if (ok) {
         setImportMsg("Save file loaded successfully!");
         setShowImport(false);

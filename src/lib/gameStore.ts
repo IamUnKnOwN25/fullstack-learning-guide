@@ -12,6 +12,7 @@ import {
   LevelUpNotification,
   XpGainEvent,
 } from "./levelSystem";
+import { deserializeSaveData } from "./saveManager";
 
 export { calculateLevel, calculateRank, RANKS };
 export type { LevelUpNotification, XpGainEvent };
@@ -54,7 +55,7 @@ interface PlayerActions {
   unlockAllRealms: () => void;
   toggleCurriculumTask: (taskId: string) => boolean;
   completeChapter: (filename: string, xpReward?: number) => boolean;
-  importSaveData: (data: Partial<PlayerStats>) => boolean;
+  importSaveData: (data: Partial<PlayerStats> | string) => boolean;
   takeDamage: (amount: number) => number;
   healPlayer: (amount: number) => void;
   resetHealth: () => void;
@@ -354,9 +355,21 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         return true;
       },
 
-      importSaveData: (data: Partial<PlayerStats>) => {
-        if (!data || typeof data !== "object") return false;
-        const safeXp = typeof data.xp === "number" && data.xp >= 0 ? data.xp : 0;
+      importSaveData: (data: Partial<PlayerStats> | string) => {
+        let validatedData: Partial<PlayerStats> | null = null;
+
+        if (typeof data === "string") {
+            validatedData = deserializeSaveData(data);
+        } else if (data && typeof data === "object") {
+            validatedData = deserializeSaveData(JSON.stringify(data));
+        }
+
+        if (!validatedData) {
+            console.error("importSaveData received invalid data format");
+            return false;
+        }
+
+        const safeXp = typeof validatedData.xp === "number" && validatedData.xp >= 0 ? validatedData.xp : 0;
         const safeLevel = calculateLevel(safeXp);
         const safeRank = calculateRank(safeLevel);
         const safeMaxHp = calculateHpForLevel(safeLevel);
@@ -370,27 +383,30 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           hp: safeMaxHp,
           maxMana: safeMaxMana,
           mana: safeMaxMana,
-          completedQuests: Array.isArray(data.completedQuests) ? data.completedQuests : [],
-          completedBosses: Array.isArray(data.completedBosses) ? data.completedBosses : [],
+          completedQuests: Array.isArray(validatedData.completedQuests) ? validatedData.completedQuests : [],
+          completedBosses: Array.isArray(validatedData.completedBosses) ? validatedData.completedBosses : [],
           unlockedRealms:
-            Array.isArray(data.unlockedRealms) && data.unlockedRealms.length > 0
-              ? data.unlockedRealms
+            Array.isArray(validatedData.unlockedRealms) && validatedData.unlockedRealms.length > 0
+              ? validatedData.unlockedRealms
               : ["html"],
-          stars: data.stars && typeof data.stars === "object" ? data.stars : {},
-          unlockedSkills: Array.isArray(data.unlockedSkills) ? data.unlockedSkills : [],
+          stars: validatedData.stars && typeof validatedData.stars === "object" ? validatedData.stars : {},
+          unlockedSkills: Array.isArray(validatedData.unlockedSkills) ? validatedData.unlockedSkills : [],
           badges:
-            Array.isArray(data.badges) && data.badges.length > 0
-              ? data.badges
+            Array.isArray(validatedData.badges) && validatedData.badges.length > 0
+              ? validatedData.badges
               : ["welcome_recruit"],
-          completedCurriculumTasks: Array.isArray(data.completedCurriculumTasks)
-            ? data.completedCurriculumTasks
+          completedCurriculumTasks: Array.isArray(validatedData.completedCurriculumTasks)
+            ? validatedData.completedCurriculumTasks
             : [],
           curriculumTaskAwards:
-            data.curriculumTaskAwards && typeof data.curriculumTaskAwards === "object"
-              ? data.curriculumTaskAwards
+            validatedData.curriculumTaskAwards && typeof validatedData.curriculumTaskAwards === "object"
+              ? validatedData.curriculumTaskAwards
               : {},
-          completedChapters: Array.isArray(data.completedChapters) ? data.completedChapters : [],
-          claimedAchievements: Array.isArray(data.claimedAchievements) ? data.claimedAchievements : [],
+          completedChapters: Array.isArray(validatedData.completedChapters) ? validatedData.completedChapters : [],
+          claimedAchievements: Array.isArray(validatedData.claimedAchievements) ? validatedData.claimedAchievements : [],
+          audioMuted: typeof validatedData.audioMuted === "boolean" ? validatedData.audioMuted : false,
+          bgmActive: typeof validatedData.bgmActive === "boolean" ? validatedData.bgmActive : false,
+          streak: typeof validatedData.streak === "number" && validatedData.streak > 0 ? validatedData.streak : 1,
         });
         soundEngine.playSfx("level-up");
         return true;
