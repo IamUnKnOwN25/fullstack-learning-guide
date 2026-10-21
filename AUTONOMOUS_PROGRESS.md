@@ -662,3 +662,8 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **Automated Regression Guards (`src/__tests__/gameStore.test.ts`)**:
       - Added unit tests asserting that checking a task grants XP, unchecking deducts the exact XP back to base, and repeated check/uncheck cycles (e.g., 50 -> 60 -> 50 -> 60) never inflate character XP.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (87/87 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 15:35] Cycle 71: Streak Tracking & Daily Login XP Multiplier (Tests: PASS)**
+  - Implemented accurate daily login streak mechanics and XP bonus multiplier caps in `src/lib/streakSystem.ts`.
+  - Added test suite `src/__tests__/streakSystem.test.ts` verifying consecutive logins increment streak, missed days reset streak to 1, and month/year boundaries are handled safely.
+  - Verified with `npm run validate` (all test suites passing, zero TS errors, clean Next.js build).
