@@ -181,8 +181,8 @@ export function NavigationHud() {
                 <span className="block text-[11px] font-bold text-gray-200 group-hover:text-matrix-neonCyan leading-tight">
                   {currentUser?.displayName || currentUser?.username || "Cadet"}
                 </span>
-                <span className="block text-[9px] font-semibold tracking-wider text-matrix-accent uppercase">
-                  {isAuthenticated ? "SYNCED" : "CADET"}
+                <span className={`block text-[9px] font-semibold tracking-wider uppercase ${isAuthenticated ? "text-matrix-accent" : "text-matrix-neonGold animate-pulse"}`}>
+                  {isAuthenticated ? "SYNCED" : "SIGN IN"}
                 </span>
               </div>
             </button>
@@ -343,8 +343,22 @@ export function NavigationHud() {
       </header>
 
       {/* Modals */}
-      <SkillTreeModal isOpen={skillTreeOpen} onClose={() => setSkillTreeOpen(false)} />
-      <AchievementsModal isOpen={inventoryOpen} onClose={() => setInventoryOpen(false)} />
+      <SkillTreeModal
+        isOpen={skillTreeOpen}
+        onClose={() => setSkillTreeOpen(false)}
+        onOpenAuthModal={() => {
+          setSkillTreeOpen(false);
+          setAuthOpen(true);
+        }}
+      />
+      <AchievementsModal
+        isOpen={inventoryOpen}
+        onClose={() => setInventoryOpen(false)}
+        onOpenAuthModal={() => {
+          setInventoryOpen(false);
+          setAuthOpen(true);
+        }}
+      />
       <LevelJourneyModal
         isOpen={levelJourneyOpen}
         onClose={() => setLevelJourneyOpen(false)}
@@ -380,6 +394,10 @@ export function NavigationHud() {
         onOpenProfile={() => {
           setLeaderboardOpen(false);
           setProfileOpen(true);
+        }}
+        onOpenAuthModal={() => {
+          setLeaderboardOpen(false);
+          setAuthOpen(true);
         }}
       />
 
@@ -610,7 +628,7 @@ export function NavigationHud() {
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-accent transition-all"
         >
           <span className="text-xs mb-0.5 leading-none">{currentAvatar.emoji}</span>
-          <span>Profile</span>
+          <span>{isAuthenticated ? "Profile" : "Sign In"}</span>
         </button>
 
         <button

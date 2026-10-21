@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
+import { useAuthStore } from "@/lib/authStore";
 import { soundEngine } from "@/lib/soundEngine";
 import {
   ACHIEVEMENTS,
@@ -25,11 +26,13 @@ import {
   Flame,
   Shield,
   Gift,
+  LogIn,
 } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onOpenAuthModal?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -47,9 +50,14 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CheckCircle2: <CheckCircle2 className="w-5 h-5" />,
 };
 
-export function AchievementsModal({ isOpen, onClose }: Props) {
+export function AchievementsModal({
+  isOpen,
+  onClose,
+  onOpenAuthModal,
+}: Props) {
   const storeState = useGameStore();
   const { claimedAchievements = [], claimAchievement } = storeState;
+  const { isAuthenticated } = useAuthStore();
 
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
@@ -222,6 +230,39 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
           </button>
         </div>
 
+        {/* Classified Honors Banner for Guests */}
+        {!isAuthenticated && (
+          <div className="mx-3 sm:mx-6 mt-3 p-3.5 rounded-2xl bg-matrix-card/90 border border-matrix-neonGold/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-lg shadow-matrix-neonGold/5">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-matrix-neonGold/15 border border-matrix-neonGold/30 flex items-center justify-center text-matrix-neonGold shrink-0">
+                <Lock className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs text-white uppercase tracking-wider">
+                  Trophy Room Honors Restricted
+                </h4>
+                <p className="text-[11px] text-gray-400">
+                  Rare honor telemetry and bonus EXP claims are restricted in guest mode. Sign in to reveal requirements and claim honors.
+                </p>
+              </div>
+            </div>
+            {onOpenAuthModal && (
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  onClose();
+                  onOpenAuthModal();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-matrix-neonGold text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5 shadow-md shadow-matrix-neonGold/20 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In to Claim</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Achievements Grid */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -230,6 +271,7 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               const isClaimed = claimedAchievements.includes(ach.id);
               const rarity = RARITY_CONFIG[ach.rarity];
               const pct = Math.min(100, Math.round((status.current / status.target) * 100));
+              const isClassified = !isAuthenticated && ach.rarity !== "common";
 
               return (
                 <div
@@ -246,12 +288,12 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
                       <div className="flex items-center gap-2.5">
                         <div
                           className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
-                            status.isUnlocked
+                            status.isUnlocked && !isClassified
                               ? `${rarity.border} ${rarity.bg} ${rarity.color} shadow-sm`
                               : "border-matrix-border bg-matrix-dark text-gray-600"
                           }`}
                         >
-                          {status.isUnlocked ? (
+                          {status.isUnlocked && !isClassified ? (
                             ICON_MAP[ach.icon] || <Trophy className="w-5 h-5" />
                           ) : (
                             <Lock className="w-4 h-4" />
@@ -277,27 +319,38 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <p className="text-[11px] text-gray-300 leading-relaxed">
-                      {ach.description}
+                      {isClassified
+                        ? "[CLASSIFIED HONOR // Login to reveal requirements]"
+                        : ach.description}
                     </p>
 
                     {/* Progress Bar */}
                     <div className="mt-3 space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-gray-400">
-                        <span>Progress</span>
-                        <span>
-                          {status.current} / {status.target} ({pct}%)
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-matrix-dark border border-matrix-border/60 overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-300 ${
-                            status.isUnlocked
-                              ? "bg-matrix-accent"
-                              : "bg-matrix-neonCyan/60"
-                          }`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
+                      {isClassified ? (
+                        <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1 py-1">
+                          <Lock className="w-3 h-3 text-matrix-neonGold" />
+                          <span>REQUIREMENTS CLASSIFIED</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                            <span>Progress</span>
+                            <span>
+                              {status.current} / {status.target} ({pct}%)
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-matrix-dark border border-matrix-border/60 overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-300 ${
+                                status.isUnlocked
+                                  ? "bg-matrix-accent"
+                                  : "bg-matrix-neonCyan/60"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -309,6 +362,19 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
                           <CheckCircle2 className="w-3.5 h-3.5 text-matrix-accent" />
                           <span>Claimed</span>
                         </span>
+                      ) : !isAuthenticated ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundEngine.playSfx("click");
+                            onClose();
+                            onOpenAuthModal?.();
+                          }}
+                          className="w-full py-1.5 px-3 rounded-xl bg-matrix-neonGold/30 border border-matrix-neonGold hover:bg-matrix-neonGold hover:text-matrix-dark text-matrix-neonGold font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Sign In to Claim +{ach.xpReward} XP</span>
+                        </button>
                       ) : (
                         <button
                           type="button"

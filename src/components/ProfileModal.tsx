@@ -22,6 +22,8 @@ import {
   Upload,
   Sparkles,
   ExternalLink,
+  Lock,
+  LogIn,
 } from "lucide-react";
 
 interface Props {
@@ -210,7 +212,17 @@ export function ProfileModal({
             </div>
 
             {/* Bio Section */}
-            {isEditingBio ? (
+            {!isAuthenticated ? (
+              <div className="pt-2 border-t border-matrix-border/50 flex items-center justify-between gap-3 text-xs">
+                <p className="text-gray-500 italic">
+                  &ldquo;[REDACTED // Identity records and custom bio require cadet login]&rdquo;
+                </p>
+                <span className="text-[10px] text-gray-500 flex items-center gap-1 font-mono shrink-0">
+                  <Lock className="w-3 h-3 text-matrix-neonCyan" />
+                  <span>CLASSIFIED</span>
+                </span>
+              </div>
+            ) : isEditingBio ? (
               <div className="space-y-3 pt-2 border-t border-matrix-border/50">
                 <div>
                   <label className="block text-[11px] text-gray-400 mb-1">
@@ -287,63 +299,154 @@ export function ProfileModal({
             )}
           </div>
 
+          {/* Classified Access Notice (when not logged in) */}
+          {!isAuthenticated && (
+            <div className="p-4 rounded-2xl bg-matrix-card/90 border border-matrix-neonCyan/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-lg shadow-matrix-neonCyan/5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-matrix-neonCyan/15 border border-matrix-neonCyan/30 flex items-center justify-center text-matrix-neonCyan shrink-0">
+                  <Lock className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white uppercase tracking-wider">
+                    Classified Operative Dossier
+                  </h4>
+                  <p className="text-[11px] text-gray-400">
+                    Most telemetry and career details are hidden until login. Authenticate to declassify your record.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  onClose();
+                  onOpenAuthModal();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5 shadow-md shadow-matrix-neonCyan/20 cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In / Enlist</span>
+              </button>
+            </div>
+          )}
+
           {/* Core Metrics & Progression Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Career EXP</div>
               <div className="text-base font-bold text-matrix-neonCyan mt-0.5">
-                {xp.toLocaleString()} XP
+                {isAuthenticated ? (
+                  `${xp.toLocaleString()} XP`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Quests Cleared</div>
               <div className="text-base font-bold text-matrix-accent mt-0.5">
-                {completedQuests.length} / 24
+                {isAuthenticated ? (
+                  `${completedQuests.length} / 24`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-accent" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Bosses Slain</div>
               <div className="text-base font-bold text-matrix-neonGold mt-0.5">
-                {completedBosses.length} / 12
+                {isAuthenticated ? (
+                  `${completedBosses.length} / 12`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-neonGold" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Trial Stars</div>
               <div className="text-base font-bold text-yellow-400 mt-0.5">
-                {totalStars} ★
+                {isAuthenticated ? (
+                  `${totalStars} ★`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-yellow-400" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Health / Mana</div>
               <div className="text-xs font-bold text-gray-200 mt-1 flex items-center gap-1.5">
-                <span className="text-matrix-neonRed">{maxHp} HP</span> •{" "}
-                <span className="text-matrix-neonCyan">{maxMana} MP</span>
+                {isAuthenticated ? (
+                  <>
+                    <span className="text-matrix-neonRed">{maxHp} HP</span> •{" "}
+                    <span className="text-matrix-neonCyan">{maxMana} MP</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-gray-400" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Study Streak</div>
               <div className="text-base font-bold text-matrix-neonGold mt-0.5 flex items-center gap-1">
-                <Flame className="w-4 h-4 fill-matrix-neonGold" />
-                <span>{streak} Days</span>
+                {isAuthenticated ? (
+                  <>
+                    <Flame className="w-4 h-4 fill-matrix-neonGold" />
+                    <span>{streak} Days</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-neonGold" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Vault Tasks</div>
               <div className="text-base font-bold text-matrix-neonCyan mt-0.5">
-                {completedCurriculumTasks.length} Done
+                {isAuthenticated ? (
+                  `${completedCurriculumTasks.length} Done`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border">
               <div className="text-[10px] text-gray-400 uppercase font-bold">Chapters</div>
               <div className="text-base font-bold text-matrix-accent mt-0.5">
-                {completedChapters.length} / 13
+                {isAuthenticated ? (
+                  `${completedChapters.length} / 13`
+                ) : (
+                  <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
+                    <Lock className="w-3 h-3 text-matrix-accent" />
+                    <span>CLASSIFIED</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -366,25 +469,34 @@ export function ProfileModal({
             )}
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleExportSave}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
-                title="Export Save Backup JSON"
-              >
-                <Copy className="w-3 h-3 text-matrix-accent" />
-                <span>{copiedSave ? "Copied!" : "Export JSON"}</span>
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleExportSave}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    title="Export Save Backup JSON"
+                  >
+                    <Copy className="w-3 h-3 text-matrix-accent" />
+                    <span>{copiedSave ? "Copied!" : "Export JSON"}</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setShowImport(!showImport)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
-                title="Import Save JSON"
-              >
-                <Upload className="w-3 h-3 text-matrix-neonCyan" />
-                <span>Import JSON</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowImport(!showImport)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    title="Import Save JSON"
+                  >
+                    <Upload className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>Import JSON</span>
+                  </button>
+                </>
+              ) : (
+                <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-gray-500" />
+                  <span>Cloud save backup requires login</span>
+                </span>
+              )}
             </div>
           </div>
 

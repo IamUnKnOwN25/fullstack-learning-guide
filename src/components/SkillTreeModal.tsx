@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
+import { useAuthStore } from "@/lib/authStore";
 import { SKILL_TREE, SKILL_CATEGORIES, SkillCategory } from "@/data/skills";
 import { soundEngine } from "@/lib/soundEngine";
 import {
@@ -23,11 +24,13 @@ import {
   Rocket,
   ShieldAlert,
   CheckCircle2,
+  LogIn,
 } from "lucide-react";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onOpenAuthModal?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -46,8 +49,13 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   CheckCircle2: <CheckCircle2 className="w-5 h-5" />,
 };
 
-export function SkillTreeModal({ isOpen, onClose }: Props) {
+export function SkillTreeModal({
+  isOpen,
+  onClose,
+  onOpenAuthModal,
+}: Props) {
   const { level, unlockedSkills, unlockSkill, respecSkills } = useGameStore();
+  const { isAuthenticated } = useAuthStore();
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | "all">("all");
   const [confirmRespec, setConfirmRespec] = useState(false);
 
@@ -205,6 +213,39 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
             </div>
           )}
 
+          {/* Classified Passives Notice for Guests */}
+          {!isAuthenticated && (
+            <div className="p-3.5 rounded-2xl bg-matrix-card/90 border border-matrix-neonPurple/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-lg shadow-matrix-neonPurple/5">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-matrix-neonPurple/15 border border-matrix-neonPurple/30 flex items-center justify-center text-matrix-neonPurple shrink-0">
+                  <Lock className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white uppercase tracking-wider">
+                    Cybernetic Passives Restricted
+                  </h4>
+                  <p className="text-[11px] text-gray-400">
+                    Tier 2+ passive specs and skill allocations are locked in guest mode. Sign in to unlock and commit talents.
+                  </p>
+                </div>
+              </div>
+              {onOpenAuthModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playSfx("click");
+                    onClose();
+                    onOpenAuthModal();
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-matrix-neonPurple text-white font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5 shadow-md shadow-matrix-neonPurple/20 cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In to Unlock</span>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Skills Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             {filteredSkills.map((skill) => {
@@ -213,6 +254,7 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
               const prereqSkill = skill.prerequisiteId ? SKILL_TREE.find((s) => s.id === skill.prerequisiteId) : null;
               const canAfford = availableSkillPoints >= skill.cost;
               const canUnlock = !isUnlocked && hasPrereq && canAfford;
+              const isClassified = !isAuthenticated && skill.tier > 1;
 
               return (
                 <div
@@ -238,7 +280,11 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                               : "bg-matrix-dark border-matrix-border text-gray-500"
                           }`}
                         >
-                          {ICON_MAP[skill.icon] || <Shield className="w-5 h-5" />}
+                          {isClassified ? (
+                            <Lock className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            ICON_MAP[skill.icon] || <Shield className="w-5 h-5" />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -274,13 +320,24 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <p className="text-[11px] text-gray-300 leading-relaxed">
-                      {skill.description}
+                      {isClassified
+                        ? "[CLASSIFIED CYBERNETIC PERK // Login required to inspect & allocate]"
+                        : skill.description}
                     </p>
 
                     {skill.statBonus && (
-                      <div className="mt-2 text-[10px] text-matrix-neonCyan font-bold flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        <span>Perk: {skill.statBonus}</span>
+                      <div className="mt-2 text-[10px] text-matrix-neonCyan font-bold flex items-center gap-1 font-mono">
+                        {isClassified ? (
+                          <>
+                            <Lock className="w-3 h-3 text-matrix-neonPurple" />
+                            <span className="text-gray-500">PERK SPEC CLASSIFIED</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3" />
+                            <span>Perk: {skill.statBonus}</span>
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -295,25 +352,40 @@ export function SkillTreeModal({ isOpen, onClose }: Props) {
                   {/* Action Button */}
                   {!isUnlocked && (
                     <div className="pt-2 border-t border-matrix-border/40 mt-1">
-                      <button
-                        type="button"
-                        disabled={!canUnlock}
-                        onClick={() => handleUnlock(skill.id, skill.cost)}
-                        className={`w-full py-1.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                          canUnlock
-                            ? "bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white shadow-md shadow-matrix-neonPurple/20 cursor-pointer"
-                            : "bg-matrix-dark/80 text-gray-500 border border-matrix-border/40 cursor-not-allowed"
-                        }`}
-                      >
-                        <Shield className="w-3.5 h-3.5" />
-                        <span>
-                          {canUnlock
-                            ? `Unlock for ${skill.cost} Points`
-                            : !hasPrereq
-                            ? "Prerequisite Locked"
-                            : `Need ${skill.cost - availableSkillPoints} More Points`}
-                        </span>
-                      </button>
+                      {!isAuthenticated ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundEngine.playSfx("click");
+                            onClose();
+                            onOpenAuthModal?.();
+                          }}
+                          className="w-full py-1.5 px-3 rounded-xl bg-matrix-neonPurple/20 border border-matrix-neonPurple hover:bg-matrix-neonPurple hover:text-white text-matrix-neonPurple font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <LogIn className="w-3.5 h-3.5" />
+                          <span>Sign In to Unlock Perk</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={!canUnlock}
+                          onClick={() => handleUnlock(skill.id, skill.cost)}
+                          className={`w-full py-1.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
+                            canUnlock
+                              ? "bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white shadow-md shadow-matrix-neonPurple/20 cursor-pointer"
+                              : "bg-matrix-dark/80 text-gray-500 border border-matrix-border/40 cursor-not-allowed"
+                          }`}
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          <span>
+                            {canUnlock
+                              ? `Unlock for ${skill.cost} Points`
+                              : !hasPrereq
+                              ? "Prerequisite Locked"
+                              : `Need ${skill.cost - availableSkillPoints} More Points`}
+                          </span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

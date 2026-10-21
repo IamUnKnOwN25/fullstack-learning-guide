@@ -579,3 +579,27 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
       - Added unit test asserting `AchievementsModal` category tabs wrap cleanly without `overflow-x-auto` and `globals.css` defines strict scrollbar suppression.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (83/83 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 09:24] Cycle 61: Telemetry & Progression Details Gated Behind User Authentication (Tests: PASS)**
+  - Addressed user feedback ("most of the details should not be viewable until user login"):
+    - **Operative Dossier Gating (`ProfileModal.tsx`)**:
+      - Masked personal biography as `[REDACTED // Identity records and custom bio require cadet login]`.
+      - Added prominent "Classified Operative Dossier" terminal gate card prompting users to sign in or register to declassify career telemetry.
+      - Masked all career metrics (Career EXP, Quests Cleared, Bosses Slain, Stars, HP/MP, Streak, Vault Tasks, Chapters) as `[CLASSIFIED]` for unauthenticated guest sessions.
+      - Restricted JSON save-file export and import migration tools to authenticated users.
+    - **Matrix Leaderboards Gating (`LeaderboardModal.tsx`)**:
+      - Added classified telemetry banner informing guest users that detailed operative intelligence is restricted.
+      - Previewed top 3 legends while masking ranks 4+ as `Classified Operative` with scores masked as `[CLASSIFIED]`.
+      - Replaced registered rank badge with `Guest Operative (Unranked)` in the sticky bottom status bar, with direct "Sign In to Rank" action.
+    - **Trophy Room & Achievements Gating (`AchievementsModal.tsx`)**:
+      - Added classified honors banner and masked secret requirements for non-common achievements (`[CLASSIFIED HONOR // Login to reveal requirements]`).
+      - Prevented unauthenticated bonus EXP claims, switching claim buttons to `Sign In to Claim (+XP)` wired directly to the authentication terminal.
+    - **Cybernetic Skill Tree Gating (`SkillTreeModal.tsx`)**:
+      - Added classified passives banner and masked Tier 2+ perk specifications (`[CLASSIFIED CYBERNETIC PERK // Login required to inspect & allocate]`).
+      - Switched unlock actions on restricted perks to `Sign In to Unlock Perk`.
+    - **Navigation HUD Authentication Ergonomics (`NavigationHud.tsx`)**:
+      - Added prominent `[SIGN IN]` alert tag to the header avatar trigger in guest mode.
+      - Connected `onOpenAuthModal` seamlessly across all 4 modals (`ProfileModal`, `LeaderboardModal`, `AchievementsModal`, `SkillTreeModal`) for 1-click modal transitions.
+    - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
+      - Added unit test verifying that classified gates, redacted notices, and login restrictions are strictly enforced across all modals when unauthenticated.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (84/84 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

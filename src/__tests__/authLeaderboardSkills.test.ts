@@ -295,5 +295,38 @@ describe("RPG Progression Systems: Auth, Leaderboard, Skills & Achievements", ()
       expect(cssContent).toContain(".scrollbar-none::-webkit-scrollbar");
       expect(cssContent).toContain("scrollbar-width: none !important;");
     });
+
+    it("restricts telemetry and progression details until user login across modals", () => {
+      // ProfileModal classified gates
+      const profilePath = path.join(process.cwd(), "src/components/ProfileModal.tsx");
+      const profileContent = fs.readFileSync(profilePath, "utf-8");
+      expect(profileContent).toContain("Classified Operative Dossier");
+      expect(profileContent).toContain("REDACTED // Identity records and custom bio require cadet login");
+      expect(profileContent).toContain("CLASSIFIED");
+      expect(profileContent).toContain("Cloud save backup requires login");
+
+      // LeaderboardModal classified gates
+      const leaderboardPath = path.join(process.cwd(), "src/components/LeaderboardModal.tsx");
+      const leaderboardContent = fs.readFileSync(leaderboardPath, "utf-8");
+      expect(leaderboardContent).toContain("Operative Telemetry Restricted");
+      expect(leaderboardContent).toContain("Classified Operative");
+      expect(leaderboardContent).toContain("Guest Operative (Unranked)");
+      expect(leaderboardContent).toContain("Sign In to Rank");
+
+      // AchievementsModal classified gates
+      const achievePath = path.join(process.cwd(), "src/components/AchievementsModal.tsx");
+      const achieveContent = fs.readFileSync(achievePath, "utf-8");
+      expect(achieveContent).toContain("Trophy Room Honors Restricted");
+      expect(achieveContent).toContain("CLASSIFIED HONOR // Login to reveal requirements");
+      expect(achieveContent).toContain("Sign In to Claim");
+
+      // SkillTreeModal classified gates
+      const skillPath = path.join(process.cwd(), "src/components/SkillTreeModal.tsx");
+      const skillContent = fs.readFileSync(skillPath, "utf-8");
+      expect(skillPath).toBeDefined();
+      expect(skillContent).toContain("Cybernetic Passives Restricted");
+      expect(skillContent).toContain("CLASSIFIED CYBERNETIC PERK // Login required to inspect & allocate");
+      expect(skillContent).toContain("Sign In to Unlock Perk");
+    });
   });
 });
