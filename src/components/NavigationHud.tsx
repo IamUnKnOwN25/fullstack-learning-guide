@@ -16,6 +16,7 @@ import {
   Music,
   Shield,
   Trophy,
+  Keyboard,
   BookOpen,
   MapPin,
   Heart,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { AchievementsModal } from "./AchievementsModal";
+import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { LevelUpModal } from "./LevelUpModal";
 import { LevelJourneyModal } from "./LevelJourneyModal";
 import { ProfileModal } from "./ProfileModal";
@@ -64,6 +66,7 @@ export function NavigationHud() {
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
   const [levelJourneyOpen, setLevelJourneyOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
@@ -299,6 +302,17 @@ export function NavigationHud() {
               <button
                 onClick={() => {
                   soundEngine.playSfx("click");
+                  setKeyboardShortcutsOpen(true);
+                }}
+                className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
+                title="Keyboard Shortcuts"
+              >
+                <Keyboard className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
                   setLeaderboardOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
@@ -350,6 +364,10 @@ export function NavigationHud() {
           setSkillTreeOpen(false);
           setAuthOpen(true);
         }}
+      />
+      <KeyboardShortcutsModal
+        isOpen={keyboardShortcutsOpen}
+        onClose={() => setKeyboardShortcutsOpen(false)}
       />
       <AchievementsModal
         isOpen={inventoryOpen}
