@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useGameStore } from "../lib/gameStore";
+import { useGameStore, type PlayerStats } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 
 describe("DevQuest Game Store", () => {
