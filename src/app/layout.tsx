@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { NavigationHud } from "@/components/NavigationHud";
 import { CyberCompanionByte } from "@/components/CyberCompanionByte";
+import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
 
 const jakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         <NavigationHud />
         <main className="flex-1 flex flex-col">{children}</main>
         <CyberCompanionByte />
+        <NetworkStatusIndicator />
       </body>
     </html>
   );
