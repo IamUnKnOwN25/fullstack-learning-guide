@@ -684,3 +684,10 @@ pm run validate (0 TypeScript errors, clean Next.js build, and all tests passing
   - Added unit test suite in src/__tests__/themeStore.test.ts.
   - Confirmed exit code 0 on 
 pm run validate.
+
+- **[2026-10-21 15:38] Cycle 77: Quest Completion Speedrun Timer and Record Tracking (Tests: PASS)**
+  - Added dedicated speedrun logic in src/lib/speedrunTimer.ts leveraging Zustand and persist middleware.
+  - Features robust timer handling, automatic personal best evaluations, and completion count tracking per quest.
+  - Added comprehensive test suite src/__tests__/speedrunTimer.test.ts verifying formatting, start/finish, overrides for personal bests, and proper cancellation handling.
+  - Verified with 	sc --noEmit, itest run, and full deterministic verification gate (
+pm run validate).
