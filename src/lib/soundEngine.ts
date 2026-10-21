@@ -240,6 +240,7 @@ class SoundEngine {
   }
 
   private startBgm() {
+    if (typeof window === "undefined") return;
     if (this.isBgmPlaying || !this.ctx) return;
     this.isBgmPlaying = true;
 
@@ -266,7 +267,11 @@ class SoundEngine {
 
   private stopBgm() {
     if (this.bgmInterval !== null) {
-      clearInterval(this.bgmInterval);
+      if (typeof window !== "undefined") {
+        window.clearInterval(this.bgmInterval);
+      } else {
+        clearInterval(this.bgmInterval);
+      }
       this.bgmInterval = null;
     }
     this.isBgmPlaying = false;
