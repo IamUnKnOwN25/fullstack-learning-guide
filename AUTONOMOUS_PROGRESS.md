@@ -642,3 +642,19 @@ This document records each autonomous improvement cycle, deterministic verificat
       - Added unit tests asserting that previewing newly created or selected HTML files prioritizes that file over `index.html`.
       - Verified full HTML document injection without duplicate doctype tags and inlining of local links/scripts.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (87/87 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 13:54] Cycle 64: Curriculum Task EXP Duplication & Infinite Toggle Exploit Fix (Tests: PASS)**
+  - Addressed user feedback ("I can check and uncheck the task in curriculum and it the exp keeps increasing, for example i check it will add the exp but when i uncheck it doesnt remove so if i check again it adds again"):
+    - **Root Cause Diagnosis**:
+      - `toggleCurriculumTask` in `src/lib/gameStore.ts` awarded +10 XP whenever a task was checked, but on uncheck it only deleted the task ID from `completedCurriculumTasks` without reversing the awarded XP.
+      - Because the task ID was purged from the completed list, clicking the checkbox again treated it as a brand-new completion, awarding another +10 XP in an infinite loop.
+    - **Symmetric EXP Accounting & Award Tracking (`src/lib/gameStore.ts`)**:
+      - Added `curriculumTaskAwards: Record<string, number>` to `PlayerStats` to accurately track the exact XP granted per task ID (including streak bonuses).
+      - Added `removeXp(amount, source)` to `PlayerActions`, safely decrementing XP and recalculating character levels, rank titles, max HP, and max Mana without risking negative values or NaN states.
+      - In `toggleCurriculumTask`:
+        - When a task is checked: records the awarded XP in `curriculumTaskAwards[taskId]` and calls `addXp(10, "Curriculum Task")`.
+        - When a task is unchecked: retrieves `curriculumTaskAwards[taskId] || 10`, deletes the award record, removes the task ID from `completedCurriculumTasks`, and calls `removeXp(xpToDeduct, "Curriculum Task Unchecked")`.
+      - Net outcome: Toggling a task repeatedly yields a net difference of **0 XP** when unchecked, and exactly the task's reward when checked. The infinite EXP exploit is completely eliminated.
+    - **Automated Regression Guards (`src/__tests__/gameStore.test.ts`)**:
+      - Added unit tests asserting that checking a task grants XP, unchecking deducts the exact XP back to base, and repeated check/uncheck cycles (e.g., 50 -> 60 -> 50 -> 60) never inflate character XP.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (87/87 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

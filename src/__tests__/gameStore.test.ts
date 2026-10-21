@@ -156,12 +156,17 @@ describe("DevQuest Game Store", () => {
     );
     expect(useGameStore.getState().xp).toBe(10);
 
-    // Unchecking removes from completedCurriculumTasks
+    // Unchecking removes from completedCurriculumTasks and deducts the awarded XP
     const unchecked = useGameStore.getState().toggleCurriculumTask("01-html-and-semantics.md-line-10");
     expect(unchecked).toBe(false);
     expect(useGameStore.getState().completedCurriculumTasks).not.toContain(
       "01-html-and-semantics.md-line-10"
     );
+    expect(useGameStore.getState().xp).toBe(0);
+
+    // Re-checking restores the +10 XP without duplicate inflation
+    store.toggleCurriculumTask("01-html-and-semantics.md-line-10");
+    expect(useGameStore.getState().xp).toBe(10);
 
     // Chapter mastery awards +50 XP once
     const mastered = useGameStore.getState().completeChapter("01-html-and-semantics.md", 50);
@@ -172,6 +177,16 @@ describe("DevQuest Game Store", () => {
     // Duplicate chapter mastery does not double-award
     const duplicateChapter = useGameStore.getState().completeChapter("01-html-and-semantics.md", 50);
     expect(duplicateChapter).toBe(false);
+    expect(useGameStore.getState().xp).toBe(60);
+
+    // Repeated check/uncheck cycles do not inflate XP
+    store.toggleCurriculumTask("01-html-and-semantics.md-line-10"); // uncheck -> 50
+    expect(useGameStore.getState().xp).toBe(50);
+    store.toggleCurriculumTask("01-html-and-semantics.md-line-10"); // check -> 60
+    expect(useGameStore.getState().xp).toBe(60);
+    store.toggleCurriculumTask("01-html-and-semantics.md-line-10"); // uncheck -> 50
+    expect(useGameStore.getState().xp).toBe(50);
+    store.toggleCurriculumTask("01-html-and-semantics.md-line-10"); // check -> 60
     expect(useGameStore.getState().xp).toBe(60);
 
     // Skill respec refunds unlocked skills

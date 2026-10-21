@@ -31,6 +31,7 @@ export interface PlayerStats {
   unlockedSkills: string[];
   badges: string[];
   completedCurriculumTasks: string[];
+  curriculumTaskAwards?: Record<string, number>;
   completedChapters: string[];
   claimedAchievements: string[];
   audioMuted: boolean;
@@ -41,6 +42,7 @@ export interface PlayerStats {
 
 interface PlayerActions {
   addXp: (amount: number, source?: string) => { leveledUp: boolean; newLevel: number };
+  removeXp: (amount: number, source?: string) => { newXp: number; newLevel: number };
   dismissLevelUp: () => void;
   dismissRecentXpGain: () => void;
   completeQuest: (questId: string, realmId: string, stars: number, xpReward: number) => void;
@@ -76,6 +78,7 @@ const INITIAL_STATE: PlayerStats = {
   unlockedSkills: [],
   badges: ["welcome_recruit"],
   completedCurriculumTasks: [],
+  curriculumTaskAwards: {},
   completedChapters: [],
   claimedAchievements: [],
   audioMuted: false,
@@ -140,6 +143,30 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         }
 
         return { leveledUp, newLevel };
+      },
+
+      removeXp: (amount: number, source: string = "Task Deduction") => {
+        const state = get();
+        const safeAmount = Math.max(0, amount);
+        const newXp = Math.max(0, state.xp - safeAmount);
+        const newLevel = calculateLevel(newXp);
+        const newRank = calculateRank(newLevel);
+        const maxHp = calculateHpForLevel(newLevel);
+        const maxMana = calculateManaForLevel(newLevel);
+
+        set({
+          xp: newXp,
+          level: newLevel,
+          rankTitle: newRank,
+          maxHp,
+          hp: Math.min(state.hp, maxHp),
+          maxMana,
+          mana: Math.min(state.mana, maxMana),
+          recentXpGain: null,
+          pendingLevelUp: null,
+        });
+
+        return { newXp, newLevel };
       },
 
       dismissLevelUp: () => set({ pendingLevelUp: null }),
@@ -280,16 +307,34 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
       toggleCurriculumTask: (taskId: string) => {
         const state = get();
         const tasks = new Set(state.completedCurriculumTasks || []);
+        const awards: Record<string, number> = { ...(state.curriculumTaskAwards || {}) };
         const isChecking = !tasks.has(taskId);
+
         if (isChecking) {
           tasks.add(taskId);
-          set({ completedCurriculumTasks: Array.from(tasks) });
+          const { multiplier } = calculateStreakBonus(state.streak);
+          const finalAward = Math.max(1, Math.round(10 * multiplier));
+          awards[taskId] = finalAward;
+
+          set({
+            completedCurriculumTasks: Array.from(tasks),
+            curriculumTaskAwards: awards,
+          });
+
           get().addXp(10, "Curriculum Task");
           soundEngine.playSfx("correct");
           return true;
         } else {
           tasks.delete(taskId);
-          set({ completedCurriculumTasks: Array.from(tasks) });
+          const xpToDeduct = awards[taskId] || 10;
+          delete awards[taskId];
+
+          set({
+            completedCurriculumTasks: Array.from(tasks),
+            curriculumTaskAwards: awards,
+          });
+
+          get().removeXp(xpToDeduct, "Curriculum Task Unchecked");
           soundEngine.playSfx("click");
           return false;
         }
@@ -339,6 +384,10 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           completedCurriculumTasks: Array.isArray(data.completedCurriculumTasks)
             ? data.completedCurriculumTasks
             : [],
+          curriculumTaskAwards:
+            data.curriculumTaskAwards && typeof data.curriculumTaskAwards === "object"
+              ? data.curriculumTaskAwards
+              : {},
           completedChapters: Array.isArray(data.completedChapters) ? data.completedChapters : [],
           claimedAchievements: Array.isArray(data.claimedAchievements) ? data.claimedAchievements : [],
         });
