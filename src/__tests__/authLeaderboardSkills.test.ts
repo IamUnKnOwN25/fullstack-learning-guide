@@ -266,5 +266,22 @@ describe("RPG Progression Systems: Auth, Leaderboard, Skills & Achievements", ()
       expect(hudContent).toContain("Global Matrix Leaderboards");
       expect(hudContent).toContain("Ranks");
     });
+
+    it("strictly follows React Rules of Hooks in LeaderboardModal by calling all hooks before early return", () => {
+      const leaderboardPath = path.join(process.cwd(), "src/components/LeaderboardModal.tsx");
+      const content = fs.readFileSync(leaderboardPath, "utf-8");
+
+      const ifNotOpenIndex = content.indexOf("if (!isOpen) return null;");
+      const firstUseMemoIndex = content.indexOf("useMemo(");
+      const lastUseMemoIndex = content.lastIndexOf("useMemo(");
+
+      expect(firstUseMemoIndex).toBeGreaterThan(0);
+      expect(lastUseMemoIndex).toBeGreaterThan(0);
+      expect(ifNotOpenIndex).toBeGreaterThan(0);
+
+      // All useMemo calls must precede 'if (!isOpen) return null;'
+      expect(firstUseMemoIndex).toBeLessThan(ifNotOpenIndex);
+      expect(lastUseMemoIndex).toBeLessThan(ifNotOpenIndex);
+    });
   });
 });

@@ -41,18 +41,16 @@ export function LeaderboardModal({ isOpen, onClose, onOpenProfile }: Props) {
   const [activeTab, setActiveTab] = useState<LeaderboardTab>("xp");
   const [searchQuery, setSearchQuery] = useState("");
 
-  if (!isOpen) return null;
-
   const totalStars = Object.values(stars || {}).reduce((sum, s) => sum + s, 0);
   const avatar =
-    AVATAR_OPTIONS.find((a) => a.id === currentUser.avatarId) || AVATAR_OPTIONS[0];
+    AVATAR_OPTIONS.find((a) => a.id === currentUser?.avatarId) || AVATAR_OPTIONS[0];
 
   // Synthesize player entry into the leaderboard pool
   const playerEntry: Omit<LeaderboardEntry, "rank"> = useMemo(
     () => ({
       id: "current-player",
-      username: currentUser.username,
-      displayName: currentUser.displayName,
+      username: currentUser?.username || "guest_cadet",
+      displayName: currentUser?.displayName || "Guest Operative",
       avatarEmoji: avatar.emoji,
       avatarBg: avatar.bgGradient,
       avatarBorder: avatar.borderColor,
@@ -63,13 +61,13 @@ export function LeaderboardModal({ isOpen, onClose, onOpenProfile }: Props) {
       bossesSlain: completedBosses.length,
       curriculumCompleted: completedCurriculumTasks.length,
       countryCode: "LIVE",
-      badge: currentUser.title,
+      badge: currentUser?.title || "Matrix Cadet",
       isCurrentUser: true,
     }),
     [
-      currentUser.username,
-      currentUser.displayName,
-      currentUser.title,
+      currentUser?.username,
+      currentUser?.displayName,
+      currentUser?.title,
       avatar.emoji,
       avatar.bgGradient,
       avatar.borderColor,
@@ -99,6 +97,8 @@ export function LeaderboardModal({ isOpen, onClose, onOpenProfile }: Props) {
       rank: idx + 1,
     }));
   }, [activeTab, playerEntry]);
+
+  if (!isOpen) return null;
 
   const playerRank = sortedEntries.find((e) => e.isCurrentUser)?.rank || 1;
 
