@@ -328,5 +328,18 @@ describe("RPG Progression Systems: Auth, Leaderboard, Skills & Achievements", ()
       expect(skillContent).toContain("CLASSIFIED CYBERNETIC PERK // Login required to inspect & allocate");
       expect(skillContent).toContain("Sign In to Unlock Perk");
     });
+
+    it("enforces Curriculum Knowledge Vault is gated behind login with classified vault view", () => {
+      const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+      const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+
+      expect(curriculumContent).toContain("useAuthStore");
+      expect(curriculumContent).toContain("Sign In to Unlock Vault");
+      expect(curriculumContent).toContain("Classified Curriculum Knowledge Vault");
+      expect(curriculumContent).toContain("Restricted Access // Operative Authentication Required");
+      expect(curriculumContent).toContain("13-Chapter Curriculum Syllabus");
+      expect(curriculumContent).toContain("<AuthModal");
+      expect(curriculumContent).toContain("CLASSIFIED CHAPTER // LOGIN REQUIRED");
+    });
   });
 });

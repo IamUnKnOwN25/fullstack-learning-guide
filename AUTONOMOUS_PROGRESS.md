@@ -603,3 +603,21 @@ This document records each autonomous improvement cycle, deterministic verificat
     - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
       - Added unit test verifying that classified gates, redacted notices, and login restrictions are strictly enforced across all modals when unauthenticated.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (84/84 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 09:32] Cycle 62: Curriculum Knowledge Vault Gated Behind User Authentication (Tests: PASS)**
+  - Addressed user feedback ("curicullum vault too should be viewable once login"):
+    - **Curriculum Knowledge Vault Gate (`CurriculumViewer.tsx`)**:
+      - Integrated `useAuthStore` and initialized state `authModalOpen` to control in-place login/enlistment modal.
+      - **Header Action Bar**: Added prominent "Sign In to Unlock Vault" call-to-action button in the top navigation bar when not authenticated (`!isAuthenticated`).
+      - **Mobile Chapter Selector**: Prepended `🔒 ` lock emoji to all chapter choices in the mobile select dropdown when unauthenticated.
+      - **Left Sidebar Chapter List**: Swapped document status icons to `Lock` icons on chapter entries when unauthenticated to indicate classified status.
+      - **Right Reader Classified Gate**: Replaced the full documentation reader view with a glowing cybernetic `Classified Curriculum Knowledge Vault` terminal gate card when unauthenticated:
+        - Displays `Restricted Access // Operative Authentication Required` warning banner and glowing cybernetic lock badge.
+        - Outlines locked features: Full Reference Guides, Hands-On Checklists (+10 XP ea), Chapter Mastery Accreditations (+50 XP), and 1-Click IDE Practice.
+        - Provides interactive "Sign In to Unlock Vault" button opening `AuthModal` in place without leaving the page.
+        - Features interactive 13-Chapter Curriculum Syllabus overview with lock indicators.
+      - **Authenticated Full Access**: Retains complete markdown documentation (`RichMarkdownViewer`), interactive task checkboxes, section jump bar, chapter completion (+50 XP), and practice realm quest links when authenticated.
+      - Embedded `<AuthModal />` at root of the viewer for smooth modal transitions.
+    - **Automated Regression Guards (`src/__tests__/authLeaderboardSkills.test.ts`)**:
+      - Added unit test verifying that `CurriculumViewer` enforces authentication gates, displays classified notices and locked syllabus, and integrates `AuthModal`.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (85/85 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

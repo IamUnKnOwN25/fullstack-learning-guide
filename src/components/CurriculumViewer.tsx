@@ -20,7 +20,11 @@ import {
   Maximize2,
   Minimize2,
   Terminal,
+  Lock,
+  LogIn,
 } from "lucide-react";
+import { useAuthStore } from "@/lib/authStore";
+import { AuthModal } from "./AuthModal";
 import { detectFileLanguage } from "@/lib/ideBundler";
 import { formatInlineText, slugifyHeading } from "@/lib/markdownFormatter";
 
@@ -441,6 +445,9 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
     completeChapter,
   } = useGameStore();
 
+  const { isAuthenticated } = useAuthStore();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
   const [selectedFile, setSelectedFile] = useState<string>(() => {
     if (initialFile && docs.some((d) => d.filename === initialFile)) {
       return initialFile;
@@ -528,12 +535,28 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
           </div>
         </div>
 
-        <Link
-          href="/"
-          className="px-3.5 py-1.5 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent font-mono text-xs font-bold hover:bg-matrix-accent/20 transition-all whitespace-nowrap shrink-0"
-        >
-          Return to Game Map
-        </Link>
+        <div className="flex items-center gap-2">
+          {!isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setAuthModalOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-matrix-neonCyan/15 hover:bg-matrix-neonCyan/25 border border-matrix-neonCyan/40 text-matrix-neonCyan font-mono text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In to Unlock Vault</span>
+            </button>
+          )}
+
+          <Link
+            href="/"
+            className="px-3.5 py-1.5 rounded-lg bg-matrix-accent/10 border border-matrix-accent/40 text-matrix-accent font-mono text-xs font-bold hover:bg-matrix-accent/20 transition-all whitespace-nowrap shrink-0"
+          >
+            Return to Game Map
+          </Link>
+        </div>
       </div>
 
       {/* Mobile Chapter Picker (< md) */}
@@ -549,7 +572,11 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
         >
           {docs.map((doc) => (
             <option key={doc.filename} value={doc.filename}>
-              {completedChapters.includes(doc.filename) ? "✓ " : ""}{doc.title}
+              {!isAuthenticated
+                ? `🔒 ${doc.title}`
+                : completedChapters.includes(doc.filename)
+                ? `✓ ${doc.title}`
+                : doc.title}
             </option>
           ))}
         </select>
@@ -593,7 +620,9 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
                   }`}
                 >
                   <span className="truncate">{doc.title}</span>
-                  {isMastered ? (
+                  {!isAuthenticated ? (
+                    <Lock className="w-3.5 h-3.5 shrink-0 text-gray-500 ml-2" />
+                  ) : isMastered ? (
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-matrix-accent ml-2" />
                   ) : (
                     <FileText className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
@@ -604,121 +633,291 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
           </div>
         </div>
 
-        {/* Right Content: Document Reader */}
+        {/* Right Content: Document Reader or Classified Vault Gate */}
         <div
           key={activeDoc.filename}
           className={`bg-matrix-card border border-matrix-border rounded-xl p-5 sm:p-7 overflow-y-auto space-y-5 animate-fadeIn ${
             focusReader ? "md:col-span-12" : "md:col-span-8 lg:col-span-9"
           }`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playSfx("click");
-                  setFocusReader((prev) => !prev);
-                }}
-                className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
-                title={focusReader ? "Show Chapters Sidebar" : "Maximize Reader (Full Width)"}
-              >
-                {focusReader ? (
-                  <>
-                    <Minimize2 className="w-3 h-3 text-matrix-neonCyan" />
-                    <span>Chapters</span>
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="w-3 h-3 text-matrix-neonCyan" />
-                    <span>Maximize</span>
-                  </>
-                )}
-              </button>
-              <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
-                {activeDoc.filename}
-              </span>
-              <span className="text-white font-bold font-sans text-sm">{activeDoc.title}</span>
-            </div>
+          {isAuthenticated ? (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border font-mono text-xs text-gray-400">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setFocusReader((prev) => !prev);
+                    }}
+                    className="hidden md:flex items-center gap-1 px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    title={focusReader ? "Show Chapters Sidebar" : "Maximize Reader (Full Width)"}
+                  >
+                    {focusReader ? (
+                      <>
+                        <Minimize2 className="w-3 h-3 text-matrix-neonCyan" />
+                        <span>Chapters</span>
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="w-3 h-3 text-matrix-neonCyan" />
+                        <span>Maximize</span>
+                      </>
+                    )}
+                  </button>
+                  <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
+                    {activeDoc.filename}
+                  </span>
+                  <span className="text-white font-bold font-sans text-sm">{activeDoc.title}</span>
+                </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              {totalCheckboxes > 0 && (
-                <span
-                  className="px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-accent flex items-center gap-1.5 text-[11px] font-bold"
-                  title="Each completed hands-on task awards +10 XP"
-                >
-                  <ListChecks className="w-3.5 h-3.5" />
-                  Tasks: {completedCheckboxesCount}/{totalCheckboxes} (+10 XP ea)
-                </span>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {totalCheckboxes > 0 && (
+                    <span
+                      className="px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-accent flex items-center gap-1.5 text-[11px] font-bold"
+                      title="Each completed hands-on task awards +10 XP"
+                    >
+                      <ListChecks className="w-3.5 h-3.5" />
+                      Tasks: {completedCheckboxesCount}/{totalCheckboxes} (+10 XP ea)
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isChapterMastered}
+                    onClick={() => completeChapter(activeDoc.filename, 50)}
+                    className={`px-2.5 py-1 rounded-lg border font-bold text-xs flex items-center gap-1.5 transition-all ${
+                      isChapterMastered
+                        ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent cursor-default"
+                        : "bg-matrix-neonGold/15 hover:bg-matrix-neonGold/25 border-matrix-neonGold/50 text-matrix-neonGold cursor-pointer"
+                    }`}
+                  >
+                    <Award className="w-3.5 h-3.5" />
+                    <span>{isChapterMastered ? "Chapter Mastered ✓" : "Complete Chapter (+50 XP)"}</span>
+                  </button>
+
+                  {matchingRealm && firstQuestId && (
+                    <Link
+                      href={`/quest/${matchingRealm.id}/${firstQuestId}`}
+                      onClick={() => soundEngine.playSfx("click")}
+                      className="px-3 py-1 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all"
+                    >
+                      <Play className="w-3 h-3 fill-matrix-dark" />
+                      <span>Practice Realm Quests</span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+
+              {/* Section Table of Contents Jump Bar */}
+              {sectionHeadings.length > 0 && (
+                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px] overflow-x-auto scrollbar-none whitespace-nowrap select-none">
+                  <span className="text-gray-500 uppercase font-bold mr-1 shrink-0">Jump to:</span>
+                  {sectionHeadings.map((sec) => (
+                    <a
+                      key={sec.id}
+                      href={`#${sec.id}`}
+                      onClick={() => soundEngine.playSfx("click")}
+                      className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors shrink-0"
+                    >
+                      {formatInlineText(sec.title)}
+                    </a>
+                  ))}
+                </div>
               )}
 
-              <button
-                type="button"
-                disabled={isChapterMastered}
-                onClick={() => completeChapter(activeDoc.filename, 50)}
-                className={`px-2.5 py-1 rounded-lg border font-bold text-xs flex items-center gap-1.5 transition-all ${
-                  isChapterMastered
-                    ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent cursor-default"
-                    : "bg-matrix-neonGold/15 hover:bg-matrix-neonGold/25 border-matrix-neonGold/50 text-matrix-neonGold cursor-pointer"
-                }`}
-              >
-                <Award className="w-3.5 h-3.5" />
-                <span>{isChapterMastered ? "Chapter Mastered ✓" : "Complete Chapter (+50 XP)"}</span>
-              </button>
+              <div className="text-xs sm:text-sm select-text">
+                <RichMarkdownViewer
+                  content={activeDoc.content}
+                  docId={activeDoc.filename}
+                  checkedBoxes={checkedBoxes}
+                  onToggleBox={(boxKey) => toggleCurriculumTask(boxKey)}
+                  onSelectDoc={(filename) => {
+                    const aliasMap: Record<string, string> = {
+                      "00-README.md": "00-curriculum-overview.md",
+                      "01-html.md": "01-html-and-semantics.md",
+                      "02-css.md": "02-css-layout-and-styling.md",
+                      "03-javascript.md": "03-modern-javascript.md",
+                      "04-typescript.md": "04-strict-typescript.md",
+                      "07-databases.md": "07-databases-and-sql.md",
+                    };
+                    const target = aliasMap[filename] || filename;
+                    if (docs.some((d) => d.filename === target)) {
+                      setSelectedFile(target);
+                    }
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            /* Classified Vault Gate (when !isAuthenticated) */
+            <div className="space-y-6 font-mono py-2">
+              {/* Header Badge */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-matrix-border text-xs text-gray-400">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-bold">
+                    {activeDoc.filename}
+                  </span>
+                  <span className="text-white font-bold font-sans text-sm">{activeDoc.title}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/30 text-matrix-neonGold text-[11px] font-bold">
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>CLASSIFIED CHAPTER // LOGIN REQUIRED</span>
+                </div>
+              </div>
 
-              {matchingRealm && firstQuestId && (
-                <Link
-                  href={`/quest/${matchingRealm.id}/${firstQuestId}`}
-                  onClick={() => soundEngine.playSfx("click")}
-                  className="px-3 py-1 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all"
-                >
-                  <Play className="w-3 h-3 fill-matrix-dark" />
-                  <span>Practice Realm Quests</span>
-                </Link>
-              )}
-            </div>
-          </div>
+              {/* Main Glowing Classified Gate Card */}
+              <div className="relative rounded-2xl bg-matrix-dark/80 border border-matrix-neonCyan/40 p-6 sm:p-8 overflow-hidden shadow-2xl text-center flex flex-col items-center">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-matrix-neonCyan/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-matrix-accent/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Section Table of Contents Jump Bar */}
-          {sectionHeadings.length > 0 && (
-            <div className="flex items-center gap-1.5 p-2 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px] overflow-x-auto scrollbar-none whitespace-nowrap select-none">
-              <span className="text-gray-500 uppercase font-bold mr-1 shrink-0">Jump to:</span>
-              {sectionHeadings.map((sec) => (
-                <a
-                  key={sec.id}
-                  href={`#${sec.id}`}
-                  onClick={() => soundEngine.playSfx("click")}
-                  className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors shrink-0"
-                >
-                  {formatInlineText(sec.title)}
-                </a>
-              ))}
+                <div className="relative z-10 w-16 h-16 rounded-2xl bg-matrix-neonCyan/15 border border-matrix-neonCyan/40 flex items-center justify-center text-matrix-neonCyan mb-4 shadow-lg shadow-matrix-neonCyan/20">
+                  <Lock className="w-8 h-8 animate-pulse" />
+                </div>
+
+                <div className="relative z-10 max-w-xl space-y-2">
+                  <div className="inline-block px-3 py-1 rounded-full bg-matrix-neonCyan/10 border border-matrix-neonCyan/30 text-matrix-neonCyan text-[11px] font-bold uppercase tracking-wider mb-1">
+                    Restricted Access // Operative Authentication Required
+                  </div>
+                  <h2 className="text-lg sm:text-2xl font-bold text-white tracking-wide">
+                    Classified Curriculum Knowledge Vault
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-300 font-sans leading-relaxed">
+                    Full architectural blueprints, deep-dive specifications, copyable code templates, hands-on checklists (+10 XP ea), and chapter mastery credentials (+50 XP) are restricted to authenticated operators.
+                  </p>
+                </div>
+
+                <div className="relative z-10 mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setAuthModalOpen(true);
+                    }}
+                    className="px-6 py-2.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs sm:text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-matrix-neonCyan/25 cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In to Unlock Vault</span>
+                  </button>
+
+                  <Link
+                    href="/"
+                    onClick={() => soundEngine.playSfx("click")}
+                    className="px-4 py-2.5 rounded-xl bg-matrix-dark hover:bg-matrix-card border border-matrix-border text-gray-300 hover:text-white font-bold text-xs sm:text-sm transition-all"
+                  >
+                    Return to Game Map
+                  </Link>
+                </div>
+              </div>
+
+              {/* What is locked in this chapter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-4 rounded-xl bg-matrix-dark/60 border border-matrix-border flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-matrix-card border border-matrix-border flex items-center justify-center text-matrix-neonCyan shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white flex items-center gap-1.5">
+                      <span>Full Reference Guide</span>
+                      <span className="text-[10px] text-gray-500 font-normal">🔒 Locked</span>
+                    </h4>
+                    <p className="text-gray-400 text-[11px] font-sans mt-0.5">
+                      Production mental models, syntax guides, architectural diagrams, and code snippets.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-matrix-dark/60 border border-matrix-border flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-matrix-card border border-matrix-border flex items-center justify-center text-matrix-accent shrink-0">
+                    <ListChecks className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white flex items-center gap-1.5">
+                      <span>Hands-On Checklists</span>
+                      <span className="text-[10px] text-gray-500 font-normal">🔒 Locked</span>
+                    </h4>
+                    <p className="text-gray-400 text-[11px] font-sans mt-0.5">
+                      Track completion of actionable technical drills and earn +10 EXP per completed item.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-matrix-dark/60 border border-matrix-border flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-matrix-card border border-matrix-border flex items-center justify-center text-matrix-neonGold shrink-0">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white flex items-center gap-1.5">
+                      <span>Chapter Mastery (+50 XP)</span>
+                      <span className="text-[10px] text-gray-500 font-normal">🔒 Locked</span>
+                    </h4>
+                    <p className="text-gray-400 text-[11px] font-sans mt-0.5">
+                      Accredit your proficiency across all 13 chapters and level up your operative rank.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-matrix-dark/60 border border-matrix-border flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-matrix-card border border-matrix-border flex items-center justify-center text-purple-400 shrink-0">
+                    <Terminal className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white flex items-center gap-1.5">
+                      <span>1-Click IDE Practice</span>
+                      <span className="text-[10px] text-gray-500 font-normal">🔒 Locked</span>
+                    </h4>
+                    <p className="text-gray-400 text-[11px] font-sans mt-0.5">
+                      Instantly load code exercises directly into the Web Matrix IDE workbench.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 13-Chapter Syllabus Preview */}
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <span className="uppercase font-bold tracking-wider text-matrix-neonCyan">
+                    13-Chapter Curriculum Syllabus
+                  </span>
+                  <span className="text-gray-500">Click to preview chapter status</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {docs.map((d, index) => {
+                    const isSelected = d.filename === activeDoc.filename;
+                    return (
+                      <button
+                        type="button"
+                        key={d.filename}
+                        onClick={() => {
+                          soundEngine.playSfx("click");
+                          setSelectedFile(d.filename);
+                        }}
+                        className={`p-2.5 rounded-lg border text-left flex items-center justify-between gap-2 transition-all ${
+                          isSelected
+                            ? "bg-matrix-neonCyan/15 border-matrix-neonCyan text-white"
+                            : "bg-matrix-dark/50 border-matrix-border text-gray-400 hover:text-white hover:border-gray-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span className="text-[10px] text-matrix-neonCyan font-bold w-4">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <span className="text-xs truncate font-medium">{d.title}</span>
+                        </div>
+                        <Lock className="w-3 h-3 text-gray-500 shrink-0" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
-
-          <div className="text-xs sm:text-sm select-text">
-            <RichMarkdownViewer
-              content={activeDoc.content}
-              docId={activeDoc.filename}
-              checkedBoxes={checkedBoxes}
-              onToggleBox={(boxKey) => toggleCurriculumTask(boxKey)}
-              onSelectDoc={(filename) => {
-                const aliasMap: Record<string, string> = {
-                  "00-README.md": "00-curriculum-overview.md",
-                  "01-html.md": "01-html-and-semantics.md",
-                  "02-css.md": "02-css-layout-and-styling.md",
-                  "03-javascript.md": "03-modern-javascript.md",
-                  "04-typescript.md": "04-strict-typescript.md",
-                  "07-databases.md": "07-databases-and-sql.md",
-                };
-                const target = aliasMap[filename] || filename;
-                if (docs.some((d) => d.filename === target)) {
-                  setSelectedFile(target);
-                }
-              }}
-            />
-          </div>
         </div>
       </div>
+
+      {/* Auth Modal for Unlocking Vault */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }
