@@ -22,6 +22,9 @@ import {
   Terminal,
 } from "lucide-react";
 import { detectFileLanguage } from "@/lib/ideBundler";
+import { formatInlineText, slugifyHeading } from "@/lib/markdownFormatter";
+
+export { formatInlineText, slugifyHeading };
 
 export interface DocFile {
   filename: string;
@@ -32,101 +35,6 @@ export interface DocFile {
 interface Props {
   docs: DocFile[];
   initialFile?: string;
-}
-
-// Inline formatting helper for bold, inline code, and links
-function formatInlineText(
-  text: string,
-  onSelectDoc?: (filename: string) => void
-): React.ReactNode[] {
-  // Split tokens by code, bold, link
-  const parts: React.ReactNode[] = [];
-  // Regex to match `code`, **bold**, or [text](url)
-  const regex = /(`[^`]+`|\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
-    }
-
-    const token = match[0];
-    if (token.startsWith("`") && token.endsWith("`")) {
-      parts.push(
-        <code
-          key={match.index}
-          className="px-1.5 py-0.5 mx-0.5 rounded bg-matrix-dark border border-matrix-border text-matrix-neonCyan font-mono text-[11px]"
-        >
-          {token.slice(1, -1)}
-        </code>
-      );
-    } else if (token.startsWith("**") && token.endsWith("**")) {
-      parts.push(
-        <strong key={match.index} className="text-white font-bold">
-          {token.slice(2, -2)}
-        </strong>
-      );
-    } else if (token.startsWith("[") && token.includes("](")) {
-      const closingBracket = token.indexOf("]");
-      const linkText = token.slice(1, closingBracket);
-      const url = token.slice(closingBracket + 2, -1);
-
-      if (url.endsWith(".md") && onSelectDoc) {
-        parts.push(
-          <button
-            type="button"
-            key={match.index}
-            onClick={() => {
-              soundEngine.playSfx("click");
-              onSelectDoc(url);
-            }}
-            className="text-matrix-neonCyan hover:underline hover:text-white font-bold cursor-pointer"
-          >
-            {linkText}
-          </button>
-        );
-      } else if (url.startsWith("#")) {
-        parts.push(
-          <a
-            key={match.index}
-            href={url}
-            className="text-matrix-neonCyan hover:underline hover:text-white"
-          >
-            {linkText}
-          </a>
-        );
-      } else {
-        parts.push(
-          <a
-            key={match.index}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-matrix-neonCyan hover:underline hover:text-white"
-          >
-            {linkText}
-          </a>
-        );
-      }
-    }
-
-    lastIndex = regex.lastIndex;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
-  }
-
-  return parts;
-}
-
-function slugifyHeading(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-");
 }
 
 function RichMarkdownViewer({
@@ -336,54 +244,94 @@ function RichMarkdownViewer({
       continue;
     }
 
-    // Headings
-    if (line.startsWith("# ")) {
+    // Headings (checked from h6 down to h1 to prevent prefix collision)
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith("###### ")) {
+      const headingText = trimmedLine.slice(7).trim();
+      const idSlug = slugifyHeading(headingText);
       elements.push(
-        <h1
+        <h6
+          id={idSlug}
           key={i}
-          className="text-2xl font-bold font-mono text-white mt-8 mb-4 pb-2 border-b border-matrix-border flex items-center gap-2"
+          className="text-xs font-semibold font-mono text-gray-400 mt-3 mb-1 scroll-mt-6"
         >
-          <span className="text-matrix-neonCyan">#</span>
-          {formatInlineText(line.slice(2))}
-        </h1>
+          {formatInlineText(headingText, onSelectDoc)}
+        </h6>
       );
       continue;
     }
 
-    if (line.startsWith("## ")) {
-      const headingText = line.slice(3);
+    if (trimmedLine.startsWith("##### ")) {
+      const headingText = trimmedLine.slice(6).trim();
+      const idSlug = slugifyHeading(headingText);
+      elements.push(
+        <h5
+          id={idSlug}
+          key={i}
+          className="text-xs font-bold font-mono text-gray-300 mt-3.5 mb-1.5 scroll-mt-6"
+        >
+          {formatInlineText(headingText, onSelectDoc)}
+        </h5>
+      );
+      continue;
+    }
+
+    if (trimmedLine.startsWith("#### ")) {
+      const headingText = trimmedLine.slice(5).trim();
+      const idSlug = slugifyHeading(headingText);
+      elements.push(
+        <h4
+          id={idSlug}
+          key={i}
+          className="text-sm font-bold font-mono text-gray-200 mt-4 mb-2 scroll-mt-6"
+        >
+          {formatInlineText(headingText, onSelectDoc)}
+        </h4>
+      );
+      continue;
+    }
+
+    if (trimmedLine.startsWith("### ")) {
+      const headingText = trimmedLine.slice(4).trim();
+      const idSlug = slugifyHeading(headingText);
+      elements.push(
+        <h3
+          id={idSlug}
+          key={i}
+          className="text-base font-bold font-mono text-matrix-neonCyan mt-5 mb-2 scroll-mt-6"
+        >
+          {formatInlineText(headingText, onSelectDoc)}
+        </h3>
+      );
+      continue;
+    }
+
+    if (trimmedLine.startsWith("## ")) {
+      const headingText = trimmedLine.slice(3).trim();
       const idSlug = slugifyHeading(headingText);
       elements.push(
         <h2
           id={idSlug}
           key={i}
-          className="text-xl font-bold font-mono text-matrix-accent mt-6 mb-3 flex items-center gap-2 scroll-mt-6"
+          className="text-xl font-bold font-mono text-matrix-accent mt-6 mb-3 scroll-mt-6"
         >
-          <span className="text-matrix-accent/60">##</span>
           {formatInlineText(headingText, onSelectDoc)}
         </h2>
       );
       continue;
     }
 
-    if (line.startsWith("### ")) {
+    if (trimmedLine.startsWith("# ")) {
+      const headingText = trimmedLine.slice(2).trim();
+      const idSlug = slugifyHeading(headingText);
       elements.push(
-        <h3
+        <h1
+          id={idSlug}
           key={i}
-          className="text-base font-bold font-mono text-matrix-neonCyan mt-5 mb-2 flex items-center gap-2"
+          className="text-2xl font-bold font-mono text-white mt-8 mb-4 pb-2 border-b border-matrix-border scroll-mt-6"
         >
-          <span className="text-matrix-neonCyan/60">###</span>
-          {formatInlineText(line.slice(4))}
-        </h3>
-      );
-      continue;
-    }
-
-    if (line.startsWith("#### ")) {
-      elements.push(
-        <h4 key={i} className="text-sm font-bold font-mono text-gray-200 mt-4 mb-2">
-          {formatInlineText(line.slice(5))}
-        </h4>
+          {formatInlineText(headingText, onSelectDoc)}
+        </h1>
       );
       continue;
     }
@@ -395,7 +343,7 @@ function RichMarkdownViewer({
           key={i}
           className="my-3.5 pl-4 py-2.5 border-l-2 border-matrix-neonCyan bg-matrix-card/60 rounded-r-xl font-sans text-xs sm:text-sm italic text-gray-200 leading-relaxed"
         >
-          {formatInlineText(line.slice(1).trim())}
+          {formatInlineText(line.slice(1).trim(), onSelectDoc)}
         </blockquote>
       );
       continue;
@@ -440,14 +388,14 @@ function RichMarkdownViewer({
     }
 
     // Unordered List item
-    if (line.trim().startsWith("- ") || line.trim().startsWith("* ")) {
-      const bulletContent = line.trim().slice(2);
+    const bulletMatch = line.trim().match(/^[-*+]\s+(.*)$/);
+    if (bulletMatch) {
       elements.push(
         <li
           key={i}
           className="ml-5 list-disc text-xs sm:text-sm font-sans text-gray-200 my-1.5 leading-relaxed"
         >
-          {formatInlineText(bulletContent, onSelectDoc)}
+          {formatInlineText(bulletMatch[1], onSelectDoc)}
         </li>
       );
       continue;
@@ -459,7 +407,7 @@ function RichMarkdownViewer({
       elements.push(
         <div key={i} className="ml-4 flex items-start gap-2.5 text-xs sm:text-sm font-sans text-gray-200 my-1.5 leading-relaxed">
           <span className="text-matrix-neonCyan font-mono font-bold">{orderedMatch[1]}.</span>
-          <span>{formatInlineText(orderedMatch[2])}</span>
+          <span>{formatInlineText(orderedMatch[2], onSelectDoc)}</span>
         </div>
       );
       continue;
@@ -474,7 +422,7 @@ function RichMarkdownViewer({
     // Default paragraph
     elements.push(
       <p key={i} className="text-xs sm:text-sm font-sans leading-relaxed text-gray-200 my-2.5">
-        {formatInlineText(line)}
+        {formatInlineText(line, onSelectDoc)}
       </p>
     );
   }
@@ -741,7 +689,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
                   onClick={() => soundEngine.playSfx("click")}
                   className="px-2 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-gray-300 hover:text-matrix-neonCyan transition-colors shrink-0"
                 >
-                  {sec.title}
+                  {formatInlineText(sec.title)}
                 </a>
               ))}
             </div>

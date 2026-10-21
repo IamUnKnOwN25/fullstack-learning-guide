@@ -184,4 +184,18 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(ideContent).toContain("Show Preview");
     expect(ideContent).toContain("PanelRightClose");
   });
+
+  it("enforces that CurriculumViewer does not display literal markdown hash symbols in headings", () => {
+    const curriculumPath = path.join(process.cwd(), "src/components/CurriculumViewer.tsx");
+    const curriculumContent = fs.readFileSync(curriculumPath, "utf-8");
+
+    // Ensure raw decorative #, ##, ### spans are eliminated
+    expect(curriculumContent).not.toContain('<span className="text-matrix-neonCyan">#</span>');
+    expect(curriculumContent).not.toContain('<span className="text-matrix-accent/60">##</span>');
+    expect(curriculumContent).not.toContain('<span className="text-matrix-neonCyan/60">###</span>');
+
+    // Ensure headings are properly slugified and retain anchor IDs
+    expect(curriculumContent).toContain("id={idSlug}");
+    expect(curriculumContent).toContain("scroll-mt-6");
+  });
 });

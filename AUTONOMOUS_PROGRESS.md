@@ -490,22 +490,24 @@ This document records each autonomous improvement cycle, deterministic verificat
     - Added automated regression tests to `src/__tests__/uiLayoutGuard.test.ts` for modal padding and footer flexibility.
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (48/48 tests passing across 9 test suites), and HTTP 200 checks on all routes.
 
-- **[2026-10-20 15:30] Cycle 56: Maximized Coding Space, Collapsible File Explorer & Collapsible Live Preview (`OnlineMatrixIde.tsx`) (Tests: PASS)**
-  - Addressed direct user feedback ("the space for coding is tooo small please improve, make the file collapsible too, same in preview"):
-    - **Maximized Desktop IDE Container**: Upgraded outer container from `max-w-7xl` (1280px) to `max-w-[1920px]` matching `NavigationHud.tsx`, eliminating huge black margins on widescreen monitors and dramatically widening the coding area.
-    - **Collapsible File Explorer**:
-      - Added a dedicated collapse button (`<ChevronLeft />`) directly to the Explorer, Search, and Snippets sidebar headers (`title="Collapse File Explorer (Ctrl+B)"`).
-      - Added a 1-click `[ Hide Files / Show Files ]` toggle button on the editor breadcrumb bar.
-      - Added global `Ctrl+B` (and `Cmd+B`) keyboard shortcut to collapse or expand the file tree instantly.
-    - **Collapsible Live Browser Preview ("same in preview")**:
-      - Added a dedicated collapse button (`<PanelRightClose />`) directly inside the simulated browser chrome header.
-      - Added a 1-click `[ Hide Preview / Show Preview ]` toggle button on the editor breadcrumb bar.
-      - Collapsing the preview automatically expands the code editor to full remaining workbench width.
-      - Collapsing both files and preview lets the code editor occupy 100% of the screen.
-    - **Maximized Vertical Space & Minimized Terminal**:
-      - Defaulted `bottomPanelOpen` to minimized (`false`), saving ~160px of vertical space on initial load while keeping the sleek 30px tab strip (`CONSOLE`, `TERMINAL`, `PROBLEMS`, `ChevronUp`) always accessible.
-      - Increased code editor textarea min-height from `min-h-[260px]` to `min-h-[340px] md:min-h-[420px]`.
-      - Added `max-w` bounds to top bar dropdowns to prevent two-row wrapping on desktop viewports.
-    - **UI Layout Invariant Regression Tests (`uiLayoutGuard.test.ts`)**:
-      - Added test suite coverage verifying `max-w-[1920px]`, collapsible explorer, collapsible preview, and breadcrumb quick-toggles (49/49 tests passing).
-  - Verified with `tsc --noEmit` (0 errors), `vitest run` (49/49 tests passing across 9 test suites), and HTTP 200 checks on all routes.
+- **[2026-10-21 08:34] Cycle 57: Eliminate Raw Markdown Symbols in Curriculum Viewer & Add Dedicated Markdown Formatter (`CurriculumViewer.tsx`, `markdownFormatter.ts`) (Tests: PASS)**
+  - Addressed direct user feedback ("make sure these md symbols doesnt show" with attached screenshot of `#`, `##`, `###`, and `*italic*` symbols appearing in prose and headings):
+    - **Eliminated Literal Heading `#`, `##`, `###` Spans**:
+      - Removed hardcoded decorative `<span className="text-matrix-neonCyan">#</span>`, `<span className="text-matrix-accent/60">##</span>`, and `<span className="text-matrix-neonCyan/60">###</span>` prefixes from `RichMarkdownViewer`.
+      - Replaced with clean semantic `<h1>` through `<h6>` tags styled with appropriate typographic scale and margins.
+      - Retained auto-slugified anchor `id={idSlug}` and `scroll-mt-6` top clearance across all heading levels for fast navigation.
+    - **Extracted Dedicated `markdownFormatter.ts` Module (`src/lib/markdownFormatter.ts`)**:
+      - Built a standalone, tested inline markdown formatter supporting:
+        - Single-asterisk italics (`*italic*`) and single-underscore italics (`_italic_`), eliminating raw asterisks like `*Overflow Hydra*`, `*Callback Kraken*`, and `*Any-Demon*`.
+        - Preserved `snake_case_variable` identifiers without false-positive italic matches.
+        - Bold text (`**bold**` and `__bold__`).
+        - Bold-italic text (`***bold-italic***` and `___bold-italic___`).
+        - Strikethrough text (`~~strikethrough~~`) rendering semantic `<del>`.
+        - Inline code (`` `code` ``) rendering styled `<code>`.
+        - Markdown links (`[text](url)` and `[text](#slug)`) with `onSelectDoc` routing and anchor scrolling.
+    - **Curriculum Quick Jump Bar Markdown Cleanliness**:
+      - Updated section jump bar button titles to run through `formatInlineText(sec.title)`, preventing raw asterisks or markdown delimiters in the navigation pills.
+    - **Comprehensive Unit Testing (`curriculumMarkdown.test.ts`, `uiLayoutGuard.test.ts`)**:
+      - Added 6 dedicated unit tests verifying italics, bold, bold-italics, strikethrough, code spans, links, and snake_case preservation.
+      - Added regression guard in `uiLayoutGuard.test.ts` ensuring `CurriculumViewer.tsx` never reintroduces literal `#` span prefixes.
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (56/56 tests passing across 10 test suites), and full deterministic verification gate (`npm.cmd run validate`).
