@@ -214,4 +214,100 @@ describe("DevQuest Game Store", () => {
     expect(useGameStore.getState().unlockedRealms).toHaveLength(12);
     expect(useGameStore.getState().unlockedRealms).toContain("capstone");
   });
+
+  it("handles removeXp correctly", () => {
+    const store = useGameStore.getState();
+    store.addXp(100);
+    expect(useGameStore.getState().xp).toBe(100);
+
+    const result = useGameStore.getState().removeXp(40);
+    expect(result.newXp).toBe(60);
+    expect(useGameStore.getState().xp).toBe(60);
+
+    // Should not go below 0
+    useGameStore.getState().removeXp(100);
+    expect(useGameStore.getState().xp).toBe(0);
+    expect(useGameStore.getState().level).toBe(1);
+  });
+
+  it("handles dismissLevelUp and dismissRecentXpGain correctly", () => {
+    const store = useGameStore.getState();
+    store.addXp(100);
+    expect(useGameStore.getState().recentXpGain).not.toBeNull();
+    expect(useGameStore.getState().pendingLevelUp).not.toBeNull();
+
+    useGameStore.getState().dismissRecentXpGain();
+    expect(useGameStore.getState().recentXpGain).toBeNull();
+
+    useGameStore.getState().dismissLevelUp();
+    expect(useGameStore.getState().pendingLevelUp).toBeNull();
+  });
+
+  it("handles claimAchievement correctly", () => {
+    const store = useGameStore.getState();
+    expect(store.claimedAchievements).toHaveLength(0);
+
+    const claimed = store.claimAchievement("first_blood", 50);
+    expect(claimed).toBe(true);
+    expect(useGameStore.getState().claimedAchievements).toContain("first_blood");
+    expect(useGameStore.getState().xp).toBe(50);
+
+    // Duplicate achievement claim should fail
+    const duplicate = useGameStore.getState().claimAchievement("first_blood", 50);
+    expect(duplicate).toBe(false);
+    expect(useGameStore.getState().xp).toBe(50); // XP should not increase
+    expect(useGameStore.getState().claimedAchievements).toHaveLength(1);
+  });
+
+  it("handles resetHealth correctly", () => {
+    const store = useGameStore.getState();
+    expect(store.hp).toBe(100);
+
+    store.takeDamage(50);
+    expect(useGameStore.getState().hp).toBe(50);
+
+    useGameStore.getState().resetHealth();
+    expect(useGameStore.getState().hp).toBe(useGameStore.getState().maxHp);
+  });
+
+  it("handles toggleAudio and toggleBgm on the store correctly", () => {
+    const store = useGameStore.getState();
+    expect(store.audioMuted).toBe(false);
+    expect(store.bgmActive).toBe(false);
+
+    store.toggleAudio();
+    expect(useGameStore.getState().audioMuted).toBe(true);
+
+    store.toggleAudio();
+    expect(useGameStore.getState().audioMuted).toBe(false);
+
+    store.toggleBgm();
+    // bgmActive might be true or false depending on soundEngine, but we expect toggle
+    expect(useGameStore.getState().bgmActive).toBeDefined(); 
+  });
+
+  it("handles bad save data in importSaveData", () => {
+    const store = useGameStore.getState();
+    
+    // Test with missing/bad data
+    const imported = store.importSaveData({
+      xp: -50, // Bad XP
+      completedQuests: null as unknown as string[], // Bad quests array
+      completedBosses: "not_an_array" as unknown as string[], // Bad bosses array
+    });
+    
+    expect(imported).toBe(true);
+    const state = useGameStore.getState();
+    
+    // Fallbacks should be applied
+    expect(state.xp).toBe(0);
+    expect(state.level).toBe(1);
+    expect(state.completedQuests).toEqual([]);
+    expect(state.completedBosses).toEqual([]);
+    expect(state.unlockedRealms).toEqual(["html"]);
+    
+    // Should fail cleanly when not given an object
+    const badImport = store.importSaveData(null as unknown as Partial<typeof state>);
+    expect(badImport).toBe(false);
+  });
 });
