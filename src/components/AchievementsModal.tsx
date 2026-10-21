@@ -1,8 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
+import {
+  ACHIEVEMENTS,
+  RARITY_CONFIG,
+  AchievementCategory,
+} from "@/data/achievements";
 import {
   X,
   Trophy,
@@ -10,13 +16,15 @@ import {
   ShieldAlert,
   Sparkles,
   CheckCircle2,
-  RotateCcw,
   Star,
   Zap,
   Crown,
-  Download,
-  Upload,
-  Unlock,
+  Lock,
+  Sword,
+  BookOpen,
+  Flame,
+  Shield,
+  Gift,
 } from "lucide-react";
 
 interface Props {
@@ -24,175 +32,72 @@ interface Props {
   onClose: () => void;
 }
 
-const BADGES_CATALOG: Record<string, { name: string; description: string; icon: string }> = {
-  welcome_recruit: {
-    name: "Matrix Initiate",
-    description: "Plugged into DevQuest and began your journey to full-stack mastery.",
-    icon: "Sparkles",
-  },
-  speed_coder: {
-    name: "Flawless Syntax",
-    description: "Achieved a perfect 3-star rating on a coding trial without relying on hints.",
-    icon: "Star",
-  },
-  skill_pioneer: {
-    name: "Cybernetic Pioneer",
-    description: "Unlocked your first talent tree ability and augmented your coding powers.",
-    icon: "Zap",
-  },
-  slayer_of_divs: {
-    name: "Semantic Warden",
-    description: "Vanquished The Malformed Tag Abomination in the HTML Realm.",
-    icon: "ShieldAlert",
-  },
-  slayer_of_hydra: {
-    name: "Master of Grids & Flow",
-    description: "Tamed horizontal scrollbars and vanquished The Overflow Hydra in the CSS Realm.",
-    icon: "Award",
-  },
-  slayer_of_kraken: {
-    name: "Async Spellcaster",
-    description: "Banished callback hell and mastered Promises against The Callback Kraken.",
-    icon: "Sparkles",
-  },
-  slayer_of_any: {
-    name: "Discriminated Champion",
-    description: "Banished type 'any' and enforced strict compile-time discriminated unions.",
-    icon: "ShieldAlert",
-  },
-  slayer_of_rerenders: {
-    name: "Master of Pure Renders",
-    description: "Defeated the Infinite Re-Render Fiend using stable state dependencies.",
-    icon: "Sparkles",
-  },
-  slayer_of_blocker: {
-    name: "Non-Blocking Architect",
-    description: "Protected Node.js single-threaded event loop from synchronous CPU stalls.",
-    icon: "Zap",
-  },
-  slayer_of_injection: {
-    name: "Guardian of the Schema",
-    description: "Eradicated SQL injection vulnerabilities using parameterized prepared statements.",
-    icon: "ShieldAlert",
-  },
-  slayer_of_conflict: {
-    name: "DevOps Fleet Admiral",
-    description: "Resolved intractable Git merge conflicts and automated container pipelines.",
-    icon: "Zap",
-  },
-  slayer_of_flakiness: {
-    name: "TDD Purist",
-    description: "Exorcised asynchronous timing race conditions with deterministic mock clocks.",
-    icon: "Award",
-  },
-  slayer_of_goliath: {
-    name: "Algorithmic Grandmaster",
-    description: "Tamed factorial algorithmic complexity with dynamic programming memoization.",
-    icon: "Trophy",
-  },
-  slayer_of_xss: {
-    name: "Aegis Sentinel",
-    description: "Secured web applications against XSS with strict Content-Security-Policy headers.",
-    icon: "ShieldAlert",
-  },
-  master_of_the_matrix: {
-    name: "Matrix Architect",
-    description: "Banished The Null Void and completed the Full-Stack Web Development Capstone Odyssey.",
-    icon: "Trophy",
-  },
-  grandmaster_matrix: {
-    name: "Grandmaster Ascendant",
-    description: "Attained the pinnacle Matrix Grandmaster skill and unlocked the Full-Stack Archmage rank.",
-    icon: "Crown",
-  },
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Trophy: <Trophy className="w-5 h-5" />,
+  Award: <Award className="w-5 h-5" />,
+  ShieldAlert: <ShieldAlert className="w-5 h-5" />,
+  Sparkles: <Sparkles className="w-5 h-5" />,
+  Star: <Star className="w-5 h-5" />,
+  Zap: <Zap className="w-5 h-5" />,
+  Crown: <Crown className="w-5 h-5" />,
+  Sword: <Sword className="w-5 h-5" />,
+  BookOpen: <BookOpen className="w-5 h-5" />,
+  Flame: <Flame className="w-5 h-5" />,
+  Shield: <Shield className="w-5 h-5" />,
+  CheckCircle2: <CheckCircle2 className="w-5 h-5" />,
 };
 
 export function AchievementsModal({ isOpen, onClose }: Props) {
-  const {
-    badges,
-    completedQuests,
-    completedBosses,
-    completedChapters = [],
-    completedCurriculumTasks = [],
-    unlockedRealms,
-    unlockedSkills,
-    stars,
-    xp,
-    level,
-    rankTitle,
-    resetProgress,
-    unlockAllRealms,
-    importSaveData,
-  } = useGameStore();
+  const storeState = useGameStore();
+  const { claimedAchievements = [], claimAchievement } = storeState;
 
-  const [copiedBackup, setCopiedBackup] = React.useState(false);
-  const [showImportBox, setShowImportBox] = React.useState(false);
-  const [importJsonText, setImportJsonText] = React.useState("");
-  const [importStatus, setImportStatus] = React.useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
   if (!isOpen) return null;
 
-  const totalStarsEarned = Object.values(stars || {}).reduce((acc, s) => acc + s, 0);
-  const allRealmsUnlocked = unlockedRealms.length >= 12;
+  const filteredAchievements =
+    activeCategory === "all"
+      ? ACHIEVEMENTS
+      : ACHIEVEMENTS.filter((a) => a.category === activeCategory);
 
-  const handleExportSave = () => {
-    const payload = JSON.stringify(
-      {
-        xp,
-        level,
-        rankTitle,
-        completedQuests,
-        completedBosses,
-        unlockedRealms,
-        stars,
-        unlockedSkills,
-        badges,
-        completedCurriculumTasks,
-        completedChapters,
-      },
-      null,
-      2
-    );
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(payload);
-    }
-    soundEngine.playSfx("click");
-    setCopiedBackup(true);
-    setTimeout(() => setCopiedBackup(false), 2000);
-  };
+  const unlockedCount = ACHIEVEMENTS.filter((a) => a.checkProgress(storeState).isUnlocked).length;
+  const progressPercent = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
 
-  const handleImportSave = () => {
-    try {
-      const parsed = JSON.parse(importJsonText);
-      const ok = importSaveData(parsed);
-      if (ok) {
-        setImportStatus("Save profile restored successfully!");
-        setShowImportBox(false);
-        setImportJsonText("");
-      } else {
-        setImportStatus("Invalid save data structure.");
-      }
-    } catch {
-      soundEngine.playSfx("error");
-      setImportStatus("Invalid JSON format. Paste a valid DevQuest backup.");
+  const handleClaim = (achievementId: string, xpReward: number) => {
+    const ok = claimAchievement(achievementId, xpReward);
+    if (ok) {
+      try {
+        confetti({
+          particleCount: 60,
+          spread: 60,
+          origin: { y: 0.6 },
+          colors: ["#ffcc00", "#00ff88", "#00d8ff"],
+        });
+      } catch {}
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
+        {/* Glow ambient background element */}
+        <div className="absolute top-0 right-0 w-80 h-80 bg-matrix-neonGold/10 rounded-full blur-3xl pointer-events-none" />
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/80 relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-matrix-neonGold/20 border border-matrix-neonGold/40 flex items-center justify-center text-matrix-neonGold">
-              <Trophy className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-matrix-neonGold/20 border border-matrix-neonGold/40 flex items-center justify-center text-matrix-neonGold shrink-0">
+              <Trophy className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                Trophy Room & Operator Profile
+              <h2 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                <span>Trophy Room & Achievements</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-matrix-neonGold/15 border border-matrix-neonGold/40 text-matrix-neonGold font-bold">
+                  {unlockedCount} / {ACHIEVEMENTS.length} Cleared
+                </span>
               </h2>
               <p className="text-xs text-gray-400">
-                Your earned honors, boss trophies, star ratings, and profile backup
+                Unlock honors, defeat boss guardians, and claim bonus EXP rewards
               </p>
             </div>
           </div>
@@ -202,169 +107,223 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
+            title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Stats Summary Bar */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 px-4 py-2 sm:px-6 sm:py-3 border-b border-matrix-border bg-matrix-dark/30 text-center font-mono tabular-nums">
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Rank</div>
-            <div className="text-xs font-bold text-matrix-accent truncate">{rankTitle}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Level</div>
-            <div className="text-xs font-bold text-white">L{level}</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Quests</div>
-            <div className="text-xs font-bold text-matrix-neonCyan">{completedQuests.length}/24</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Bosses</div>
-            <div className="text-xs font-bold text-matrix-neonGold">{completedBosses.length}/12</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Stars</div>
-            <div className="text-xs font-bold text-matrix-neonGold">{totalStarsEarned}/72 ★</div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase text-gray-400">Chapters</div>
-            <div className="text-xs font-bold text-matrix-accent">{completedChapters.length}/13</div>
-          </div>
-        </div>
-
-        {/* Sandbox Unlock & Backup Controls Bar */}
-        <div className="px-4 py-2 sm:px-6 sm:py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center justify-between gap-2 font-mono text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExportSave}
-              className="px-2.5 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-matrix-neonCyan" />
-              <span>{copiedBackup ? "Copied Backup JSON!" : "Export Save JSON"}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                soundEngine.playSfx("click");
-                setShowImportBox(!showImportBox);
-                setImportStatus(null);
-              }}
-              className="px-2.5 py-1 rounded bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5 text-matrix-neonPurple" />
-              <span>Import Save</span>
-            </button>
-          </div>
-
-          {!allRealmsUnlocked ? (
-            <button
-              type="button"
-              onClick={() => unlockAllRealms()}
-              className="px-2.5 py-1 rounded bg-matrix-accent/15 hover:bg-matrix-accent/25 border border-matrix-accent/50 text-matrix-accent font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Unlock all 12 realms immediately for open practice"
-            >
-              <Unlock className="w-3.5 h-3.5" />
-              <span>Unlock All 12 Realms (Open Practice)</span>
-            </button>
-          ) : (
-            <span className="text-[11px] text-matrix-accent font-bold flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              All 12 Realms Unlocked
+        {/* Overall Completion Bar */}
+        <div className="px-5 py-3 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 w-full sm:w-auto flex-1">
+            <span className="text-gray-300 font-bold shrink-0">
+              Odyssey Completion:
             </span>
-          )}
+            <div className="flex-1 max-w-xs h-2.5 rounded-full bg-matrix-dark border border-matrix-border overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+            <span className="text-matrix-neonGold font-bold shrink-0">
+              {progressPercent}%
+            </span>
+          </div>
+
+          <div className="text-gray-400 text-[11px]">
+            Claimed Honors:{" "}
+            <span className="text-matrix-neonCyan font-bold">
+              {claimedAchievements.length} / {unlockedCount}
+            </span>
+          </div>
         </div>
 
-        {showImportBox && (
-          <div className="px-6 py-3 border-b border-matrix-border bg-matrix-dark space-y-2 font-mono text-xs">
-            <div className="text-gray-300">Paste your exported DevQuest JSON backup below:</div>
-            <textarea
-              value={importJsonText}
-              onChange={(e) => setImportJsonText(e.target.value)}
-              placeholder='{"xp": 500, "completedQuests": [...]}'
-              rows={3}
-              className="w-full p-2 rounded bg-matrix-card border border-matrix-border text-gray-200 font-mono text-xs outline-none focus:border-matrix-neonCyan"
-            />
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowImportBox(false)}
-                className="px-3 py-1 rounded bg-matrix-card border border-matrix-border text-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleImportSave}
-                className="px-3 py-1 rounded bg-matrix-accent text-matrix-dark font-bold"
-              >
-                Restore Backup
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Category Tabs */}
+        <div className="px-4 py-2 border-b border-matrix-border bg-matrix-dark/40 flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playSfx("click");
+              setActiveCategory("all");
+            }}
+            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+              activeCategory === "all"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
+            }`}
+          >
+            All Achievements ({ACHIEVEMENTS.length})
+          </button>
 
-        {importStatus && (
-          <div className="px-6 py-2 bg-matrix-neonCyan/10 border-b border-matrix-neonCyan/30 text-matrix-neonCyan font-mono text-xs">
-            {importStatus}
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playSfx("click");
+              setActiveCategory("bosses");
+            }}
+            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeCategory === "bosses"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
+            }`}
+          >
+            <Sword className="w-3.5 h-3.5 text-matrix-accent" />
+            <span>Boss Guardians</span>
+          </button>
 
-        {/* Badges Grid */}
-        <div className="p-6 overflow-y-auto space-y-4">
-          <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-gray-400">
-            Earned Achievements ({badges.length})
-          </h3>
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playSfx("click");
+              setActiveCategory("quests");
+            }}
+            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeCategory === "quests"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
+            }`}
+          >
+            <Star className="w-3.5 h-3.5 text-yellow-400" />
+            <span>Coding Trials</span>
+          </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Object.entries(BADGES_CATALOG).map(([badgeId, badge]) => {
-              const isEarned = badges.includes(badgeId);
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playSfx("click");
+              setActiveCategory("scholar");
+            }}
+            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeCategory === "scholar"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" />
+            <span>Vault & Scholar</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playSfx("click");
+              setActiveCategory("mastery");
+            }}
+            className={`px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeCategory === "mastery"
+                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold"
+                : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
+            }`}
+          >
+            <Crown className="w-3.5 h-3.5 text-matrix-neonPurple" />
+            <span>Mastery & Feats</span>
+          </button>
+        </div>
+
+        {/* Achievements Grid */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {filteredAchievements.map((ach) => {
+              const status = ach.checkProgress(storeState);
+              const isClaimed = claimedAchievements.includes(ach.id);
+              const rarity = RARITY_CONFIG[ach.rarity];
+              const pct = Math.min(100, Math.round((status.current / status.target) * 100));
 
               return (
                 <div
-                  key={badgeId}
-                  onClick={() => soundEngine.playSfx(isEarned ? "badge-inspect" : "click")}
-                  className={`p-3.5 rounded-xl border transition-all flex items-start gap-3 cursor-pointer ${
-                    isEarned
-                      ? "bg-matrix-dark/80 border-matrix-neonGold/40 shadow-sm shadow-matrix-neonGold/10 hover:border-matrix-neonGold"
-                      : "bg-matrix-dark/20 border-matrix-border opacity-50 grayscale hover:opacity-70"
+                  key={ach.id}
+                  className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                    status.isUnlocked
+                      ? "bg-matrix-dark/80 border-matrix-border hover:border-matrix-neonGold/50 shadow-sm"
+                      : "bg-matrix-dark/40 border-matrix-border/40 opacity-60"
                   }`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                      isEarned
-                        ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/50 shadow-sm shadow-matrix-neonGold/20"
-                        : "bg-gray-800 text-gray-500"
-                    }`}
-                  >
-                    {badge.icon === "Trophy" ? (
-                      <Trophy className="w-5 h-5" />
-                    ) : badge.icon === "Crown" ? (
-                      <Crown className="w-5 h-5" />
-                    ) : badge.icon === "Star" ? (
-                      <Star className="w-5 h-5 fill-current" />
-                    ) : badge.icon === "Zap" ? (
-                      <Zap className="w-5 h-5" />
-                    ) : badge.icon === "ShieldAlert" ? (
-                      <ShieldAlert className="w-5 h-5" />
-                    ) : badge.icon === "Sparkles" ? (
-                      <Sparkles className="w-5 h-5" />
-                    ) : (
-                      <Award className="w-5 h-5" />
-                    )}
-                  </div>
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-mono text-sm font-bold text-white">{badge.name}</h4>
-                      {isEarned && <CheckCircle2 className="w-3.5 h-3.5 text-matrix-accent" />}
+                    {/* Header: Icon, Title & Rarity */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+                            status.isUnlocked
+                              ? `${rarity.border} ${rarity.bg} ${rarity.color} shadow-sm`
+                              : "border-matrix-border bg-matrix-dark text-gray-600"
+                          }`}
+                        >
+                          {status.isUnlocked ? (
+                            ICON_MAP[ach.icon] || <Trophy className="w-5 h-5" />
+                          ) : (
+                            <Lock className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-bold text-xs text-white">
+                              {ach.name}
+                            </h3>
+                          </div>
+                          <span
+                            className={`text-[9px] font-bold uppercase tracking-wider ${rarity.color}`}
+                          >
+                            {rarity.label} Honor
+                          </span>
+                        </div>
+                      </div>
+
+                      <span className="text-[10px] font-mono text-matrix-neonCyan bg-matrix-neonCyan/10 px-2 py-0.5 rounded-full border border-matrix-neonCyan/30 font-bold shrink-0">
+                        +{ach.xpReward} XP
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
-                      {badge.description}
+
+                    <p className="text-[11px] text-gray-300 leading-relaxed">
+                      {ach.description}
                     </p>
+
+                    {/* Progress Bar */}
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center justify-between text-[10px] text-gray-400">
+                        <span>Progress</span>
+                        <span>
+                          {status.current} / {status.target} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-matrix-dark border border-matrix-border/60 overflow-hidden">
+                        <div
+                          className={`h-full transition-all duration-300 ${
+                            status.isUnlocked
+                              ? "bg-matrix-accent"
+                              : "bg-matrix-neonCyan/60"
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Claim Button / Status Footer */}
+                  <div className="pt-2 border-t border-matrix-border/50 flex items-center justify-between text-xs">
+                    {status.isUnlocked ? (
+                      isClaimed ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold text-gray-400">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-matrix-accent" />
+                          <span>Claimed</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleClaim(ach.id, ach.xpReward)}
+                          className="w-full py-1.5 px-3 rounded-xl bg-matrix-neonGold hover:bg-matrix-neonGold/90 text-matrix-dark font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-matrix-neonGold/20 cursor-pointer animate-pulse"
+                        >
+                          <Gift className="w-3.5 h-3.5" />
+                          <span>Claim +{ach.xpReward} Bonus XP</span>
+                        </button>
+                      )
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                        <Lock className="w-3 h-3" />
+                        <span>In Progress ({status.target - status.current} remaining)</span>
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -372,24 +331,15 @@ export function AchievementsModal({ isOpen, onClose }: Props) {
           </div>
         </div>
 
-        {/* Footer with Reset Progress option */}
-        <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-matrix-border bg-matrix-dark/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+        {/* Modal Footer */}
+        <div className="px-5 py-3 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-end">
           <button
+            type="button"
             onClick={() => {
-              if (confirm("Reset all game progress? This will reset your level, quests, and XP.")) {
-                resetProgress();
-                soundEngine.playSfx("error");
-              }
+              soundEngine.playSfx("click");
+              onClose();
             }}
-            className="flex items-center gap-1 text-gray-500 hover:text-matrix-neonRed transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Reset Save Data
-          </button>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-matrix-border hover:bg-gray-700 text-white"
+            className="px-4 py-1.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-white text-xs transition-colors"
           >
             Close
           </button>

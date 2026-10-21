@@ -537,3 +537,33 @@ This document records each autonomous improvement cycle, deterministic verificat
       - Added 9 unit tests in `src/__tests__/levelSystem.test.ts` validating formulas, thresholds, progress mapping, rank ladder lore, and game store notifications.
       - Added layout regression guards in `src/__tests__/uiLayoutGuard.test.ts` (12 tests total).
   - Verified with `tsc --noEmit` (0 errors), `vitest run` (66/66 tests passing across 11 test suites), and full deterministic verification gate (`npm.cmd run validate`).
+
+- **[2026-10-21 09:07] Cycle 59: Player Profile, Auth Terminal, Global Leaderboards, Expanded Skill Tree & Achievement Claims (Tests: PASS)**
+  - Addressed user feedback (`/continuous-dev-loop add profile, sign up and login system, and leaderboard system, improve skill tree system and throphy/achievement system`):
+    - **Authentication Vault & Multi-Account System (`src/lib/authStore.ts`, `src/components/AuthModal.tsx`)**:
+      - Built offline-first, client-side authentication store with instant guest-mode fallback, SHA-style credential hashing, and multi-cadet account switching.
+      - Supports callsign creation, display names, custom biographies, and 6 cybernetic avatar presets (`Cyber Ninja`, `Neon Hacker`, `Code Enchanter`, `Matrix Architect`, `Synthetic Sentinel`, `Quantum Dev`).
+      - Created `AuthModal.tsx` featuring tabbed terminal access (Sign In, Register Cadet, Saved Accounts roster, Guest mode).
+      - Automatically creates a game progression snapshot during account switches and syncs state seamlessly.
+    - **Interactive Operative Dossier (`src/components/ProfileModal.tsx`)**:
+      - Built a cyberpunk operator profile modal displaying avatar, callsign, level, rank, career metrics (XP, Completed Quests, Slain Bosses, Quest Stars, Streak, Curriculum Tasks, Unlocked Badges).
+      - Included live editable biography, custom showcase badge selection, full JSON save-game clipboard export/import, and instant navigation to the Global Leaderboards.
+    - **Global Matrix Leaderboards (`src/data/leaderboard.ts`, `src/components/LeaderboardModal.tsx`)**:
+      - Engineered real-time comparative leaderboards across 4 distinct categories: Global Power XP, Quest Stars, Boss Vanquishers, and Curriculum Scholars.
+      - Populated with top simulated matrix operatives (`Neo Architect`, `Ada Lovelace`, `Grace Hopper`, `Linus Voidwalker`, `Alan Turing`, `Margaret Hamilton`, `Dennis Ritchie`, `Guido van Rossum`, etc.) alongside the live player.
+      - Integrated real-time query search filtering, dynamic rank tier tags (Grandmaster, Diamond, Emerald, Gold, Silver), and a sticky player placement status bar.
+    - **Expanded Cybernetic Skill Tree (`src/data/skills.ts`, `src/components/SkillTreeModal.tsx`)**:
+      - Expanded the skill tree from 6 to 15 passive abilities organized across 5 distinct branches (`foundations`, `frontend`, `backend`, `devops`, `mastery`).
+      - Implemented a 3-tier hierarchy with prerequisite dependencies, branch category filter tabs, interactive stat bonus tooltips (+XP multipliers, +HP, +MP, damage reductions), and confirmation-gated skill respecs.
+    - **Overhauled Trophy & Achievement System (`src/data/achievements.ts`, `src/components/AchievementsModal.tsx`, `src/lib/gameStore.ts`)**:
+      - Expanded system to 18 categorized honors across Bosses, Quests, Scholar, and Mastery with 5 rarity tiers (`Common`, `Rare`, `Epic`, `Legendary`, `Mythic`).
+      - Added progress tracking bars (`current / target` and percentage), category filter tabs, and claimable bonus EXP buttons with celebratory confetti animations.
+      - Updated `useGameStore` with `claimedAchievements` tracking and duplicate-claim prevention.
+    - **Header & Mobile Bottom Navigation Ergonomics (`src/components/NavigationHud.tsx`)**:
+      - Added interactive Operative Profile trigger (avatar emoji + callsign + sync status) in the top header on both desktop and mobile.
+      - Added Global Leaderboards trigger button (`Award` icon) in the header action bar.
+      - Added direct `Ranks` and `Profile` touch buttons in the mobile sticky bottom navigation bar.
+    - **Comprehensive Test Suite & Quality Gates (`src/__tests__/authLeaderboardSkills.test.ts`)**:
+      - Added 15 unit tests covering auth signup/login/guest flows, leaderboard rankings and sorting, skill tree prerequisite integrity, achievement progress evaluation and claim logic, and modal container layout guards.
+      - Verified that all 81 tests across 12 test suites pass with 0 failures (`vitest run`).
+  - Verified with `tsc --noEmit` (0 errors), `vitest run` (81/81 tests passing across 12 test suites), and full deterministic verification gate (`npm.cmd run validate`).

@@ -32,6 +32,7 @@ export interface PlayerStats {
   badges: string[];
   completedCurriculumTasks: string[];
   completedChapters: string[];
+  claimedAchievements: string[];
   audioMuted: boolean;
   bgmActive: boolean;
   pendingLevelUp: LevelUpNotification | null;
@@ -46,6 +47,7 @@ interface PlayerActions {
   defeatBoss: (realmId: string, badgeId: string, xpReward: number) => void;
   unlockSkill: (skillId: string, cost: number) => boolean;
   respecSkills: () => void;
+  claimAchievement: (achievementId: string, xpReward: number) => boolean;
   unlockAllRealms: () => void;
   toggleCurriculumTask: (taskId: string) => boolean;
   completeChapter: (filename: string, xpReward?: number) => boolean;
@@ -75,6 +77,7 @@ const INITIAL_STATE: PlayerStats = {
   badges: ["welcome_recruit"],
   completedCurriculumTasks: [],
   completedChapters: [],
+  claimedAchievements: [],
   audioMuted: false,
   bgmActive: false,
   pendingLevelUp: null,
@@ -242,6 +245,18 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         soundEngine.playSfx("click");
       },
 
+      claimAchievement: (achievementId: string, xpReward: number) => {
+        const state = get();
+        const claimed = new Set(state.claimedAchievements || []);
+        if (claimed.has(achievementId)) return false;
+
+        claimed.add(achievementId);
+        set({ claimedAchievements: Array.from(claimed) });
+        get().addXp(xpReward, "Achievement Claimed");
+        soundEngine.playSfx("victory");
+        return true;
+      },
+
       unlockAllRealms: () => {
         set({
           unlockedRealms: [
@@ -325,6 +340,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
             ? data.completedCurriculumTasks
             : [],
           completedChapters: Array.isArray(data.completedChapters) ? data.completedChapters : [],
+          claimedAchievements: Array.isArray(data.claimedAchievements) ? data.claimedAchievements : [],
         });
         soundEngine.playSfx("level-up");
         return true;

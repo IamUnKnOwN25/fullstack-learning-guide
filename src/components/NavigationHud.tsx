@@ -24,13 +24,19 @@ import {
   X,
   Swords,
   Code,
+  Award,
+  User,
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { AchievementsModal } from "./AchievementsModal";
 import { LevelUpModal } from "./LevelUpModal";
 import { LevelJourneyModal } from "./LevelJourneyModal";
+import { ProfileModal } from "./ProfileModal";
+import { AuthModal } from "./AuthModal";
+import { LeaderboardModal } from "./LeaderboardModal";
 import { XpGainFloatie } from "./XpGainFloatie";
 import { getLevelProgress } from "@/lib/levelSystem";
+import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 
 export function NavigationHud() {
   const {
@@ -59,8 +65,15 @@ export function NavigationHud() {
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [levelJourneyOpen, setLevelJourneyOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+
+  const { currentUser, isAuthenticated } = useAuthStore();
+  const currentAvatar =
+    AVATAR_OPTIONS.find((a) => a.id === currentUser?.avatarId) || AVATAR_OPTIONS[0];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -151,6 +164,29 @@ export function NavigationHud() {
 
           {/* Player Vitals (Level, Rank, XP Bar, HP) */}
           <div className="flex items-center gap-3 sm:gap-6">
+            {/* Operator Profile Trigger */}
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                setProfileOpen(true);
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-xs font-mono transition-all group cursor-pointer text-left shrink-0"
+              title={`Operative Dossier: ${currentUser?.displayName || currentUser?.username || "Cadet"} (${isAuthenticated ? "Authenticated" : "Guest Mode"})`}
+            >
+              <div className="w-8 h-8 rounded-lg bg-matrix-dark border border-matrix-border flex items-center justify-center text-sm sm:text-base group-hover:scale-105 group-hover:border-matrix-neonCyan transition-all shrink-0">
+                {currentAvatar.emoji}
+              </div>
+              <div className="hidden sm:block">
+                <span className="block text-[11px] font-bold text-gray-200 group-hover:text-matrix-neonCyan leading-tight">
+                  {currentUser?.displayName || currentUser?.username || "Cadet"}
+                </span>
+                <span className="block text-[9px] font-semibold tracking-wider text-matrix-accent uppercase">
+                  {isAuthenticated ? "SYNCED" : "CADET"}
+                </span>
+              </div>
+            </button>
+
             {/* Interactive Rank & Level Trigger Button */}
             <button
               type="button"
@@ -260,6 +296,17 @@ export function NavigationHud() {
                 )}
               </button>
 
+              <button
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setLeaderboardOpen(true);
+                }}
+                className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
+                title="Global Matrix Leaderboards"
+              >
+                <Award className="w-4 h-4" />
+              </button>
+
               {/* Audio Controls */}
               <button
                 onClick={() => {
@@ -309,6 +356,31 @@ export function NavigationHud() {
       <LevelUpModal
         onOpenSkillTree={() => setSkillTreeOpen(true)}
         onOpenLevelJourney={() => setLevelJourneyOpen(true)}
+      />
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onOpenAuthModal={() => {
+          setProfileOpen(false);
+          setAuthOpen(true);
+        }}
+        onOpenLeaderboard={() => {
+          setProfileOpen(false);
+          setLeaderboardOpen(true);
+        }}
+      />
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        initialMode="login"
+      />
+      <LeaderboardModal
+        isOpen={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+        onOpenProfile={() => {
+          setLeaderboardOpen(false);
+          setProfileOpen(true);
+        }}
       />
 
       {/* Floating XP Gain Notification */}
@@ -521,9 +593,33 @@ export function NavigationHud() {
           type="button"
           onClick={() => {
             soundEngine.playSfx("click");
+            setLeaderboardOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-neonCyan transition-all"
+        >
+          <Award className="w-4 h-4 mb-0.5 text-matrix-neonCyan" />
+          <span>Ranks</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setProfileOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-accent transition-all"
+        >
+          <span className="text-xs mb-0.5 leading-none">{currentAvatar.emoji}</span>
+          <span>Profile</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
             setCommandOpen(true);
           }}
-          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-white transition-all"
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-white transition-all"
         >
           <Search className="w-4 h-4 mb-0.5" />
           <span>Jump</span>
