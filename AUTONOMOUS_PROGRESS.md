@@ -729,3 +729,10 @@ pm run validate.
   - Added unit test suite in src/__tests__/questFilterBar.test.ts.
   - Verified with 
 pm run validate.
+
+
+- **[2026-10-21 15:46] Cycle 79: Curriculum Knowledge Vault Search & Bookmarks (Tests: PASS)**
+  - Implemented search indexing and topic bookmarking in src/lib/curriculumSearch.ts.
+  - Added unit test suite in src/__tests__/curriculumSearch.test.ts.
+  - Verified with 
+pm run validate.
