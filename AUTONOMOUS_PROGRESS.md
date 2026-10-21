@@ -691,3 +691,11 @@ pm run validate.
   - Added comprehensive test suite src/__tests__/speedrunTimer.test.ts verifying formatting, start/finish, overrides for personal bests, and proper cancellation handling.
   - Verified with 	sc --noEmit, itest run, and full deterministic verification gate (
 pm run validate).
+
+- **[2026-10-21 15:39] Cycle 80: Add Battle Effect Pure Calculation Helpers (Tests: PASS)**
+  - Implemented calculateHpPercentage(currentHp, maxHp) clamping HP percentage between 0 and 100 for boss HP transitions.
+  - Implemented calculateScreenShakeIntensity(damage, maxHp, isCritical) for damage-based screen shakes.
+  - Implemented calculateConfettiTriggers(isBossDefeated, comboCount) for celebration cascades.
+  - Added unit test suite in src/__tests__/battleEffects.test.ts.
+  - Verified with 	sc --noEmit, itest run, and full deterministic verification gate (
+pm run validate).
