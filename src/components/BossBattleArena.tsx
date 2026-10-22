@@ -394,6 +394,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                 </div>
                 <button
                   type="button"
+                  aria-expanded={postMortemOpen}
                   onClick={() => setPostMortemOpen(!postMortemOpen)}
                   className="text-[11px] font-mono text-gray-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
                 >
@@ -533,6 +534,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               <div className="rounded-xl border border-yellow-500/30 overflow-hidden bg-yellow-500/5">
                 <button
                   type="button"
+                  aria-expanded={scanOpen}
                   onClick={() => {
                     soundEngine.playSfx("click");
                     setScanOpen(!scanOpen);
@@ -633,6 +635,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
               </div>
               <textarea
                 ref={textareaRef}
+                aria-label="Combat code editor"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 onScroll={(e) => {
