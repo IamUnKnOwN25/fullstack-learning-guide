@@ -12,7 +12,12 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="keyboard-shortcuts-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         <div className="absolute top-0 right-0 w-80 h-80 bg-matrix-neonCyan/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -22,7 +27,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
               <Keyboard className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white leading-none mb-1">
+              <h2 id="keyboard-shortcuts-title" className="text-lg font-bold text-white leading-none mb-1">
                 Keyboard Shortcuts
               </h2>
               <p className="text-[11px] text-gray-400 font-sans">
@@ -32,6 +37,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Close keyboard shortcuts modal"
             className="p-2 rounded-xl bg-matrix-dark/50 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
           >
             <X className="w-5 h-5" />
