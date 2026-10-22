@@ -26,7 +26,12 @@ export function XpGainFloatie() {
   if (!visible || !recentXpGain) return null;
 
   return (
-    <div className="fixed top-14 sm:top-16 right-4 z-40 pointer-events-none animate-bounce">
+    <div
+      role="status"
+      aria-live="polite"
+      data-testid="xp-gain-floatie"
+      className="fixed top-14 sm:top-16 right-4 z-40 pointer-events-none animate-bounce"
+    >
       <div className="px-3.5 py-1.5 rounded-full bg-matrix-dark/95 border border-matrix-neonGold/80 shadow-lg shadow-matrix-neonGold/30 flex items-center gap-2 font-mono text-xs text-matrix-neonGold backdrop-blur-md">
         <Sparkles className="w-3.5 h-3.5 animate-spin" />
         <span className="font-bold">+{recentXpGain.amount} XP</span>
