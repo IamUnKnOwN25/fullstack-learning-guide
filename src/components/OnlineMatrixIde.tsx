@@ -1469,6 +1469,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   </div>
                   <input
                     type="text"
+                    aria-label="Find in files"
                     placeholder="Find in files..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -1476,6 +1477,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   />
                   <input
                     type="text"
+                    aria-label="Replace in active file"
                     placeholder="Replace in active file..."
                     value={replaceTerm}
                     onChange={(e) => setReplaceTerm(e.target.value)}
@@ -1596,6 +1598,9 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                   return (
                     <div
                       key={tabName}
+                      role="tab"
+                      aria-selected={isCurrent}
+                      tabIndex={0}
                       onClick={() => {
                         soundEngine.playSfx("click");
                         setActiveFileName(tabName);
@@ -1798,6 +1803,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
                   <textarea
                     ref={editorRef}
+                    aria-label="Matrix studio code editor"
                     value={activeFile?.content || ""}
                     onChange={(e) => {
                       updateActiveFileContent(e.target.value);
@@ -2142,6 +2148,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                       type="text"
                       value={terminalInput}
                       onChange={(e) => setTerminalInput(e.target.value)}
+                      aria-label="Matrix interactive shell terminal input"
                       placeholder="Type a command (help, ls, node app.js, cat index.html, clear)..."
                       className="w-full bg-transparent text-white outline-none text-xs font-mono"
                     />
