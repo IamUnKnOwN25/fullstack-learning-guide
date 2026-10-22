@@ -202,7 +202,7 @@ export function CyberCompanionByte() {
                 soundEngine.playSfx("click");
                 setIsOpen(false);
               }}
-              className="text-gray-400 hover:text-white p-0.5 rounded"
+              aria-label="Close Byte dialog" className="text-gray-400 hover:text-white p-0.5 rounded"
             >
               <X className="w-4 h-4" />
             </button>
@@ -407,7 +407,7 @@ export function CyberCompanionByte() {
             setTimeout(() => setMood("happy"), 2000);
           }
         }}
-        className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-full border shadow-2xl transition-all cursor-pointer ${
+        aria-label="Toggle Byte cybernetic familiar" className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-full border shadow-2xl transition-all cursor-pointer ${
           isOpen
             ? "bg-matrix-dark border-matrix-accent text-matrix-accent shadow-matrix-accent/30"
             : "bg-matrix-card/90 hover:bg-matrix-cardHover border-matrix-neonCyan text-white shadow-matrix-neonCyan/20 hover:scale-105"
