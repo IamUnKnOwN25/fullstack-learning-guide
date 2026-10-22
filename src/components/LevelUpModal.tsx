@@ -60,6 +60,8 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
 
         {/* Close Button */}
         <button
+          type="button"
+          aria-label="Dismiss level up modal"
           onClick={() => {
             soundEngine.playSfx("click");
             dismissLevelUp();
