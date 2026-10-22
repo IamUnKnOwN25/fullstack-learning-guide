@@ -12,6 +12,11 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-22 13:53] Cycle 91: LeaderboardModal Accessibility & Unit Test Suite (Tests: PASS)**
+  - Added accessibility `aria-label="Close leaderboard modal"` to close control and `aria-label="Search operative"` to search filter in `LeaderboardModal.tsx`.
+  - Implemented unit test suite in `src/__tests__/leaderboardModal.test.tsx` verifying modal lifecycle, ranking calculations, tab switching (Global Power XP, Quest Stars, Boss Rush, Curriculum), live search filtering, and profile navigation.
+  - Verified with `npm run validate` (38 test files, 304 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
 - **[2026-10-22 13:51] Cycle 90: SkillTreeModal Accessibility & Unit Test Suite (Tests: PASS)**
   - Added accessibility `aria-label="Close skill tree modal"` and explicit `type="button"` to the modal close control in `SkillTreeModal.tsx`.
   - Implemented unit test suite in `src/__tests__/skillTreeModal.test.tsx` verifying modal rendering, branch category tab filtering, skill perk unlock actions with confetti feedback, and talent respec / point reset confirmations.

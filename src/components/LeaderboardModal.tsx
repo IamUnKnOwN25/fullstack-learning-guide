@@ -143,6 +143,8 @@ export function LeaderboardModal({
           </div>
 
           <button
+            type="button"
+            aria-label="Close leaderboard modal"
             onClick={() => {
               soundEngine.playSfx("click");
               onClose();
@@ -226,6 +228,7 @@ export function LeaderboardModal({
             <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              aria-label="Search operative"
               placeholder="Search operative..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
