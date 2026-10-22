@@ -280,7 +280,7 @@ export function NavigationHud() {
                   setSkillTreeOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonPurple transition-all"
-                title="Skill Tree"
+                type="button" aria-label="Skill Tree" title="Skill Tree"
               >
                 <Shield className="w-4 h-4" />
               </button>
@@ -291,7 +291,7 @@ export function NavigationHud() {
                   setInventoryOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonGold relative transition-all"
-                title="Trophies & Badges"
+                type="button" aria-label="Trophies & Badges" title="Trophies & Badges"
               >
                 <Trophy className="w-4 h-4" />
                 {badges.length > 0 && (
@@ -305,7 +305,7 @@ export function NavigationHud() {
                   setKeyboardShortcutsOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
-                title="Keyboard Shortcuts"
+                type="button" aria-label="Keyboard Shortcuts" title="Keyboard Shortcuts"
               >
                 <Keyboard className="w-4 h-4" />
               </button>
@@ -316,7 +316,7 @@ export function NavigationHud() {
                   setLeaderboardOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
-                title="Global Matrix Leaderboards"
+                type="button" aria-label="Global Matrix Leaderboards" title="Global Matrix Leaderboards"
               >
                 <Award className="w-4 h-4" />
               </button>
@@ -332,7 +332,7 @@ export function NavigationHud() {
                     ? "bg-matrix-card border-matrix-border text-gray-500"
                     : "bg-matrix-card hover:bg-matrix-cardHover border-matrix-accent/40 text-matrix-accent"
                 }`}
-                title={audioMuted ? "Unmute Audio" : "Mute Audio"}
+                type="button" aria-label={audioMuted ? "Unmute Audio" : "Mute Audio"} title={audioMuted ? "Unmute Audio" : "Mute Audio"}
               >
                 {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
@@ -347,7 +347,7 @@ export function NavigationHud() {
                     ? "bg-matrix-neonCyan/10 border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/40"
                     : "bg-matrix-card border-matrix-border text-gray-400 hover:text-gray-200"
                 }`}
-                title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
+                type="button" aria-label={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"} title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
               >
                 <Music className="w-4 h-4" />
               </button>
