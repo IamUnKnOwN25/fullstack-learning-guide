@@ -94,7 +94,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
               onClose();
             }}
             className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
-            title="Close (Esc)"
+            type="button" aria-label="Close authentication modal" title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -291,6 +291,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                   <input
                     type="text"
                     required
+                    aria-label="Terminal Handle (Username)"
                     placeholder="e.g. neobyte_99"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -308,6 +309,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                   <input
                     type="password"
                     required
+                    aria-label="Security Passphrase"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
