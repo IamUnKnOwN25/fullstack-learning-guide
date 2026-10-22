@@ -319,7 +319,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
   return (
     <div
-      className={`relative w-36 h-36 rounded-2xl bg-gradient-to-br from-red-950/60 via-matrix-card to-black border-2 transition-all p-3 flex items-center justify-center ${
+      data-testid="boss-monster-sprite" role="img" aria-label={`Boss Guardian (${realmId})`} className={`relative w-36 h-36 rounded-2xl bg-gradient-to-br from-red-950/60 via-matrix-card to-black border-2 transition-all p-3 flex items-center justify-center ${
         isHit
           ? "border-matrix-accent scale-105 brightness-200 animate-shake"
           : isEnraged
