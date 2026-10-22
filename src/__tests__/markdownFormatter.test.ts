@@ -26,6 +26,10 @@ describe("markdownFormatter", () => {
     it("trims leading and trailing spaces before slugifying", () => {
       expect(slugifyHeading("  heading  ")).toBe("heading");
     });
+
+    it("strips emojis and special symbols gracefully", () => {
+      expect(slugifyHeading("12. 🚀 Roadmap & Capstone 🎯")).toBe("12-roadmap-capstone");
+    });
   });
 
   describe("formatInlineText", () => {
@@ -102,7 +106,6 @@ describe("markdownFormatter", () => {
     });
 
     it("formats markdown document links as clickable buttons when onSelectDoc is provided", () => {
-      // Mock soundEngine.playSfx to prevent undefined errors if context is not available
       const playSfxSpy = vi.spyOn(soundEngine, "playSfx").mockImplementation(() => {});
       const mockOnSelectDoc = vi.fn();
 
@@ -114,7 +117,6 @@ describe("markdownFormatter", () => {
       );
       expect(btnNode).toBeDefined();
 
-      // Simulate click
       if (btnNode) {
         btnNode.props.onClick();
         expect(mockOnSelectDoc).toHaveBeenCalledWith("guide.md");
@@ -122,6 +124,18 @@ describe("markdownFormatter", () => {
       }
 
       playSfxSpy.mockRestore();
+    });
+
+    it("falls back to standard anchor link when document link has no onSelectDoc handler", () => {
+      const input = "Check out [the guide](guide.md) here";
+      const nodes = formatInlineText(input);
+
+      const aNode = nodes.find(
+        (n): n is React.ReactElement<{ href?: string; target?: string }> => React.isValidElement(n) && n.type === "a"
+      );
+      expect(aNode).toBeDefined();
+      expect(aNode?.props.href).toBe("guide.md");
+      expect(aNode?.props.target).toBe("_blank");
     });
 
     it("formats hash links properly", () => {
@@ -147,6 +161,17 @@ describe("markdownFormatter", () => {
       expect(aNode?.props.href).toBe("https://google.com");
       expect(aNode?.props.target).toBe("_blank");
       expect(aNode?.props.rel).toBe("noopener noreferrer");
+    });
+
+    it("formats complex nested markdown within links", () => {
+      const input = "Read [**Important** `Syntax`](#syntax)";
+      const nodes = formatInlineText(input);
+
+      const aNode = nodes.find(
+        (n): n is React.ReactElement<{ href?: string; children?: React.ReactNode[] }> => React.isValidElement(n) && n.type === "a"
+      );
+      expect(aNode).toBeDefined();
+      expect(aNode?.props.href).toBe("#syntax");
     });
   });
 });
