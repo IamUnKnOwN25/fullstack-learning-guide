@@ -218,6 +218,7 @@ export function WorldCampaignMap() {
           ).map((cat) => (
             <button
               key={cat.id}
+              aria-pressed={activeCategory === cat.id}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveCategory(cat.id);
@@ -239,6 +240,8 @@ export function WorldCampaignMap() {
           <div className="flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border shrink-0">
             <button
               type="button"
+              aria-label="Switch to Constellation view"
+              aria-pressed={mapView === "constellation"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMapView("constellation");
@@ -254,6 +257,8 @@ export function WorldCampaignMap() {
             </button>
             <button
               type="button"
+              aria-label="Switch to Grid view"
+              aria-pressed={mapView === "grid"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMapView("grid");
@@ -275,6 +280,7 @@ export function WorldCampaignMap() {
             <input
               type="text"
               placeholder="Search realms, skills..."
+              aria-label="Search realms and skills"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
@@ -464,6 +470,7 @@ export function WorldCampaignMap() {
                   </div>
                   <button
                     type="button"
+                    aria-label="Close Realm Inspector"
                     onClick={() => {
                       soundEngine.playSfx("click");
                       setSelectedRealm(null);
