@@ -131,6 +131,8 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                   <button
                     key={idx}
                     type="button"
+                    aria-label={`Inspect ${item.tag} semantic node`}
+                    aria-pressed={activeStep === idx}
                     onClick={() => {
                       soundEngine.playSfx("click");
                       setActiveStep(idx);
@@ -231,6 +233,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 justify-content:
               </label>
               <select
+                aria-label="justify-content"
                 value={justifyContent}
                 onChange={(e) => {
                   soundEngine.playSfx("click");
@@ -250,6 +253,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
                 align-items:
               </label>
               <select
+                aria-label="align-items"
                 value={alignItems}
                 onChange={(e) => {
                   soundEngine.playSfx("click");
@@ -525,6 +529,7 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             </label>
             <input
               type="text"
+              aria-label="Untrusted User Input Payload"
               value={xssInput}
               onChange={(e) => setXssInput(e.target.value)}
               className="w-full bg-matrix-dark border border-matrix-border rounded-lg px-3 py-2 text-xs text-matrix-neonCyan outline-none focus:border-matrix-neonCyan"
@@ -1186,6 +1191,8 @@ export function RealmConceptVisualizer({ realmId }: Props) {
             <button
               key={r}
               type="button"
+              aria-label={`Switch concept lab to ${r}`}
+              aria-pressed={isCurrent}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setSelectedRealmId(r);
