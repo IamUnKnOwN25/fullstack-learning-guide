@@ -74,6 +74,8 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
           </div>
 
           <button
+            type="button"
+            aria-label="Close level journey modal"
             onClick={() => {
               soundEngine.playSfx("click");
               onClose();
@@ -188,6 +190,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
             {onOpenSkillTree && (
               <button
+                type="button"
                 onClick={() => {
                   soundEngine.playSfx("click");
                   onClose();
@@ -339,6 +342,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
         {/* Modal Footer */}
         <div className="p-4 border-t border-matrix-border bg-matrix-dark/80 flex items-center justify-end">
           <button
+            type="button"
             onClick={() => {
               soundEngine.playSfx("click");
               onClose();
