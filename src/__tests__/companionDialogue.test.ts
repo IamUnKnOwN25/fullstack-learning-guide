@@ -12,23 +12,23 @@ describe('companionDialogue', () => {
     expect(result).toBe("Don't give up! Every error is a learning opportunity. You can do this!");
   });
 
-  it('should return correct tip for html realm', () => {
-    const result = getCompanionDialogue({ realmId: 'html' });
-    expect(result).toContain('A11y Wisdom');
+  it('should return pedagogical tips for each of the 12 campaign realms', () => {
+    expect(getCompanionDialogue({ realmId: 'html' })).toContain('A11y Wisdom');
+    expect(getCompanionDialogue({ realmId: 'css' })).toContain('Concept Visualizer');
+    expect(getCompanionDialogue({ realmId: 'javascript' })).toContain('Microtask Queue');
+    expect(getCompanionDialogue({ realmId: 'typescript' })).toContain('Tactical Intel');
+    expect(getCompanionDialogue({ realmId: 'react' })).toContain('useEffect');
+    expect(getCompanionDialogue({ realmId: 'backend' })).toContain('rejections');
+    expect(getCompanionDialogue({ realmId: 'databases' })).toContain('Parameterized queries');
+    expect(getCompanionDialogue({ realmId: 'devops' })).toContain('Multi-stage builds');
+    expect(getCompanionDialogue({ realmId: 'testing' })).toContain('Flaky tests');
+    expect(getCompanionDialogue({ realmId: 'cs' })).toContain('O(1)');
+    expect(getCompanionDialogue({ realmId: 'security' })).toContain('sanitize user input');
+    expect(getCompanionDialogue({ realmId: 'capstone' })).toContain('Capstone Insight');
   });
 
-  it('should return correct tip for css realm', () => {
-    const result = getCompanionDialogue({ realmId: 'css' });
-    expect(result).toContain('In the CSS realm');
-  });
-
-  it('should return correct tip for typescript realm', () => {
-    const result = getCompanionDialogue({ realmId: 'typescript' });
-    expect(result).toContain('Tactical Intel');
-  });
-
-  it('should prioritize level-up over hasError', () => {
-    const result = getCompanionDialogue({ justLeveledUp: true, hasError: true });
+  it('should prioritize level-up over hasError and realmId', () => {
+    const result = getCompanionDialogue({ justLeveledUp: true, hasError: true, realmId: 'react' });
     expect(result).toBe('Congratulations on leveling up! Your power grows!');
   });
 
