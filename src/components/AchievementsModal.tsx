@@ -116,7 +116,7 @@ export function AchievementsModal({
               onClose();
             }}
             className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
-            title="Close (Esc)"
+            type="button" aria-label="Close achievements modal" title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
