@@ -364,6 +364,17 @@ function RichMarkdownViewer({
       elements.push(
         <div
           key={i}
+          role="checkbox"
+          aria-checked={isChecked}
+          tabIndex={0}
+          aria-label={labelContent}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              soundEngine.playSfx("click");
+              onToggleBox(boxKey);
+            }
+          }}
           onClick={() => {
             soundEngine.playSfx("click");
             onToggleBox(boxKey);
@@ -563,6 +574,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
       <div className="md:hidden bg-matrix-card border border-matrix-border rounded-xl p-2.5 flex items-center gap-2">
         <BookOpen className="w-4 h-4 text-matrix-neonCyan shrink-0" />
         <select
+          aria-label="Select curriculum chapter"
           value={selectedFile}
           onChange={(e) => {
             soundEngine.playSfx("click");
@@ -595,6 +607,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
             <input
               type="text"
               placeholder="Filter topics..."
+              aria-label="Filter topics"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
