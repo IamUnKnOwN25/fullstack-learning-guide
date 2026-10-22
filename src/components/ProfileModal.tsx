@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
@@ -64,6 +64,7 @@ export function ProfileModal({
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
   const [importMsg, setImportMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -98,7 +99,60 @@ export function ProfileModal({
     setTimeout(() => setCopiedSave(false), 2000);
   };
 
-  const handleImportSave = () => {
+    const handleDownloadSaveFile = () => {
+    const payload = serializeSaveData({
+      xp,
+      level,
+      rankTitle,
+      completedQuests,
+      completedBosses,
+      stars,
+      badges,
+      completedCurriculumTasks,
+      completedChapters,
+      streak,
+    });
+    if (typeof window !== "undefined") {
+      const blob = new Blob([payload], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `devquest-save-${currentUser.username || "player"}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      soundEngine.playSfx("click");
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const res = event.target?.result as string;
+      if (res) {
+        try {
+          const ok = importSaveData(res);
+          if (ok) {
+            setImportMsg("Save file loaded successfully!");
+            soundEngine.playSfx("level-up");
+          } else {
+            setImportMsg("Invalid save file structure.");
+            soundEngine.playSfx("error");
+          }
+        } catch {
+          setImportMsg("Invalid JSON format.");
+          soundEngine.playSfx("error");
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+const handleImportSave = () => {
     try {
       const ok = importSaveData(importText);
       if (ok) {
@@ -179,6 +233,8 @@ export function ProfileModal({
                 onClose();
               }}
               className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
+              type="button"
+              aria-label="Close profile modal"
               title="Close (Esc)"
             >
               <X className="w-5 h-5" />
@@ -251,7 +307,7 @@ export function ProfileModal({
                   </label>
                   <textarea
                     rows={2}
-                    value={bioText}
+                    aria-label="Cadet Bio / Motto" value={bioText}
                     onChange={(e) => setBioText(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-matrix-dark border border-matrix-border text-white text-xs outline-none focus:border-matrix-neonCyan"
                   />
@@ -467,24 +523,53 @@ export function ProfileModal({
             <div className="flex items-center gap-2">
               {isAuthenticated ? (
                 <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    data-testid="profile-file-input"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadSaveFile}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    title="Download Save File JSON"
+                  >
+                    <Download className="w-3 h-3 text-matrix-neonGold" />
+                    <span>Download File</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    title="Upload Save File JSON"
+                  >
+                    <Upload className="w-3 h-3 text-matrix-neonCyan" />
+                    <span>Upload File</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleExportSave}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
-                    title="Export Save Backup JSON"
+                    title="Copy Save Backup JSON to Clipboard"
                   >
                     <Copy className="w-3 h-3 text-matrix-accent" />
-                    <span>{copiedSave ? "Copied!" : "Export JSON"}</span>
+                    <span>{copiedSave ? "Copied!" : "Copy JSON"}</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setShowImport(!showImport)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white transition-colors cursor-pointer"
-                    title="Import Save JSON"
+                    title="Paste Save JSON"
                   >
-                    <Upload className="w-3 h-3 text-matrix-neonCyan" />
-                    <span>Import JSON</span>
+                    <Edit3 className="w-3 h-3 text-matrix-neonGreen" />
+                    <span>Paste JSON</span>
                   </button>
                 </>
               ) : (
@@ -495,6 +580,27 @@ export function ProfileModal({
               )}
             </div>
           </div>
+
+          {/* Operation Status Feedback */}
+          {importMsg && (
+            <div
+              className={`p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 animate-fadeIn ${
+                importMsg.includes("successfully")
+                  ? "bg-matrix-neonCyan/10 border-matrix-neonCyan/40 text-matrix-neonCyan"
+                  : "bg-matrix-neonRed/10 border-matrix-neonRed/40 text-matrix-neonRed"
+              }`}
+            >
+              <span>{importMsg}</span>
+              <button
+                type="button"
+                onClick={() => setImportMsg(null)}
+                className="text-gray-400 hover:text-white p-0.5"
+                title="Dismiss message"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Import JSON Dropdown */}
           {showImport && (
