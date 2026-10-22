@@ -176,6 +176,7 @@ export function ConstellationWorldMap({
             key={realm.id}
             role="button"
             tabIndex={0}
+            aria-label={`${realm.title} (${isBossDefeated ? "Mastered" : isUnlocked ? "Unlocked" : "Sealed"})`}
             title={`${realm.title} — Click to inspect, Double-click to launch trial`}
             style={{
               left: `${coords.x}%`,
@@ -287,6 +288,7 @@ export function ConstellationWorldMap({
               <Link
                 key={q.id}
                 href={`/quest/${selectedRealm.id}/${q.id}`}
+                aria-label={`Launch Trial ${q.order} for ${selectedRealm.realmName}`}
                 onClick={() => soundEngine.playSfx("click")}
                 className="px-2 py-0.5 rounded bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-bold flex items-center gap-1 transition-all"
               >
@@ -297,6 +299,7 @@ export function ConstellationWorldMap({
             {BOSSES[selectedRealm.id] && (
               <Link
                 href={`/boss/${selectedRealm.id}`}
+                aria-label={`Challenge Boss for ${selectedRealm.realmName}`}
                 onClick={() => soundEngine.playSfx("attack")}
                 className="px-2 py-0.5 rounded bg-matrix-neonRed hover:bg-red-600 text-white font-bold flex items-center gap-1 transition-all"
               >
@@ -306,6 +309,7 @@ export function ConstellationWorldMap({
             )}
             <Link
               href={`/curriculum?file=${selectedRealm.fileRef}`}
+              aria-label={`View Curriculum Guide for ${selectedRealm.realmName}`}
               onClick={() => soundEngine.playSfx("click")}
               className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan font-bold flex items-center gap-1 transition-all"
             >
