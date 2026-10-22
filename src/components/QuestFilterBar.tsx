@@ -32,6 +32,7 @@ export function QuestFilterBar({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search quests by title, concept, or code"
           placeholder="Search quests by title, concept, or code..."
           className="block w-full pl-10 pr-3 py-2 border border-matrix-border rounded-lg leading-5 bg-matrix-cardHover text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-matrix-neonCyan focus:border-matrix-neonCyan sm:text-sm transition-all"
         />
@@ -44,6 +45,7 @@ export function QuestFilterBar({
             <Layers className="h-4 w-4 text-matrix-accent group-focus-within:text-white transition-colors" />
           </div>
           <select
+            aria-label="Filter quests by realm"
             value={selectedRealm}
             onChange={(e) => setSelectedRealm(e.target.value)}
             className="block w-full pl-10 pr-8 py-2 border border-matrix-border rounded-lg leading-5 bg-matrix-cardHover text-gray-200 focus:outline-none focus:ring-1 focus:ring-matrix-accent focus:border-matrix-accent sm:text-sm appearance-none cursor-pointer transition-all"
@@ -66,6 +68,7 @@ export function QuestFilterBar({
             <Zap className="h-4 w-4 text-amber-400 group-focus-within:text-white transition-colors" />
           </div>
           <select
+            aria-label="Filter quests by difficulty"
             value={difficulty}
             onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
             className="block w-full pl-10 pr-8 py-2 border border-matrix-border rounded-lg leading-5 bg-matrix-cardHover text-gray-200 focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400 sm:text-sm appearance-none cursor-pointer transition-all"
