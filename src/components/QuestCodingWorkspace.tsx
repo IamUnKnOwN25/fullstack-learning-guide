@@ -453,6 +453,7 @@ export function QuestCodingWorkspace({
             <div className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
+                aria-pressed={directiveTab === "directive"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setDirectiveTab("directive");
@@ -470,6 +471,7 @@ export function QuestCodingWorkspace({
               {warmupDrill && (
                 <button
                   type="button"
+                  aria-pressed={directiveTab === "warmup"}
                   onClick={() => {
                     soundEngine.playSfx("click");
                     setDirectiveTab("warmup");
@@ -492,6 +494,7 @@ export function QuestCodingWorkspace({
               {deepDive && (
                 <button
                   type="button"
+                  aria-pressed={directiveTab === "deepdive"}
                   onClick={() => {
                     soundEngine.playSfx("click");
                     setDirectiveTab("deepdive");
@@ -737,6 +740,7 @@ export function QuestCodingWorkspace({
                   </button>
                 </div>
                 <textarea
+                  aria-label="Warm-up drill code editor"
                   value={warmupCode}
                   onChange={(e) => setWarmupCode(e.target.value)}
                   spellCheck={false}
@@ -951,6 +955,8 @@ export function QuestCodingWorkspace({
           <div className="px-3 sm:px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between gap-2 overflow-x-auto">
             <div className="flex items-center gap-1.5 shrink-0">
               <button
+                type="button"
+                aria-pressed={activeTab === "editor"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("editor");
@@ -966,6 +972,8 @@ export function QuestCodingWorkspace({
               </button>
 
               <button
+                type="button"
+                aria-pressed={activeTab === "split"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("split");
@@ -982,6 +990,8 @@ export function QuestCodingWorkspace({
               </button>
 
               <button
+                type="button"
+                aria-pressed={activeTab === "preview"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("preview");
@@ -997,6 +1007,8 @@ export function QuestCodingWorkspace({
               </button>
 
               <button
+                type="button"
+                aria-pressed={activeTab === "terminal"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("terminal");
@@ -1019,6 +1031,8 @@ export function QuestCodingWorkspace({
               </button>
 
               <button
+                type="button"
+                aria-pressed={activeTab === "visualizer"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("visualizer");
@@ -1048,6 +1062,7 @@ export function QuestCodingWorkspace({
 
               <button
                 type="button"
+                aria-pressed={directiveTab === "directive"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setFocusWorkbench((prev) => !prev);
@@ -1112,6 +1127,7 @@ export function QuestCodingWorkspace({
 
                     <textarea
                       ref={textareaRef}
+                      aria-label="Quest solution code editor"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       onScroll={(e) => {
