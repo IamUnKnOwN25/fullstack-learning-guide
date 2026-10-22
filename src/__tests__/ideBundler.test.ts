@@ -15,6 +15,7 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
     expect(detectFileLanguage("schema.sql")).toBe("sql");
     expect(detectFileLanguage("package.json")).toBe("json");
     expect(detectFileLanguage("README.md")).toBe("markdown");
+    expect(detectFileLanguage("unknown_file")).toBe("javascript");
   });
 
   it("bundles multi-file HTML, CSS, and TypeScript/JavaScript projects into a runnable srcDoc", () => {
@@ -34,10 +35,68 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
     expect(srcDoc).toContain("devquest-ide-preview");
   });
 
+  it("bundles non-HTML projects (pure SQL or pure TS/JS) into interactive console sandboxes", () => {
+    // Pure SQL file without HTML
+    const sqlDoc = bundleIdeProject([
+      {
+        name: "query.sql",
+        language: "sql",
+        content: "SELECT id, username FROM operatives WHERE level > 5;",
+      },
+    ]);
+    expect(sqlDoc).toContain("SELECT id, username FROM operatives");
+    expect(sqlDoc).toContain("PostgreSQL 16 Engine Simulator");
+
+    // Pure TypeScript file without HTML
+    const tsDoc = bundleIdeProject([
+      {
+        name: "algorithm.ts",
+        language: "typescript",
+        content: "console.log('Fibonacci matrix calculated');",
+      },
+    ]);
+    expect(tsDoc).toContain("Fibonacci matrix calculated");
+    expect(tsDoc).toContain("Live Sandbox Console (TYPESCRIPT)");
+  });
+
+  it("safely escapes nested closing script tags inside user JavaScript code", () => {
+    const doc = bundleIdeProject([
+      { name: "index.html", language: "html", content: "<div id='out'></div>" },
+      {
+        name: "app.js",
+        language: "javascript",
+        content: "const template = '</script><div>Injected</div>';",
+      },
+    ]);
+
+    expect(doc).toContain("<\\/script>");
+    expect(doc).not.toMatch(/<\/script><div>Injected<\/div>/);
+  });
+
+  it("strips TypeScript type annotations and interface definitions for browser execution", () => {
+    const doc = bundleIdeProject([
+      { name: "index.html", language: "html", content: "<div id='app'></div>" },
+      {
+        name: "model.ts",
+        language: "typescript",
+        content: `interface UserProfile {
+  id: string;
+  rank: number;
+}
+export const score: number = 999;
+console.log('Score:', score);`,
+      },
+    ]);
+
+    expect(doc).toContain("const score = 999;");
+    expect(doc).toContain("console.log('Score:', score);");
+    expect(doc).not.toContain("interface UserProfile");
+  });
+
   it("flags static analysis diagnostics across HTML, JS/TS, and SQL files", () => {
     const diags = analyzeWorkspaceDiagnostics([
       { name: "index.html", language: "html", content: '<img src="avatar.png">' },
-      { name: "legacy.ts", language: "typescript", content: "var x: any = 10;" },
+      { name: "legacy.ts", language: "typescript", content: "var x: any = 10;\neval('console.log(x)');" },
       {
         name: "unsafe.sql",
         language: "sql",
@@ -48,6 +107,7 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
     expect(diags.some((d) => d.file === "index.html" && d.message.includes("alt"))).toBe(true);
     expect(diags.some((d) => d.file === "legacy.ts" && d.message.includes("var"))).toBe(true);
     expect(diags.some((d) => d.file === "legacy.ts" && d.message.includes("any"))).toBe(true);
+    expect(diags.some((d) => d.file === "legacy.ts" && d.message.includes("eval()"))).toBe(true);
     expect(
       diags.some((d) => d.file === "unsafe.sql" && d.message.includes("SQL Injection"))
     ).toBe(true);
@@ -69,13 +129,11 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
       { name: "styles.css", language: "css" as const, content: "body { color: cyan; }" },
     ];
 
-    // Previewing 'about.html' must render about.html's content, not index.html
     const aboutDoc = bundleIdeProject(files, "about.html");
     expect(aboutDoc).toContain("<h1>About Page</h1>");
     expect(aboutDoc).not.toContain("<h1>Index Home</h1>");
     expect(aboutDoc).toContain("body { color: cyan; }");
 
-    // Previewing 'index.html' renders index.html
     const indexDoc = bundleIdeProject(files, "index.html");
     expect(indexDoc).toContain("<h1>Index Home</h1>");
     expect(indexDoc).not.toContain("<h1>About Page</h1>");
@@ -104,10 +162,8 @@ describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
     expect(doc).toContain("Full Document Header");
     expect(doc).toContain("h1 { font-size: 32px; }");
     expect(doc).toContain("console.log('Script running');");
-    // Ensure local link and script tags are inlined cleanly
     expect(doc).toContain("<!-- Inlined: styles.css -->");
     expect(doc).toContain("<!-- Inlined: main.js -->");
-    // Ensure only 1 DOCTYPE exists
     const doctypeMatches = doc.match(/<!DOCTYPE/gi);
     expect(doctypeMatches?.length).toBe(1);
   });
