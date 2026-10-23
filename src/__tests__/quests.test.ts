@@ -317,4 +317,127 @@ describe("DevQuest Quests Matrix", () => {
       expect(quest.testRunner(missingFormData).passed).toBe(false);
     });
   });
+
+  describe("Realm TestRunners: Backend & Databases", () => {
+    it("evaluates backend_1_express_rest solution and failure states", () => {
+      const quest = QUESTS.backend.find((q) => q.id === "backend_1_express_rest")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `app.get('/api/health', (req, res) => {
+        res.status(200).json({ status: "healthy" });
+      });
+      app.post('/api/tasks', (req, res) => {
+        res.status(201).json({ id: "task-1", ...req.body });
+      });`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingGet = `app.post('/api/tasks', (req, res) => {
+        res.status(201).json({ id: "task-1" });
+      });`;
+      expect(quest.testRunner(missingGet).passed).toBe(false);
+
+      const missingPost = `app.get('/api/health', (req, res) => {
+        res.status(200).json({ status: "healthy" });
+      });`;
+      expect(quest.testRunner(missingPost).passed).toBe(false);
+
+      const wrongGetStatus = `app.get('/api/health', (req, res) => {
+        res.json({ status: "healthy" });
+      });
+      app.post('/api/tasks', (req, res) => {
+        res.status(201).json({ id: "1" });
+      });`;
+      expect(quest.testRunner(wrongGetStatus).passed).toBe(false);
+    });
+
+    it("evaluates backend_2_jwt_auth solution and failure states", () => {
+      const quest = QUESTS.backend.find((q) => q.id === "backend_2_jwt_auth")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+      try {
+        const decoded = jwt.verify(token, "secret");
+        res.locals.user = decoded;
+        next();
+      } catch (err) {
+        return res.status(401).json({ error: "Invalid token" });
+      }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingAuthHeader = `try {
+        const decoded = jwt.verify(token, "secret");
+        res.locals.user = decoded;
+        next();
+      } catch (e) {
+        res.status(401).json({});
+      }`;
+      expect(quest.testRunner(missingAuthHeader).passed).toBe(false);
+
+      const missingVerify = `const auth = req.headers.authorization;
+      res.locals.user = { id: 1 };
+      res.status(401);`;
+      expect(quest.testRunner(missingVerify).passed).toBe(false);
+
+      const missingLocals = `const auth = req.headers.authorization;
+      jwt.verify(token, "secret");
+      res.status(401);`;
+      expect(quest.testRunner(missingLocals).passed).toBe(false);
+
+      const missing401 = `const auth = req.headers.authorization;
+      const decoded = jwt.verify(token, "secret");
+      res.locals.user = decoded;`;
+      expect(quest.testRunner(missing401).passed).toBe(false);
+    });
+
+    it("evaluates db_1_postgres solution and failure states", () => {
+      const quest = QUESTS.databases.find((q) => q.id === "db_1_postgres")!;
+      expect(quest).toBeDefined();
+
+      const validSql = `CREATE TABLE users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email TEXT UNIQUE NOT NULL
+      );
+      CREATE TABLE tasks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL
+      );`;
+      expect(quest.testRunner(validSql).passed).toBe(true);
+
+      const missingUsersTable = `CREATE TABLE tasks (
+        id UUID PRIMARY KEY,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE
+      );`;
+      expect(quest.testRunner(missingUsersTable).passed).toBe(false);
+
+      const missingTasksTable = `CREATE TABLE users (
+        id UUID PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL
+      );`;
+      expect(quest.testRunner(missingTasksTable).passed).toBe(false);
+
+      const missingCascade = `CREATE TABLE users (id UUID);
+      CREATE TABLE tasks (
+        id UUID PRIMARY KEY,
+        user_id UUID REFERENCES users(id)
+      );`;
+      expect(quest.testRunner(missingCascade).passed).toBe(false);
+    });
+
+    it("evaluates db_2_indexes_prisma solution and failure states", () => {
+      const quest = QUESTS.databases.find((q) => q.id === "db_2_indexes_prisma")!;
+      expect(quest).toBeDefined();
+
+      const validSql = `CREATE INDEX idx_tasks_user_id ON tasks(user_id);
+      CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);`;
+      expect(quest.testRunner(validSql).passed).toBe(true);
+
+      const missingSingleIndex = `CREATE INDEX idx_tasks_user_created ON tasks(user_id, created_at DESC);`;
+      expect(quest.testRunner(missingSingleIndex).passed).toBe(false);
+
+      const missingCompositeIndex = `CREATE INDEX idx_tasks_user_id ON tasks(user_id);`;
+      expect(quest.testRunner(missingCompositeIndex).passed).toBe(false);
+    });
+  });
 });
