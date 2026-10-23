@@ -440,4 +440,172 @@ describe("DevQuest Quests Matrix", () => {
       expect(quest.testRunner(missingCompositeIndex).passed).toBe(false);
     });
   });
+
+  describe("Realm TestRunners: DevOps, Testing, CS, Security & Capstone", () => {
+    it("evaluates devops_1_docker and devops_2_github_actions testRunners", () => {
+      const dockerQuest = QUESTS.devops.find((q) => q.id === "devops_1_docker")!;
+      expect(dockerQuest).toBeDefined();
+
+      const validDocker = `FROM node:22-alpine AS build
+      WORKDIR /app
+      RUN npm run build
+
+      FROM node:22-alpine AS runner
+      COPY --from=build /app/dist ./dist
+      USER node
+      CMD ["node", "dist/server.js"]`;
+      expect(dockerQuest.testRunner(validDocker).passed).toBe(true);
+
+      const missingUserNode = `FROM node:22-alpine AS build
+      COPY --from=build /app/dist ./dist`;
+      expect(dockerQuest.testRunner(missingUserNode).passed).toBe(false);
+
+      const ciQuest = QUESTS.devops.find((q) => q.id === "devops_2_github_actions")!;
+      expect(ciQuest).toBeDefined();
+
+      const validCi = `name: CI
+      on: [push, pull_request]
+      jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+            - run: npm test`;
+      expect(ciQuest.testRunner(validCi).passed).toBe(true);
+
+      const missingCiTrigger = `jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+            - run: npm test`;
+      expect(ciQuest.testRunner(missingCiTrigger).passed).toBe(false);
+    });
+
+    it("evaluates testing_1_unit_vitest and testing_2_mocking testRunners", () => {
+      const unitQuest = QUESTS.testing.find((q) => q.id === "testing_1_unit_vitest")!;
+      expect(unitQuest).toBeDefined();
+
+      const validUnit = `describe("calculateTotal", () => {
+        it("calculates price correctly", () => {
+          expect(calculateTotal(100, 0.1, 10)).toBe(99);
+        });
+        it("throws error for negative values", () => {
+          expect(() => calculateTotal(-1, 0.1)).toThrow();
+        });
+      });`;
+      expect(unitQuest.testRunner(validUnit).passed).toBe(true);
+
+      const missingToThrow = `describe("calculateTotal", () => {
+        it("calculates price correctly", () => {
+          expect(calculateTotal(100, 0.1, 10)).toBe(99);
+        });
+      });`;
+      expect(unitQuest.testRunner(missingToThrow).passed).toBe(false);
+
+      const mockQuest = QUESTS.testing.find((q) => q.id === "testing_2_mocking")!;
+      expect(mockQuest).toBeDefined();
+
+      const validMock = `const spy = vi.fn().mockResolvedValue({ delivered: true });
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy).toHaveBeenCalledWith("cadet@matrix.net");`;
+      expect(mockQuest.testRunner(validMock).passed).toBe(true);
+
+      const missingWith = `const spy = vi.fn();
+      expect(spy).toHaveBeenCalledTimes(1);`;
+      expect(mockQuest.testRunner(missingWith).passed).toBe(false);
+    });
+
+    it("evaluates cs_1_binary_search and cs_2_hashmap_frequency testRunners", () => {
+      const bsQuest = QUESTS.cs.find((q) => q.id === "cs_1_binary_search")!;
+      expect(bsQuest).toBeDefined();
+
+      const validBs = `while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (arr[mid] === target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+      }
+      return -1;`;
+      expect(bsQuest.testRunner(validBs).passed).toBe(true);
+
+      const missingMidBs = `while (left <= right) {
+        left = mid + 1;
+        right = mid - 1;
+      }
+      return -1;`;
+      expect(bsQuest.testRunner(missingMidBs).passed).toBe(false);
+
+      const hashQuest = QUESTS.cs.find((q) => q.id === "cs_2_hashmap_frequency")!;
+      expect(hashQuest).toBeDefined();
+
+      const validHash = `const counts = new Map<T, number>();
+      for (const item of items) {
+        counts.set(item, (counts.get(item) || 0) + 1);
+      }`;
+      expect(hashQuest.testRunner(validHash).passed).toBe(true);
+
+      const missingMapHash = `const counts = {};
+      for (const item of items) {}`;
+      expect(hashQuest.testRunner(missingMapHash).passed).toBe(false);
+    });
+
+    it("evaluates security_1_xss_sanitize and security_2_jwt_verification testRunners", () => {
+      const xssQuest = QUESTS.security.find((q) => q.id === "security_1_xss_sanitize")!;
+      expect(xssQuest).toBeDefined();
+
+      const validXss = `return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");`;
+      expect(xssQuest.testRunner(validXss).passed).toBe(true);
+
+      const missingAmpXss = `return unsafe.replace(/</g, "&lt;").replace(/>/g, "&gt;");`;
+      expect(xssQuest.testRunner(missingAmpXss).passed).toBe(false);
+
+      const jwtQuest = QUESTS.security.find((q) => q.id === "security_2_jwt_verification")!;
+      expect(jwtQuest).toBeDefined();
+
+      const validJwt = `return jwt.verify(token, secret, { algorithms: ["HS256"] });`;
+      expect(jwtQuest.testRunner(validJwt).passed).toBe(true);
+
+      const missingAlgoJwt = `return jwt.verify(token, secret);`;
+      expect(jwtQuest.testRunner(missingAlgoJwt).passed).toBe(false);
+    });
+
+    it("evaluates capstone_1_architecture and capstone_2_health_probe testRunners", () => {
+      const archQuest = QUESTS.capstone.find((q) => q.id === "capstone_1_architecture")!;
+      expect(archQuest).toBeDefined();
+
+      const validArch = `export interface TeamTask {
+        status: "TODO" | "IN_PROGRESS" | "DONE";
+        priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+      }
+      export function validateTask(t: Partial<TeamTask>) { return true; }`;
+      expect(archQuest.testRunner(validArch).passed).toBe(true);
+
+      const missingPriorityArch = `export interface TeamTask {
+        status: "TODO" | "IN_PROGRESS" | "DONE";
+      }
+      export function validateTask(t: Partial<TeamTask>) { return true; }`;
+      expect(archQuest.testRunner(missingPriorityArch).passed).toBe(false);
+
+      const healthQuest = QUESTS.capstone.find((q) => q.id === "capstone_2_health_probe")!;
+      expect(healthQuest).toBeDefined();
+
+      const validHealth = `const [dbOk, cacheOk] = await Promise.all([
+        db.isConnected(),
+        cache.ping()
+      ]);
+      return { status: "healthy", timestamp: Date.now() };`;
+      expect(healthQuest.testRunner(validHealth).passed).toBe(true);
+
+      const missingPromiseAllHealth = `const dbOk = await db.isConnected();
+      const cacheOk = await cache.ping();
+      return { status: "healthy" };`;
+      expect(healthQuest.testRunner(missingPromiseAllHealth).passed).toBe(false);
+    });
+  });
 });
