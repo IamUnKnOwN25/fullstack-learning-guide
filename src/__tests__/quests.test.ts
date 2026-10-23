@@ -215,4 +215,106 @@ describe("DevQuest Quests Matrix", () => {
       expect(quest.testRunner(missingAwait).passed).toBe(false);
     });
   });
+
+  describe("Realm TestRunners: TypeScript & React", () => {
+    it("evaluates ts_1_interfaces solution and failure states", () => {
+      const quest = QUESTS.typescript.find((q) => q.id === "ts_1_interfaces")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `const cadet: MatrixOperator = {
+        id: "cadet-007",
+        name: "Cipher Cadet",
+        level: 1,
+        isOnline: true
+      };`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingIsOnline = `const cadet: MatrixOperator = {
+        id: "cadet-007",
+        name: "Cipher Cadet",
+        level: 1
+      };`;
+      expect(quest.testRunner(missingIsOnline).passed).toBe(false);
+
+      const missingCadetDecl = `const op = { id: "1", name: "User", level: 1, isOnline: true };`;
+      expect(quest.testRunner(missingCadetDecl).passed).toBe(false);
+    });
+
+    it("evaluates ts_2_generics solution and failure states", () => {
+      const quest = QUESTS.typescript.find((q) => q.id === "ts_2_generics")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `export interface ApiResponse<T> {
+        success: boolean;
+        data: T;
+        timestamp: number;
+      }
+      export function wrapResponse<T>(payload: T): ApiResponse<T> {
+        return { success: true, data: payload, timestamp: Date.now() };
+      }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingInterface = `export function wrapResponse<T>(payload: T) {
+        return { success: true, data: payload };
+      }`;
+      expect(quest.testRunner(missingInterface).passed).toBe(false);
+
+      const missingGenericFn = `export interface ApiResponse<T> {
+        data: T;
+      }
+      export function wrapData(payload: any) {}`;
+      expect(quest.testRunner(missingGenericFn).passed).toBe(false);
+    });
+
+    it("evaluates react_1_hooks solution and failure states", () => {
+      const quest = QUESTS.react.find((q) => q.id === "react_1_hooks")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `import React, { useState } from "react";
+      export function Counter() {
+        const [count, setCount] = useState(0);
+        return <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>;
+      }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingState = `export function Counter() {
+        return <button onClick={() => setCount(1)}>Click</button>;
+      }`;
+      expect(quest.testRunner(missingState).passed).toBe(false);
+
+      const missingButton = `export function Counter() {
+        const [count, setCount] = useState(0);
+        return <div>Count: {count}</div>;
+      }`;
+      expect(quest.testRunner(missingButton).passed).toBe(false);
+    });
+
+    it("evaluates react_2_server_actions solution and failure states", () => {
+      const quest = QUESTS.react.find((q) => q.id === "react_2_server_actions")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `"use server";
+      import { revalidatePath } from "next/cache";
+      export async function addQuestAction(formData: FormData) {
+        const title = formData.get("title") as string;
+        revalidatePath("/quests");
+        return { success: true };
+      }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingDirective = `import { revalidatePath } from "next/cache";
+      export async function addQuestAction(formData: FormData) {
+        const title = formData.get("title");
+        revalidatePath("/quests");
+      }`;
+      expect(quest.testRunner(missingDirective).passed).toBe(false);
+
+      const missingFormData = `"use server";
+      import { revalidatePath } from "next/cache";
+      export async function addQuestAction(formData: FormData) {
+        revalidatePath("/quests");
+      }`;
+      expect(quest.testRunner(missingFormData).passed).toBe(false);
+    });
+  });
 });
