@@ -16,11 +16,21 @@ describe("speedrunTimer", () => {
       expect(formatSpeedrunTime(0)).toBe("00:00");
     });
 
+    it("formats sub-second durations as 00:00", () => {
+      expect(formatSpeedrunTime(500)).toBe("00:00");
+      expect(formatSpeedrunTime(999)).toBe("00:00");
+    });
+
     it("formats milliseconds to minutes and seconds", () => {
       expect(formatSpeedrunTime(1000)).toBe("00:01");
       expect(formatSpeedrunTime(60000)).toBe("01:00");
       expect(formatSpeedrunTime(65000)).toBe("01:05");
       expect(formatSpeedrunTime(600000)).toBe("10:00");
+    });
+
+    it("formats large elapsed times over 60 minutes correctly", () => {
+      expect(formatSpeedrunTime(3661000)).toBe("61:01");
+      expect(formatSpeedrunTime(7200000)).toBe("120:00");
     });
   });
 
@@ -69,6 +79,48 @@ describe("speedrunTimer", () => {
       expect(useSpeedrunTimer.getState().activeRuns["quest-1"]).toBeUndefined();
     });
 
+    it("safely handles cancelling a run that was never started", () => {
+      expect(() => {
+        useSpeedrunTimer.getState().cancelRun("nonexistent-quest");
+      }).not.toThrow();
+    });
+
+    it("tracks multiple concurrent quest runs independently", () => {
+      const store = useSpeedrunTimer.getState();
+      vi.setSystemTime(100000);
+
+      store.startRun("quest-html");
+      vi.advanceTimersByTime(5000); // 5s in
+      store.startRun("quest-css");
+      vi.advanceTimersByTime(5000); // 10s for html, 5s for css
+
+      expect(useSpeedrunTimer.getState().getElapsedMs("quest-html")).toBe(10000);
+      expect(useSpeedrunTimer.getState().getElapsedMs("quest-css")).toBe(5000);
+
+      const htmlResult = useSpeedrunTimer.getState().finishRun("quest-html");
+      expect(htmlResult?.timeMs).toBe(10000);
+      expect(useSpeedrunTimer.getState().activeRuns["quest-html"]).toBeUndefined();
+      expect(useSpeedrunTimer.getState().activeRuns["quest-css"]).toBeDefined();
+      expect(useSpeedrunTimer.getState().getElapsedMs("quest-css")).toBe(5000);
+    });
+
+    it("resets start timestamp when restarting an already running quest", () => {
+      const store = useSpeedrunTimer.getState();
+      vi.setSystemTime(100000);
+
+      store.startRun("quest-1");
+      vi.advanceTimersByTime(8000);
+      expect(useSpeedrunTimer.getState().getElapsedMs("quest-1")).toBe(8000);
+
+      // Restart run
+      store.startRun("quest-1");
+      expect(useSpeedrunTimer.getState().getElapsedMs("quest-1")).toBe(0);
+
+      vi.advanceTimersByTime(3000);
+      const res = useSpeedrunTimer.getState().finishRun("quest-1");
+      expect(res?.timeMs).toBe(3000);
+    });
+
     it("updates best time only if the new run is faster", () => {
       const store = useSpeedrunTimer.getState();
 
@@ -110,6 +162,26 @@ describe("speedrunTimer", () => {
     it("returns null when getting elapsed time for a run that hasn't started", () => {
       const result = useSpeedrunTimer.getState().getElapsedMs("unknown-quest");
       expect(result).toBeNull();
+    });
+
+    it("returns null when getting record for nonexistent quest", () => {
+      const result = useSpeedrunTimer.getState().getRecord("nonexistent-quest");
+      expect(result).toBeNull();
+    });
+
+    it("clears all active runs and completed records on clearAllRecords", () => {
+      const store = useSpeedrunTimer.getState();
+      store.startRun("quest-1");
+      store.finishRun("quest-1");
+      store.startRun("quest-2");
+
+      expect(Object.keys(useSpeedrunTimer.getState().records).length).toBe(1);
+      expect(Object.keys(useSpeedrunTimer.getState().activeRuns).length).toBe(1);
+
+      store.clearAllRecords();
+
+      expect(useSpeedrunTimer.getState().records).toEqual({});
+      expect(useSpeedrunTimer.getState().activeRuns).toEqual({});
     });
   });
 });

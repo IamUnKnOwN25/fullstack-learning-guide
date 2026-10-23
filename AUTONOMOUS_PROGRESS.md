@@ -12,6 +12,12 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-23 13:08] Cycle 117: Speedrun Timer Concurrent Runs & Overflow Formatter Suite (Tests: PASS)**
+  - Enhanced unit test suite in `src/__tests__/speedrunTimer.test.ts` covering sub-second formatting (`< 1000ms`), overflow duration formatting past 60 minutes (`61:01`, `120:00`), independent concurrent runs across multiple quests (`quest-html`, `quest-css`), run restarts overriding initial start timestamps, safe non-throwing cancellations on nonexistent quests, and full store wipes with `clearAllRecords`.
+  - Verified with `npm run validate` (55 test files, 439 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-23 13:06] Cycle 116: Streak System Calendar Boundaries & Malformed State Recovery (Tests: PASS)**
   - Enhanced unit test suite in `src/__tests__/streakSystem.test.ts` covering non-leap year February month end (`2023-02-28` to `2023-03-01`), year end rollover (`2023-12-31` to `2024-01-01`), 0/negative/NaN/null safe day input clamping, bonus cap saturation at 30% for ultra-long streaks (30 to 365 days), and malformed date string recovery with reset flags.
   - Verified with `npm run validate` (55 test files, 432 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
