@@ -27,6 +27,10 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
         expect(deepDive.quiz.correctIndex).toBeGreaterThanOrEqual(0);
         expect(deepDive.quiz.correctIndex).toBeLessThan(deepDive.quiz.options.length);
         expect(deepDive.quiz.explanation.length).toBeGreaterThan(15);
+
+        // Options should be unique
+        const uniqueOptions = new Set(deepDive.quiz.options);
+        expect(uniqueOptions.size).toBe(deepDive.quiz.options.length);
       }
     }
     expect(checkedCount).toBe(24);
@@ -53,6 +57,19 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
     }
   });
 
+  it("ensures empty input fails validation safely across all warm-up drills", () => {
+    for (const realm of REALMS) {
+      const drill = REALM_WARMUP_DRILLS[realm.id];
+      if (!drill) continue;
+
+      expect(() => {
+        const emptyResult = drill.validator("");
+        expect(emptyResult.passed).toBe(false);
+        expect(typeof emptyResult.message).toBe("string");
+      }).not.toThrow();
+    }
+  });
+
   it("generates senior invariant assertions for HTML, Forms, and Async quests", () => {
     const htmlAssertions = generateQuestAssertions(
       "html_1_skeleton",
@@ -61,12 +78,27 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
     expect(htmlAssertions.length).toBe(4);
     expect(htmlAssertions.every((a) => a.passed)).toBe(true);
 
+    const formsAssertions = generateQuestAssertions(
+      "html_2_forms",
+      "<form><label for='email'>Email:</label><input id='email' type='email'><label for='password'>Password:</label><input id='password' type='password'><button type='submit'>Register</button></form>"
+    );
+    expect(formsAssertions.length).toBe(3);
+    expect(formsAssertions.every((a) => a.passed)).toBe(true);
+
     const asyncAssertions = generateQuestAssertions(
       "js_2_async",
       "async function load() { try { const res = await fetch('/api'); if (!res.ok) throw new Error(); return await res.json(); } catch (err) {} }"
     );
     expect(asyncAssertions.length).toBe(4);
     expect(asyncAssertions.every((a) => a.passed)).toBe(true);
+  });
+
+  it("handles broken or empty code in invariant assertions safely with failure states", () => {
+    const failedHtml = generateQuestAssertions("html_1_skeleton", "<p>Not a skeleton</p>");
+    expect(failedHtml.some((a) => !a.passed)).toBe(true);
+
+    const failedAsync = generateQuestAssertions("js_2_async", "function syncLoad() {}");
+    expect(failedAsync.some((a) => !a.passed)).toBe(true);
   });
 
   it("returns fallback invariants for other quests gracefully", () => {
@@ -80,6 +112,7 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
   });
 
   it("provides senior incident post-mortems for all 12 realm bosses", () => {
+    const severities = new Set<string>();
     for (const realm of REALMS) {
       const postMortem = BOSS_INCIDENT_POST_MORTEMS[realm.id];
       expect(postMortem, `Missing incident post-mortem for boss of realm ${realm.id}`).toBeDefined();
@@ -90,6 +123,8 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
       expect(postMortem.productionImpact.length).toBeGreaterThan(30);
       expect(postMortem.seniorMitigation.length).toBeGreaterThan(30);
       expect(postMortem.metricAlert.length).toBeGreaterThan(20);
+      severities.add(postMortem.incidentSeverity);
     }
+    expect(severities.size).toBeGreaterThanOrEqual(2);
   });
 });
