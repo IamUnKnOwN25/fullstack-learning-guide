@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { soundEngine } from '../lib/soundEngine';
+import { soundEngine as audioSoundEngine } from '../lib/audio';
 
 describe('SoundEngine', () => {
   let mockAudioContext: any;
@@ -43,10 +44,12 @@ describe('SoundEngine', () => {
       clearInterval: vi.fn(),
     };
 
-    // Reset singleton state if possible, though since it's a singleton we can test it directly
-    // Let's set it to unmuted and reset volume just in case.
     soundEngine.setMuted(false);
     soundEngine.setVolume(0.3);
+  });
+
+  it('re-exports soundEngine singleton identically from src/lib/audio', () => {
+    expect(audioSoundEngine).toBe(soundEngine);
   });
 
   it('initializes AudioContext on playSfx and resumes if suspended', () => {
@@ -55,54 +58,90 @@ describe('SoundEngine', () => {
     expect(mockAudioContext.resume).toHaveBeenCalled();
   });
 
-  it('respects volume settings', () => {
+  it('respects volume settings and clamps out-of-range volume', () => {
     soundEngine.setVolume(0.5);
     soundEngine.playSfx('click');
-    expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.5 * 0.4, 0); // volume * 0.4 for click
+    expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.5 * 0.4, 0);
+
+    // Test volume clamping to max 1.0
+    soundEngine.setVolume(1.8);
+    soundEngine.playSfx('click');
+    expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(1.0 * 0.4, 0);
+
+    // Test volume clamping to min 0.0
+    soundEngine.setVolume(-0.5);
+    soundEngine.playSfx('click');
+    expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.0 * 0.4, 0);
   });
 
-  it('respects muted state', () => {
+  it('respects muted state and halts execution early', () => {
     soundEngine.setMuted(true);
     soundEngine.playSfx('click');
-    // If it was already initialized, it might just return early.
-    // Let's make sure start isn't called after mute.
     expect(mockOscillator.start).not.toHaveBeenCalled();
   });
 
-  describe('playSfx', () => {
+  describe('playSfx full suite', () => {
     it('plays click sound with sine wave', () => {
       soundEngine.playSfx('click');
       expect(mockOscillator.type).toBe('sine');
       expect(mockOscillator.start).toHaveBeenCalled();
     });
 
-    it('plays correct sound with triangle wave', () => {
+    it('plays correct sound with triangle wave arpeggio', () => {
       soundEngine.playSfx('correct');
       expect(mockOscillator.type).toBe('triangle');
       expect(mockOscillator.start).toHaveBeenCalled();
     });
 
-    it('plays error sound with sawtooth wave', () => {
+    it('plays error sound with sawtooth wave dissonance', () => {
       soundEngine.playSfx('error');
       expect(mockOscillator.type).toBe('sawtooth');
       expect(mockOscillator.start).toHaveBeenCalled();
     });
 
-    it('plays attack sound with square wave', () => {
+    it('plays attack sound with square wave strike', () => {
       soundEngine.playSfx('attack');
       expect(mockOscillator.type).toBe('square');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays boss-hit sound effect', () => {
+      soundEngine.playSfx('boss-hit');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays level-up celebratory fanfare', () => {
+      soundEngine.playSfx('level-up');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays victory triumphant chords', () => {
+      soundEngine.playSfx('victory');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays skill-unlock shimmer', () => {
+      soundEngine.playSfx('skill-unlock');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays badge-inspect gentle chime', () => {
+      soundEngine.playSfx('badge-inspect');
+      expect(mockOscillator.start).toHaveBeenCalled();
+    });
+
+    it('plays heal restorative sweep', () => {
+      soundEngine.playSfx('heal');
       expect(mockOscillator.start).toHaveBeenCalled();
     });
   });
 
   describe('BGM controls', () => {
     it('toggles BGM correctly', () => {
-      // Toggle on
       const isPlayingOn = soundEngine.toggleBgm();
       expect(isPlayingOn).toBe(true);
       expect(window.setInterval).toHaveBeenCalled();
 
-      // Toggle off
       const isPlayingOff = soundEngine.toggleBgm();
       expect(isPlayingOff).toBe(false);
       expect(window.clearInterval).toHaveBeenCalled();
@@ -123,7 +162,6 @@ describe('SoundEngine', () => {
       soundEngine.setMuted(true);
       expect(window.clearInterval).toHaveBeenCalled();
 
-      // Should not start BGM if muted
       const playAttempt = soundEngine.toggleBgm(true);
       expect(playAttempt).toBe(false);
     });
