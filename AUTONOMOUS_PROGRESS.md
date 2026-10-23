@@ -12,6 +12,12 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-23 13:13] Cycle 120: Curriculum Search Aggregation & Markdown Slug Edge Cases (Tests: PASS)**
+  - Enhanced unit test suite in `src/__tests__/curriculumSearch.test.ts` covering complex heading slugification (inline code blocks, punctuation, markdown links), empty document graceful handling, multi-word query score aggregation, exact heading match bonuses (+5), regex-safe string querying, and fake timer validation for descending bookmark sort ordering.
+  - Verified with `npm run validate` (55 test files, 451 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-23 13:11] Cycle 119: Achievements Data Integrity & Rarity Progression Suite (Tests: PASS)**
   - Enhanced unit test suite in `src/__tests__/achievements.test.ts` verifying unique achievement IDs, non-empty descriptive fields, positive XP reward allocations, full four-category coverage (`bosses`, `quests`, `scholar`, `mastery`), full five-rarity representation (`common`, `rare`, `epic`, `legendary`, `mythic`), and progress evaluator contract invariants (`current >= 0`, `target > 0`, boolean `isUnlocked`).
   - Verified with `npm run validate` (55 test files, 446 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
