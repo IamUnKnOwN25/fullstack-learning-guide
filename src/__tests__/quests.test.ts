@@ -124,4 +124,95 @@ describe("DevQuest Quests Matrix", () => {
       ).toBe(true);
     }
   });
+
+  describe("Realm TestRunners: CSS & JavaScript", () => {
+    it("evaluates css_1_flexbox solution and failure states", () => {
+      const quest = QUESTS.css.find((q) => q.id === "css_1_flexbox")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `.hud-bar { display: flex; justify-content: space-between; align-items: center; }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingFlex = `.hud-bar { justify-content: space-between; align-items: center; }`;
+      const resFlex = quest.testRunner(missingFlex);
+      expect(resFlex.passed).toBe(false);
+      expect(resFlex.message).toContain("display: flex");
+
+      const missingJustify = `.hud-bar { display: flex; align-items: center; }`;
+      const resJustify = quest.testRunner(missingJustify);
+      expect(resJustify.passed).toBe(false);
+      expect(resJustify.message).toContain("justify-content");
+
+      const missingAlign = `.hud-bar { display: flex; justify-content: space-between; }`;
+      const resAlign = quest.testRunner(missingAlign);
+      expect(resAlign.passed).toBe(false);
+      expect(resAlign.message).toContain("align-items");
+    });
+
+    it("evaluates css_2_grid solution and failure states", () => {
+      const quest = QUESTS.css.find((q) => q.id === "css_2_grid")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `.grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingGrid = `.grid-container { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }`;
+      expect(quest.testRunner(missingGrid).passed).toBe(false);
+
+      const missingRepeat = `.grid-container { display: grid; gap: 1rem; }`;
+      expect(quest.testRunner(missingRepeat).passed).toBe(false);
+
+      const missingGap = `.grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }`;
+      expect(quest.testRunner(missingGap).passed).toBe(false);
+    });
+
+    it("evaluates js_1_dom solution and failure states", () => {
+      const quest = QUESTS.javascript.find((q) => q.id === "js_1_dom")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `btn.addEventListener('click', () => { power += 10; statusDiv.textContent = 'Power: ' + power; });`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingListener = `function onClick() { power += 10; statusDiv.textContent = 'Power: ' + power; }`;
+      expect(quest.testRunner(missingListener).passed).toBe(false);
+
+      const missingIncrement = `btn.addEventListener('click', () => { statusDiv.textContent = 'Power: ' + power; });`;
+      expect(quest.testRunner(missingIncrement).passed).toBe(false);
+
+      const missingText = `btn.addEventListener('click', () => { power += 10; });`;
+      expect(quest.testRunner(missingText).passed).toBe(false);
+    });
+
+    it("evaluates js_2_async solution and failure states", () => {
+      const quest = QUESTS.javascript.find((q) => q.id === "js_2_async")!;
+      expect(quest).toBeDefined();
+
+      const validCode = `async function fetchMatrixCoordinates(endpoint) {
+        try {
+          const res = await fetch(endpoint);
+          if (!res.ok) throw new Error("Fetch failed: " + res.status);
+          return await res.json();
+        } catch (err) {
+          console.error(err);
+        }
+      }`;
+      expect(quest.testRunner(validCode).passed).toBe(true);
+
+      const missingTry = `async function fetchMatrixCoordinates(endpoint) {
+        const res = await fetch(endpoint);
+        if (!res.ok) throw new Error();
+        return await res.json();
+      }`;
+      expect(quest.testRunner(missingTry).passed).toBe(false);
+
+      const missingAwait = `async function fetchMatrixCoordinates(endpoint) {
+        try {
+          const res = fetch(endpoint);
+          if (!res.ok) throw new Error();
+          return await res.json();
+        } catch (e) {}
+      }`;
+      expect(quest.testRunner(missingAwait).passed).toBe(false);
+    });
+  });
 });
