@@ -12,6 +12,12 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-23 13:05] Cycle 115: Battle Effects Boundary Precision & Extreme Combos Suite (Tests: PASS)**
+  - Enhanced unit test suite in `src/__tests__/battleEffects.test.ts` covering floating-point HP percentages with high decimal precision, strict boundary checking for screen shake thresholds (`sm`, `md`, `lg`, `xl` under both normal and critical hits), and negative/extreme combo counts for celebratory confetti triggers.
+  - Verified with `npm run validate` (55 test files, 427 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-23 13:02] Cycle 114: Web Audio Synthesizer SFX Suite & Volume Clamping Tests (Tests: PASS)**
   - Enhanced unit test suite in `src/__tests__/soundEngine.test.ts` covering all 10 synthesized audio effects (`click`, `correct`, `error`, `attack`, `boss-hit`, `level-up`, `victory`, `skill-unlock`, `badge-inspect`, `heal`).
   - Tested volume boundary clamping ensuring out-of-range inputs (`< 0` or `> 1`) are bounded strictly to `[0.0, 1.0]`, and verified identical singleton re-export from `src/lib/audio.ts`.

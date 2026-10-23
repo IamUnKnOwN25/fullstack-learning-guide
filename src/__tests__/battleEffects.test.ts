@@ -13,6 +13,11 @@ describe('battleEffects', () => {
       expect(calculateHpPercentage(75, 150)).toBe(50);
     });
 
+    it('handles floating point values with high precision', () => {
+      expect(calculateHpPercentage(33.33, 100)).toBeCloseTo(33.33);
+      expect(calculateHpPercentage(1, 3)).toBeCloseTo(33.333, 2);
+    });
+
     it('should clamp HP percentage to 100 if currentHp > maxHp', () => {
       expect(calculateHpPercentage(150, 100)).toBe(100);
       expect(calculateHpPercentage(200, 100)).toBe(100);
@@ -46,17 +51,17 @@ describe('battleEffects', () => {
 
     it('should return "sm" for small damage percentage (< 10%)', () => {
       expect(calculateScreenShakeIntensity(5, 100, false)).toBe('sm');
-      expect(calculateScreenShakeIntensity(9, 100, false)).toBe('sm');
+      expect(calculateScreenShakeIntensity(9.99, 100, false)).toBe('sm');
     });
 
     it('should return "md" for medium damage percentage (>= 10% and < 25%)', () => {
       expect(calculateScreenShakeIntensity(10, 100, false)).toBe('md');
-      expect(calculateScreenShakeIntensity(24, 100, false)).toBe('md');
+      expect(calculateScreenShakeIntensity(24.99, 100, false)).toBe('md');
     });
 
     it('should return "lg" for large damage percentage (>= 25% and < 50%)', () => {
       expect(calculateScreenShakeIntensity(25, 100, false)).toBe('lg');
-      expect(calculateScreenShakeIntensity(49, 100, false)).toBe('lg');
+      expect(calculateScreenShakeIntensity(49.99, 100, false)).toBe('lg');
     });
 
     it('should return "xl" for huge damage percentage (>= 50%)', () => {
@@ -66,12 +71,13 @@ describe('battleEffects', () => {
     });
 
     it('should return "lg" for critical hits even if damage percentage is small or medium', () => {
-      expect(calculateScreenShakeIntensity(5, 100, true)).toBe('lg'); // normally sm
-      expect(calculateScreenShakeIntensity(15, 100, true)).toBe('lg'); // normally md
+      expect(calculateScreenShakeIntensity(5, 100, true)).toBe('lg');
+      expect(calculateScreenShakeIntensity(15, 100, true)).toBe('lg');
     });
 
     it('should return "xl" for critical hits if damage percentage is huge (>= 50%)', () => {
-       expect(calculateScreenShakeIntensity(60, 100, true)).toBe('xl');
+      expect(calculateScreenShakeIntensity(50, 100, true)).toBe('xl');
+      expect(calculateScreenShakeIntensity(60, 100, true)).toBe('xl');
     });
   });
 
@@ -79,10 +85,12 @@ describe('battleEffects', () => {
     it('should return 0 if boss is not defeated', () => {
       expect(calculateConfettiTriggers(false, 0)).toBe(0);
       expect(calculateConfettiTriggers(false, 100)).toBe(0);
+      expect(calculateConfettiTriggers(false, -5)).toBe(0);
     });
 
-    it('should return 1 trigger (base) if boss is defeated with 0 combo', () => {
+    it('should return 1 trigger (base) if boss is defeated with 0 or negative combo', () => {
       expect(calculateConfettiTriggers(true, 0)).toBe(1);
+      expect(calculateConfettiTriggers(true, -3)).toBe(1);
     });
 
     it('should return 2 triggers if boss is defeated with combo > 0 and <= 5', () => {
@@ -97,7 +105,8 @@ describe('battleEffects', () => {
 
     it('should return 4 triggers if boss is defeated with combo > 10', () => {
       expect(calculateConfettiTriggers(true, 11)).toBe(4);
-      expect(calculateConfettiTriggers(true, 20)).toBe(4);
+      expect(calculateConfettiTriggers(true, 100)).toBe(4);
+      expect(calculateConfettiTriggers(true, 9999)).toBe(4);
     });
   });
 });
