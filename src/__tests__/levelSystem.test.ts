@@ -21,6 +21,7 @@ describe("Leveling & EXP System Architecture", () => {
   describe("Progression Formulas & Progress Mapping", () => {
     it("calculates levels correctly from total XP", () => {
       expect(calculateLevel(0)).toBe(1);
+      expect(calculateLevel(-50)).toBe(1);
       expect(calculateLevel(24)).toBe(1);
       expect(calculateLevel(25)).toBe(2);
       expect(calculateLevel(99)).toBe(2);
@@ -30,13 +31,25 @@ describe("Leveling & EXP System Architecture", () => {
       expect(calculateLevel(2025)).toBe(10);
     });
 
-    it("returns correct XP thresholds for each level", () => {
+    it("evaluates milestone level 50 boundary XP correctly", () => {
+      // Level 50 requires (50 - 1)^2 * 25 = 2401 * 25 = 60,025 XP
+      expect(getXpForLevel(50)).toBe(60025);
+      expect(calculateLevel(60024)).toBe(49);
+      expect(calculateLevel(60025)).toBe(50);
+    });
+
+    it("returns correct XP thresholds for each level and clamps negative levels", () => {
       expect(getXpForLevel(1)).toBe(0);
       expect(getXpForLevel(2)).toBe(25);
       expect(getXpForLevel(3)).toBe(100);
+      expect(getXpForLevel(0)).toBe(0);
+      expect(getXpForLevel(-10)).toBe(0);
+
       expect(getNextLevelXp(1)).toBe(25);
       expect(getNextLevelXp(2)).toBe(100);
       expect(getNextLevelXp(3)).toBe(225);
+      expect(getNextLevelXp(0)).toBe(25);
+      expect(getNextLevelXp(-5)).toBe(25);
     });
 
     it("computes granular level progress percentage and remaining XP accurately", () => {
@@ -54,6 +67,12 @@ describe("Leveling & EXP System Architecture", () => {
       expect(progressMid.xpIntoCurrentLevel).toBe(50);
       expect(progressMid.xpNeededForNextLevel).toBe(75);
       expect(progressMid.progressPercent).toBe(40);
+
+      // Near boundary at 224 XP
+      const progressNear = getLevelProgress(224);
+      expect(progressNear.currentLevel).toBe(3);
+      expect(progressNear.xpNeededForNextLevel).toBe(1);
+      expect(progressNear.progressPercent).toBeCloseTo(99.2, 1);
     });
   });
 
@@ -72,6 +91,24 @@ describe("Leveling & EXP System Architecture", () => {
       expect(calculateRank(38)).toBe("DevOps Fleet Admiral");
       expect(calculateRank(44)).toBe("Aegis Sentinel");
       expect(calculateRank(50)).toBe("Full-Stack Grandmaster");
+    });
+
+    it("verifies RANKS array structural integrity and strictly ascending requirements", () => {
+      expect(RANKS.length).toBe(11);
+      for (let i = 0; i < RANKS.length; i++) {
+        const tier = RANKS[i];
+        expect(tier.level).toBeGreaterThan(0);
+        expect(tier.title.trim().length).toBeGreaterThan(0);
+        expect(tier.subtitle.trim().length).toBeGreaterThan(0);
+        expect(tier.realmTheme.trim().length).toBeGreaterThan(0);
+        expect(tier.color.trim().length).toBeGreaterThan(0);
+        expect(tier.badgeIcon.trim().length).toBeGreaterThan(0);
+        expect(tier.lore.trim().length).toBeGreaterThan(0);
+
+        if (i > 0) {
+          expect(tier.level).toBeGreaterThan(RANKS[i - 1].level);
+        }
+      }
     });
 
     it("provides complete rank tier lore and metadata", () => {
@@ -93,17 +130,23 @@ describe("Leveling & EXP System Architecture", () => {
       expect(calculateStreakBonus(3)).toEqual({ multiplier: 1.10, bonusPercent: 10 });
       expect(calculateStreakBonus(5)).toEqual({ multiplier: 1.20, bonusPercent: 20 });
       expect(calculateStreakBonus(7)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
-      expect(calculateStreakBonus(14)).toEqual({ multiplier: 1.30, bonusPercent: 30 }); // Capped at 30%
+      expect(calculateStreakBonus(14)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
     });
 
-    it("scales Max HP and Max Mana linearly per level", () => {
+    it("scales Max HP and Max Mana linearly per level and handles out-of-range levels", () => {
       expect(calculateHpForLevel(1)).toBe(100);
       expect(calculateHpForLevel(5)).toBe(140);
       expect(calculateHpForLevel(10)).toBe(190);
+      expect(calculateHpForLevel(50)).toBe(590);
+      expect(calculateHpForLevel(0)).toBe(100);
+      expect(calculateHpForLevel(-10)).toBe(100);
 
       expect(calculateManaForLevel(1)).toBe(50);
       expect(calculateManaForLevel(5)).toBe(70);
       expect(calculateManaForLevel(10)).toBe(95);
+      expect(calculateManaForLevel(50)).toBe(295);
+      expect(calculateManaForLevel(0)).toBe(50);
+      expect(calculateManaForLevel(-5)).toBe(50);
     });
   });
 
