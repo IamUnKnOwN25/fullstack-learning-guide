@@ -97,12 +97,30 @@ describe("leaderboardUtils", () => {
     it("should handle out of bounds pages gracefully", () => {
       const result = paginateLeaderboard(mockEntries, 3, 2);
       expect(result.length).toBe(0);
+
+      const hugePage = paginateLeaderboard(mockEntries, 999, 10);
+      expect(hugePage.length).toBe(0);
+    });
+
+    it("should handle pageSize larger than total entries without errors", () => {
+      const result = paginateLeaderboard(mockEntries, 1, 100);
+      expect(result.length).toBe(mockEntries.length);
+      expect(result).toEqual(mockEntries);
+    });
+
+    it("should handle empty entry arrays safely", () => {
+      const result = paginateLeaderboard([], 1, 10);
+      expect(result).toEqual([]);
     });
 
     it("should handle negative or zero page and size gracefully", () => {
       const result = paginateLeaderboard(mockEntries, 0, 0);
       expect(result.length).toBe(1); // max(1, page) = 1, max(1, pageSize) = 1
       expect(result[0].id).toBe("1");
+
+      const negResult = paginateLeaderboard(mockEntries, -5, -10);
+      expect(negResult.length).toBe(1);
+      expect(negResult[0].id).toBe("1");
     });
   });
 
@@ -116,6 +134,11 @@ describe("leaderboardUtils", () => {
     it("should return empty array if no matches found", () => {
       const result = filterLeaderboardByTier(mockEntries, "Unknown Tier");
       expect(result.length).toBe(0);
+    });
+
+    it("should perform exact case-sensitive matching", () => {
+      const lower = filterLeaderboardByTier(mockEntries, "type warden");
+      expect(lower.length).toBe(0);
     });
 
     it("should return all entries if tier is empty string", () => {
@@ -137,9 +160,26 @@ describe("leaderboardUtils", () => {
       expect(calculatePercentile(10, 10)).toBe(0);
     });
 
+    it("should clamp ranks exceeding total player count", () => {
+      expect(calculatePercentile(15, 10)).toBe(0);
+      expect(calculatePercentile(999, 10)).toBe(0);
+    });
+
+    it("should clamp ranks below 1", () => {
+      expect(calculatePercentile(0, 10)).toBe(90);
+      expect(calculatePercentile(-5, 10)).toBe(90);
+    });
+
     it("should return 100 for totalPlayers <= 1", () => {
       expect(calculatePercentile(1, 1)).toBe(100);
       expect(calculatePercentile(1, 0)).toBe(100);
+      expect(calculatePercentile(1, -5)).toBe(100);
+    });
+
+    it("should accurately compute percentiles for large operative cohorts", () => {
+      expect(calculatePercentile(1, 1000)).toBe(100);
+      expect(calculatePercentile(10, 1000)).toBe(99);
+      expect(calculatePercentile(500, 1000)).toBe(50);
     });
   });
 
@@ -156,8 +196,24 @@ describe("leaderboardUtils", () => {
       expect(calculateTopPercentage(10, 10)).toBe(100);
     });
 
+    it("should clamp rank exceeding totalPlayers to 100%", () => {
+      expect(calculateTopPercentage(15, 10)).toBe(100);
+      expect(calculateTopPercentage(100, 10)).toBe(100);
+    });
+
+    it("should clamp rank below 1 to rank 1", () => {
+      expect(calculateTopPercentage(0, 10)).toBe(10);
+      expect(calculateTopPercentage(-3, 10)).toBe(10);
+    });
+
     it("should return 100 for totalPlayers 0", () => {
       expect(calculateTopPercentage(1, 0)).toBe(100);
+    });
+
+    it("should calculate top 1% for rank 1 of 1000", () => {
+      expect(calculateTopPercentage(1, 1000)).toBe(1);
+      expect(calculateTopPercentage(10, 1000)).toBe(1);
+      expect(calculateTopPercentage(25, 1000)).toBe(3);
     });
   });
 });
