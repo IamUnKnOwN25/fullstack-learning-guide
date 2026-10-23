@@ -9,9 +9,21 @@ describe("saveManager", () => {
     rankTitle: "Junior Dev",
     hp: 120,
     maxHp: 120,
+    mana: 50,
+    maxMana: 50,
+    streak: 3,
     completedQuests: ["html_1", "css_1"],
     completedBosses: ["html_boss"],
+    unlockedRealms: ["html", "css"],
+    unlockedSkills: ["syntax_sense"],
+    badges: ["html_master"],
+    completedCurriculumTasks: ["task_1"],
+    completedChapters: ["chapter_1"],
+    claimedAchievements: ["first_blood_boss"],
     stars: { html_1: 3, css_1: 2 },
+    curriculumTaskAwards: { task_1: 50 },
+    audioMuted: false,
+    bgmActive: true,
   };
 
   describe("serializeSaveData", () => {
@@ -43,31 +55,78 @@ describe("saveManager", () => {
 
     it("should reject corrupted JSON", () => {
       const corruptedJson = "{ xp: 1500, broken: ";
-      const deserialized = deserializeSaveData(corruptedJson);
-
-      expect(deserialized).toBeNull();
+      expect(deserializeSaveData(corruptedJson)).toBeNull();
     });
 
-    it("should reject invalid schema structures", () => {
-      // Missing required fields from the wrapper, but data is a string where an object is expected
+    it("should reject non-object JSON primitives", () => {
+      expect(deserializeSaveData("")).toBeNull();
+      expect(deserializeSaveData("null")).toBeNull();
+      expect(deserializeSaveData("12345")).toBeNull();
+      expect(deserializeSaveData('"just a string"')).toBeNull();
+      expect(deserializeSaveData("true")).toBeNull();
+      expect(deserializeSaveData("[]")).toBeNull();
+    });
+
+    it("should reject invalid schema structures in wrapper", () => {
       const invalidSchema = JSON.stringify({
         version: "1.0.0",
         timestamp: 12345,
         data: "not an object"
       });
-      const deserialized = deserializeSaveData(invalidSchema);
+      expect(deserializeSaveData(invalidSchema)).toBeNull();
 
-      expect(deserialized).toBeNull();
+      const invalidVersion = JSON.stringify({
+        version: 123,
+        timestamp: 12345,
+        data: { xp: 100 }
+      });
+      expect(deserializeSaveData(invalidVersion)).toBeNull();
+
+      const invalidTimestamp = JSON.stringify({
+        version: "1.0.0",
+        timestamp: "not-a-number",
+        data: { xp: 100 }
+      });
+      expect(deserializeSaveData(invalidTimestamp)).toBeNull();
+    });
+
+    it("should reject negative or out-of-bounds numerical values", () => {
+      expect(deserializeSaveData(JSON.stringify({ xp: -50 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ level: 0 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ level: -1 }))).toBeNull();
+    });
+
+    it("should reject non-string items within string array fields", () => {
+      const badQuests = JSON.stringify({ completedQuests: ["html_1", 123] });
+      expect(deserializeSaveData(badQuests)).toBeNull();
+
+      const badBadges = JSON.stringify({ badges: [null] });
+      expect(deserializeSaveData(badBadges)).toBeNull();
+
+      const badSkills = JSON.stringify({ unlockedSkills: [{}] });
+      expect(deserializeSaveData(badSkills)).toBeNull();
+
+      const badTasks = JSON.stringify({ completedCurriculumTasks: ["task_1", false] });
+      expect(deserializeSaveData(badTasks)).toBeNull();
+    });
+
+    it("should reject invalid dictionary or boolean types", () => {
+      expect(deserializeSaveData(JSON.stringify({ stars: "not-an-object" }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ stars: [1, 2, 3] }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ curriculumTaskAwards: "bad" }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ audioMuted: "false" }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ bgmActive: 1 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ rankTitle: 999 }))).toBeNull();
     });
 
     it("should drop invalid fields but keep valid ones in direct parsing mode", () => {
-        const flatWithBadType = JSON.stringify({
-            xp: "one thousand", // invalid type
-            level: 5,
-            rankTitle: "Junior Dev"
-        });
-        const deserialized = deserializeSaveData(flatWithBadType);
-        expect(deserialized).toBeNull();
+      const flatWithBadType = JSON.stringify({
+        xp: "one thousand", // invalid type
+        level: 5,
+        rankTitle: "Junior Dev"
+      });
+      const deserialized = deserializeSaveData(flatWithBadType);
+      expect(deserialized).toBeNull();
     });
   });
 });
