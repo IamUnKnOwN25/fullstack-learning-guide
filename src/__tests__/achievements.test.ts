@@ -45,7 +45,7 @@ describe("Achievements Data & Logic", () => {
     });
   });
 
-  describe("ACHIEVEMENTS Structure", () => {
+  describe("ACHIEVEMENTS Structure & Integrity", () => {
     it("should export an array of valid achievements", () => {
       expect(Array.isArray(ACHIEVEMENTS)).toBe(true);
       expect(ACHIEVEMENTS.length).toBeGreaterThan(0);
@@ -58,6 +58,51 @@ describe("Achievements Data & Logic", () => {
         expect(achievement).toHaveProperty("rarity");
         expect(["common", "rare", "epic", "legendary", "mythic"]).toContain(achievement.rarity);
         expect(typeof achievement.checkProgress).toBe("function");
+      });
+    });
+
+    it("should ensure all achievement IDs are unique", () => {
+      const ids = ACHIEVEMENTS.map((a) => a.id);
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(ids.length);
+    });
+
+    it("should provide non-empty strings and positive XP rewards for every achievement", () => {
+      ACHIEVEMENTS.forEach((a) => {
+        expect(a.id.trim().length).toBeGreaterThan(0);
+        expect(a.name.trim().length).toBeGreaterThan(0);
+        expect(a.description.trim().length).toBeGreaterThan(0);
+        expect(a.icon.trim().length).toBeGreaterThan(0);
+        expect(a.xpReward).toBeGreaterThan(0);
+        if (a.badgeId !== undefined) {
+          expect(typeof a.badgeId).toBe("string");
+          expect(a.badgeId.trim().length).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    it("should populate all 4 categories and all 5 rarities across achievements", () => {
+      const categories = new Set(ACHIEVEMENTS.map((a) => a.category));
+      expect(categories.has("bosses")).toBe(true);
+      expect(categories.has("quests")).toBe(true);
+      expect(categories.has("scholar")).toBe(true);
+      expect(categories.has("mastery")).toBe(true);
+
+      const rarities = new Set(ACHIEVEMENTS.map((a) => a.rarity));
+      expect(rarities.has("common")).toBe(true);
+      expect(rarities.has("rare")).toBe(true);
+      expect(rarities.has("epic")).toBe(true);
+      expect(rarities.has("legendary")).toBe(true);
+      expect(rarities.has("mythic")).toBe(true);
+    });
+
+    it("should ensure checkProgress returns non-negative current and positive target values", () => {
+      const mock = createMockStats();
+      ACHIEVEMENTS.forEach((a) => {
+        const progress = a.checkProgress(mock);
+        expect(progress.current).toBeGreaterThanOrEqual(0);
+        expect(progress.target).toBeGreaterThan(0);
+        expect(typeof progress.isUnlocked).toBe("boolean");
       });
     });
   });
