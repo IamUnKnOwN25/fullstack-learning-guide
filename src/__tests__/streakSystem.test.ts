@@ -11,6 +11,19 @@ describe("streakSystem", () => {
       expect(calculateStreakBonus(7)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
       expect(calculateStreakBonus(14)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
     });
+
+    it("should handle 0, negative, or invalid streak days safely", () => {
+      expect(calculateStreakBonus(0)).toEqual({ multiplier: 1.0, bonusPercent: 0 });
+      expect(calculateStreakBonus(-10)).toEqual({ multiplier: 1.0, bonusPercent: 0 });
+      expect(calculateStreakBonus(NaN)).toEqual({ multiplier: 1.0, bonusPercent: 0 });
+      expect(calculateStreakBonus(null as unknown as number)).toEqual({ multiplier: 1.0, bonusPercent: 0 });
+    });
+
+    it("should cap bonus at 30% for ultra-long streaks", () => {
+      expect(calculateStreakBonus(30)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
+      expect(calculateStreakBonus(100)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
+      expect(calculateStreakBonus(365)).toEqual({ multiplier: 1.30, bonusPercent: 30 });
+    });
   });
 
   describe("updateStreak", () => {
@@ -54,6 +67,32 @@ describe("streakSystem", () => {
       const { streak, streakReset } = updateStreak(currentStreak, "2024-02-29");
       expect(streak).toEqual({ streakDays: 4, lastLoginDate: "2024-02-29" });
       expect(streakReset).toBe(false);
+    });
+
+    it("should correctly handle non-leap year February transition", () => {
+      const currentStreak: StreakState = { streakDays: 5, lastLoginDate: "2023-02-28" };
+      const { streak, streakReset } = updateStreak(currentStreak, "2023-03-01");
+      expect(streak).toEqual({ streakDays: 6, lastLoginDate: "2023-03-01" });
+      expect(streakReset).toBe(false);
+    });
+
+    it("should correctly handle year end boundaries", () => {
+      const currentStreak: StreakState = { streakDays: 10, lastLoginDate: "2023-12-31" };
+      const { streak, streakReset } = updateStreak(currentStreak, "2024-01-01");
+      expect(streak).toEqual({ streakDays: 11, lastLoginDate: "2024-01-01" });
+      expect(streakReset).toBe(false);
+    });
+
+    it("should reset streak on invalid or malformed date strings", () => {
+      const currentStreak: StreakState = { streakDays: 5, lastLoginDate: "invalid-date" };
+      const { streak, streakReset } = updateStreak(currentStreak, "2024-01-01");
+      expect(streak).toEqual({ streakDays: 1, lastLoginDate: "2024-01-01" });
+      expect(streakReset).toBe(true);
+
+      const validStreak: StreakState = { streakDays: 5, lastLoginDate: "2024-01-01" };
+      const res = updateStreak(validStreak, "malformed");
+      expect(res.streak).toEqual({ streakDays: 1, lastLoginDate: "malformed" });
+      expect(res.streakReset).toBe(true);
     });
     
     it("should gracefully handle past dates without resetting", () => {
