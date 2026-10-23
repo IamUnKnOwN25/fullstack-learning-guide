@@ -76,6 +76,21 @@ describe("DevQuest Bosses Matrix", () => {
     }
   });
 
+  it("verifies sequential phase numbering and non-empty hints and solution keywords", () => {
+    for (const realmId in BOSSES) {
+      const boss = BOSSES[realmId];
+      boss.phases.forEach((phase, idx) => {
+        expect(phase.phaseNumber, `Phase number in ${boss.id}`).toBe(idx + 1);
+        expect(phase.hint.trim().length, `Hint for ${boss.id} Phase ${phase.phaseNumber}`).toBeGreaterThan(5);
+        expect(phase.solutionKeywords.length, `Solution keywords for ${boss.id} Phase ${phase.phaseNumber}`).toBeGreaterThan(0);
+        for (const kw of phase.solutionKeywords) {
+          expect(kw.trim().length).toBeGreaterThan(0);
+        }
+        expect(phase.damageToPlayer, `Player damage in ${boss.id}`).toBeLessThanOrEqual(50);
+      });
+    }
+  });
+
   it("verifies all 12 realms have assigned boss sprite rendering targets", () => {
     const realmIds = [
       "html", "css", "javascript", "typescript", "react", "backend",
