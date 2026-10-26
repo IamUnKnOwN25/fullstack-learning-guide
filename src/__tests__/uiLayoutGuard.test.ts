@@ -221,4 +221,36 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(journeyModalContent).toContain("Career Rank Ladder");
     expect(journeyModalContent).toContain("How to Earn EXP");
   });
+
+  it("enforces NetworkStatusIndicator offline notification accessibility and viewport positioning", () => {
+    const netPath = path.join(process.cwd(), "src/components/NetworkStatusIndicator.tsx");
+    const netContent = fs.readFileSync(netPath, "utf-8");
+
+    expect(netContent).toContain('role="alert"');
+    expect(netContent).toContain("fixed bottom-4 right-4 z-50");
+    expect(netContent).toContain("backdrop-blur-sm");
+    expect(netContent).toContain("Network disconnected. Offline mode active.");
+  });
+
+  it("enforces KeyboardShortcutsModal dialog accessibility and backdrop blur invariants", () => {
+    const kbdPath = path.join(process.cwd(), "src/components/KeyboardShortcutsModal.tsx");
+    const kbdContent = fs.readFileSync(kbdPath, "utf-8");
+
+    expect(kbdContent).toContain('role="dialog"');
+    expect(kbdContent).toContain('aria-modal="true"');
+    expect(kbdContent).toContain('aria-labelledby="keyboard-shortcuts-title"');
+    expect(kbdContent).toContain("backdrop-blur-md");
+    expect(kbdContent).toContain("max-w-2xl");
+  });
+
+  it("enforces MatrixErrorBoundary cyber fallback and recovery action layout", () => {
+    const errPath = path.join(process.cwd(), "src/components/MatrixErrorBoundary.tsx");
+    const errContent = fs.readFileSync(errPath, "utf-8");
+
+    expect(errContent).toContain("SYSTEM FAILURE DETECTED");
+    expect(errContent).toContain("handleReset");
+    expect(errContent).toContain("REBOOT SUBSYSTEM");
+    expect(errContent).toContain("RETURN TO MATRIX NEXUS");
+    expect(errContent).toContain("bg-matrix-dark bg-cyber-grid");
+  });
 });
