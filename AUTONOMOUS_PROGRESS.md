@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-26 13:32] Cycle 150: PWA Manifest Installability & Physical Icon Asset Validation (Tests: PASS)**
+  - Enhanced `src/app/manifest.ts` with explicit PWA orientation (`portrait-primary`) and navigation scope (`/`). Initialized valid PNG payload bytes in `public/icons/icon-192x192.png` and `public/icons/icon-512x512.png`.
+  - Expanded unit test suite in `src/__tests__/pwaManifest.test.ts` to 3 tests validating manifest installability schema, icon MIME types/sizes, physical presence on disk, and non-empty byte payloads.
+  - Verified with `npm run validate` (57 test files, 583 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-26 13:30] Cycle 149: Leaderboard Sorting Tie-Breakers, Divisions & Non-Finite Guards (Tests: PASS)**
   - Enhanced `src/lib/leaderboardUtils.ts` with deterministic multi-level sorting (`sortLeaderboardEntries` by XP, level, stars, bosses slain, and alphabetical username), competitive percentile divisions (`getDivisionByPercentile` into Matrix Lord, Diamond, Platinum, Gold, Silver, Bronze), and non-finite / null array guards across pagination and percentiles.
   - Expanded unit test suite in `src/__tests__/leaderboardUtils.test.ts` to 31 tests covering tie-breaking ladders, percentile division boundaries, and non-array safety.

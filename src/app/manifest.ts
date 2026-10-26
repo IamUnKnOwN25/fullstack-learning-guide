@@ -7,6 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Learn Full-Stack Web Development through an interactive RPG quest adventure.',
     start_url: '/',
     display: 'standalone',
+    orientation: 'portrait-primary',
+    scope: '/',
     background_color: '#0f172a', // matrix-dark
     theme_color: '#22d3ee', // matrix-neonCyan
     icons: [
