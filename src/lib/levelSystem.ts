@@ -138,28 +138,29 @@ export const RANKS: RankTier[] = [
 ];
 
 export function calculateLevel(xp: number): number {
-  if (xp <= 0) return 1;
+  if (!Number.isFinite(xp) || xp <= 0) return 1;
   return Math.floor(Math.sqrt(xp / 25)) + 1;
 }
 
 export function getXpForLevel(level: number): number {
-  const safeLevel = Math.max(1, level);
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
   return Math.pow(safeLevel - 1, 2) * 25;
 }
 
 export function getNextLevelXp(level: number): number {
-  const safeLevel = Math.max(1, level);
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
   return Math.pow(safeLevel, 2) * 25;
 }
 
 export function getLevelProgress(xp: number): LevelProgress {
-  const currentLevel = calculateLevel(xp);
+  const safeXp = Number.isFinite(xp) ? Math.max(0, xp) : 0;
+  const currentLevel = calculateLevel(safeXp);
   const nextLevel = currentLevel + 1;
   const currentLevelBaseXp = getXpForLevel(currentLevel);
   const nextLevelTargetXp = getNextLevelXp(currentLevel);
   const span = Math.max(1, nextLevelTargetXp - currentLevelBaseXp);
-  const xpIntoCurrentLevel = Math.max(0, xp - currentLevelBaseXp);
-  const xpNeededForNextLevel = Math.max(0, nextLevelTargetXp - xp);
+  const xpIntoCurrentLevel = Math.max(0, safeXp - currentLevelBaseXp);
+  const xpNeededForNextLevel = Math.max(0, nextLevelTargetXp - safeXp);
   const progressPercent = Math.min(
     100,
     Math.max(0, (xpIntoCurrentLevel / span) * 100)
@@ -177,9 +178,10 @@ export function getLevelProgress(xp: number): LevelProgress {
 }
 
 export function calculateRank(level: number): string {
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
   let currentTitle = RANKS[0].title;
   for (const r of RANKS) {
-    if (level >= r.level) {
+    if (safeLevel >= r.level) {
       currentTitle = r.title;
     } else {
       break;
@@ -189,9 +191,10 @@ export function calculateRank(level: number): string {
 }
 
 export function getRankTier(level: number): RankTier {
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
   let currentTier = RANKS[0];
   for (const r of RANKS) {
-    if (level >= r.level) {
+    if (safeLevel >= r.level) {
       currentTier = r;
     } else {
       break;
@@ -204,17 +207,56 @@ export function calculateStreakBonus(streakDays: number): {
   multiplier: number;
   bonusPercent: number;
 } {
-  const safeDays = Math.max(1, streakDays || 1);
+  const safeDays = Number.isFinite(streakDays) ? Math.max(1, Math.floor(streakDays)) : 1;
   // 1 day = 0% bonus (1.0x), 2 days = 5% (1.05x), up to 30% max (1.30x)
   const bonusPercent = Math.min(30, (safeDays - 1) * 5);
-  const multiplier = 1 + bonusPercent / 100;
+  const multiplier = Number((1 + bonusPercent / 100).toFixed(2));
   return { multiplier, bonusPercent };
 }
 
 export function calculateHpForLevel(level: number): number {
-  return 100 + (Math.max(1, level) - 1) * 10;
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
+  return 100 + (safeLevel - 1) * 10;
 }
 
 export function calculateManaForLevel(level: number): number {
-  return 50 + (Math.max(1, level) - 1) * 5;
+  const safeLevel = Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
+  return 50 + (safeLevel - 1) * 5;
+}
+
+/**
+ * Evaluates whether an XP increment produces one or multiple level-ups.
+ * Calculates exact new level, whether new rank tier was crossed, and unlocked skill points.
+ */
+export function evaluateLevelUp(
+  currentXp: number,
+  earnedXp: number
+): {
+  previousLevel: number;
+  newLevel: number;
+  didLevelUp: boolean;
+  levelsGained: number;
+  previousRank: string;
+  newRank: string;
+  isNewRank: boolean;
+} {
+  const safeCurrentXp = Number.isFinite(currentXp) ? Math.max(0, currentXp) : 0;
+  const safeEarnedXp = Number.isFinite(earnedXp) ? Math.max(0, earnedXp) : 0;
+  const previousLevel = calculateLevel(safeCurrentXp);
+  const newLevel = calculateLevel(safeCurrentXp + safeEarnedXp);
+  const didLevelUp = newLevel > previousLevel;
+  const levelsGained = Math.max(0, newLevel - previousLevel);
+  const previousRank = calculateRank(previousLevel);
+  const newRank = calculateRank(newLevel);
+  const isNewRank = didLevelUp && newRank !== previousRank;
+
+  return {
+    previousLevel,
+    newLevel,
+    didLevelUp,
+    levelsGained,
+    previousRank,
+    newRank,
+    isNewRank,
+  };
 }
