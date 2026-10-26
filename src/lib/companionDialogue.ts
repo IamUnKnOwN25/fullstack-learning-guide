@@ -13,8 +13,9 @@ export function getCompanionDialogue(context: CompanionDialogueContext): string 
     return "Don't give up! Every error is a learning opportunity. You can do this!";
   }
 
-  if (context.realmId) {
-    switch (context.realmId) {
+  const normalizedRealm = context.realmId?.trim().toLowerCase();
+  if (normalizedRealm) {
+    switch (normalizedRealm) {
       case "html":
         return "A11y Wisdom: Using semantic HTML tags like <nav> and <main> lets screen-reader users navigate by landmarks.";
       case "css":
