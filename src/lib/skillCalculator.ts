@@ -3,9 +3,11 @@ import { SKILL_TREE, SkillNode } from "../data/skills";
 /**
  * Calculates the total skill points a player has earned based on their level.
  * Currently, players earn 1 skill point per level starting from level 1.
+ * Safely guards against NaN, non-finite values, and fractional levels.
  */
 export const calculateTotalEarnedSkillPoints = (level: number): number => {
-  return Math.max(0, level);
+  if (typeof level !== "number" || !Number.isFinite(level)) return 0;
+  return Math.max(0, Math.floor(level));
 };
 
 /**

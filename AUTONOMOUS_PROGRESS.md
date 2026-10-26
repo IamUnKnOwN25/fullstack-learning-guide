@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-26 13:08] Cycle 138: Skill Calculator Non-Finite Safety & Boundary Deficit Suite (Tests: PASS)**
+  - Hardened `calculateTotalEarnedSkillPoints` in `src/lib/skillCalculator.ts` against JavaScript NaN contagion, non-finite infinity parameters, and fractional level inputs using `Number.isFinite` and `Math.floor`.
+  - Expanded unit test suite in `src/__tests__/skillCalculator.test.ts` covering NaN and Infinity level inputs, exact point boundary unlocks (`availablePoints === cost`), and exact single-point deficit rejections (`availablePoints === cost - 1`).
+  - Verified with `npm run validate` (56 test files, 513 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-26 13:06] Cycle 137: Companion Dialogue Lore Normalization & 12-Realm Invariant Suite (Tests: PASS)**
   - Enhanced `src/lib/companionDialogue.ts` to normalize `realmId` with trim and lowercase conversion, ensuring case-insensitive pedagogical lore matching and preventing empty string fallback misfires.
   - Expanded unit test suite in `src/__tests__/companionDialogue.test.ts` testing 100% of the 12 registered realms in `REALMS` for unique pedagogical lore, case-insensitive parameter lookups (`"REACT"`, `"  TypeScript  "`), and whitespace fallback handling.

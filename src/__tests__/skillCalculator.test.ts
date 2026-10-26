@@ -28,6 +28,14 @@ describe("skillCalculator", () => {
       expect(calculateTotalEarnedSkillPoints(0)).toBe(0);
       expect(calculateTotalEarnedSkillPoints(-5)).toBe(0);
     });
+
+    it("handles non-finite, NaN, and fractional level inputs safely", () => {
+      expect(calculateTotalEarnedSkillPoints(NaN)).toBe(0);
+      expect(calculateTotalEarnedSkillPoints(Infinity)).toBe(0);
+      expect(calculateTotalEarnedSkillPoints(-Infinity)).toBe(0);
+      expect(calculateTotalEarnedSkillPoints(4.9)).toBe(4);
+      expect(calculateTotalEarnedSkillPoints(null as any)).toBe(0);
+    });
   });
 
   describe("calculateSpentSkillPoints", () => {
@@ -53,6 +61,10 @@ describe("skillCalculator", () => {
 
     it("does not return negative available points", () => {
       expect(calculateAvailableSkillPoints(1, ["skill_2", "skill_4"])).toBe(0); // 1 - 6 = -5 -> 0
+    });
+
+    it("returns 0 when level is NaN or non-numeric", () => {
+      expect(calculateAvailableSkillPoints(NaN, ["skill_2"])).toBe(0);
     });
   });
 
@@ -80,6 +92,16 @@ describe("skillCalculator", () => {
     it("fails if not enough skill points", () => {
       const result = validateSkillUnlock("skill_4", 2, []); // Need 4 points, have 2
       expect(result).toEqual({ canUnlock: false, reason: "Not enough skill points." });
+    });
+
+    it("fails at exact boundary deficit of 1 point", () => {
+      const result = validateSkillUnlock("skill_4", 3, []); // Need 4 points, have 3
+      expect(result).toEqual({ canUnlock: false, reason: "Not enough skill points." });
+    });
+
+    it("succeeds at exact boundary of available points equaling cost", () => {
+      const result = validateSkillUnlock("skill_4", 4, []); // Need 4 points, have 4
+      expect(result).toEqual({ canUnlock: true });
     });
 
     it("succeeds if all conditions are met", () => {
