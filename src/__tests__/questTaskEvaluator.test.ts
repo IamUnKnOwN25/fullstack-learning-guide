@@ -206,4 +206,52 @@ describe("questTaskEvaluator", () => {
       }
     }
   });
+
+  it("handles unknown quest IDs and empty code safely", () => {
+    const unknownResults = evaluateQuestTasks("non_existent_realm_quest", ["Task A", "Task B"], "some code");
+    expect(unknownResults).toEqual([false, false]);
+
+    const emptyResults = evaluateQuestTasks("html_1_skeleton", ["T1", "T2", "T3", "T4"], "");
+    expect(emptyResults).toEqual([false, false, false, false]);
+  });
+
+  it("ensures commented-out patterns in all 5 comment syntaxes do not pass objectives", () => {
+    // 1. HTML comment
+    const htmlWithCommentedMeta = "<!-- <meta charset='utf-8'> -->\n<p>Hello</p>";
+    const htmlRes = evaluateQuestTasks("html_1_skeleton", ["meta", "viewport", "h1", "p"], htmlWithCommentedMeta);
+    expect(htmlRes[0]).toBe(false); // charset was commented out
+    expect(htmlRes[3]).toBe(true);  // p is real
+
+    // 2. JS single-line comment
+    const jsSingleComment = "// await fetch(endpoint);\nconst res = null;";
+    const jsRes = evaluateQuestTasks("js_2_async", ["try", "fetch", "ok", "json"], jsSingleComment);
+    expect(jsRes[1]).toBe(false);
+
+    // 3. JS multi-line comment
+    const jsMultiComment = "/* await fetch(endpoint); */\nconst res = null;";
+    const jsRes2 = evaluateQuestTasks("js_2_async", ["try", "fetch", "ok", "json"], jsMultiComment);
+    expect(jsRes2[1]).toBe(false);
+
+    // 4. SQL comment
+    const sqlComment = "-- REFERENCES users(id)\nCREATE TABLE tasks (id INT);";
+    const sqlRes = evaluateQuestTasks("db_1_postgres", ["users", "tasks", "cascade"], sqlComment);
+    expect(sqlRes[1]).toBe(false);
+
+    // 5. Shell / Docker comment
+    const dockerComment = "# USER node\nFROM node:22-alpine";
+    const dockerRes = evaluateQuestTasks("devops_1_docker", ["build", "run", "two_from", "copy", "user"], dockerComment);
+    expect(dockerRes[4]).toBe(false);
+  });
+
+  it("correctly identifies partial completions and produces accurate diagnostics", () => {
+    const partialHtml = `<!DOCTYPE html><html><body><h1>Header Only</h1></body></html>`;
+    const tasks = ["Include <meta charset='UTF-8'>", "Include viewport", "Add <h1>", "Add <p>"];
+    const diags = getQuestTaskDiagnostics("html_1_skeleton", tasks, partialHtml);
+
+    expect(diags).toHaveLength(4);
+    expect(diags[0]).toEqual({ index: 0, task: tasks[0], passed: false });
+    expect(diags[1]).toEqual({ index: 1, task: tasks[1], passed: false });
+    expect(diags[2]).toEqual({ index: 2, task: tasks[2], passed: true });
+    expect(diags[3]).toEqual({ index: 3, task: tasks[3], passed: false });
+  });
 });
