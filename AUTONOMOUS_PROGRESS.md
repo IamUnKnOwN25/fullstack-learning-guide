@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-26 13:30] Cycle 149: Leaderboard Sorting Tie-Breakers, Divisions & Non-Finite Guards (Tests: PASS)**
+  - Enhanced `src/lib/leaderboardUtils.ts` with deterministic multi-level sorting (`sortLeaderboardEntries` by XP, level, stars, bosses slain, and alphabetical username), competitive percentile divisions (`getDivisionByPercentile` into Matrix Lord, Diamond, Platinum, Gold, Silver, Bronze), and non-finite / null array guards across pagination and percentiles.
+  - Expanded unit test suite in `src/__tests__/leaderboardUtils.test.ts` to 31 tests covering tie-breaking ladders, percentile division boundaries, and non-array safety.
+  - Verified with `npm run validate` (57 test files, 581 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-26 13:28] Cycle 148: XP Gain Floatie Rapid Burst Stacking & Dismissal (Tests: PASS)**
   - Expanded unit test suite in `src/__tests__/xpGainFloatie.test.tsx` to 9 tests covering premature unmount timer cleanup (`clearTimeout`), explicit nullish dismissal handling, 0 XP event handling, and long source label truncation.
   - Verified with `npm run validate` (57 test files, 574 tests passing, 0 TypeScript errors, 100% clean Next.js production build).

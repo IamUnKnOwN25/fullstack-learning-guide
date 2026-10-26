@@ -4,6 +4,8 @@ import {
   filterLeaderboardByTier,
   calculatePercentile,
   calculateTopPercentage,
+  sortLeaderboardEntries,
+  getDivisionByPercentile,
 } from "../lib/leaderboardUtils";
 import { LeaderboardEntry } from "../data/leaderboard";
 
@@ -214,6 +216,75 @@ describe("leaderboardUtils", () => {
       expect(calculateTopPercentage(1, 1000)).toBe(1);
       expect(calculateTopPercentage(10, 1000)).toBe(1);
       expect(calculateTopPercentage(25, 1000)).toBe(3);
+    });
+
+    it("handles non-finite and NaN inputs safely", () => {
+      expect(calculateTopPercentage(NaN, 100)).toBe(1);
+      expect(calculateTopPercentage(1, NaN)).toBe(100);
+      expect(calculatePercentile(NaN, 100)).toBe(99);
+      expect(calculatePercentile(1, NaN)).toBe(100);
+    });
+  });
+
+  describe("filterLeaderboardByTier and pagination safety", () => {
+    it("returns empty array when passed non-array entries", () => {
+      expect(filterLeaderboardByTier(null as any, "Novice Byte")).toEqual([]);
+      expect(paginateLeaderboard(null as any, 1, 10)).toEqual([]);
+    });
+  });
+
+  describe("sortLeaderboardEntries", () => {
+    it("sorts primarily by XP descending", () => {
+      const sorted = sortLeaderboardEntries(mockEntries);
+      expect(sorted[0].xp).toBe(50000);
+      expect(sorted[1].xp).toBe(16000);
+      expect(sorted[2].xp).toBe(15000);
+      expect(sorted[3].xp).toBe(100);
+    });
+
+    it("breaks ties by level, stars, and alphabetical username", () => {
+      const tieEntries: LeaderboardEntry[] = [
+        { ...mockEntries[0], id: "a", username: "charlie", xp: 1000, level: 10, stars: 5 },
+        { ...mockEntries[0], id: "b", username: "alice", xp: 1000, level: 10, stars: 5 },
+        { ...mockEntries[0], id: "c", username: "bob", xp: 1000, level: 12, stars: 1 },
+        { ...mockEntries[0], id: "d", username: "david", xp: 1000, level: 10, stars: 10 },
+      ];
+
+      const sorted = sortLeaderboardEntries(tieEntries);
+      // Highest level first (bob, lvl 12)
+      expect(sorted[0].username).toBe("bob");
+      // Next, level 10 with highest stars (david, stars 10)
+      expect(sorted[1].username).toBe("david");
+      // Next, level 10 stars 5 alphabetical: alice before charlie
+      expect(sorted[2].username).toBe("alice");
+      expect(sorted[3].username).toBe("charlie");
+    });
+
+    it("returns empty array for invalid inputs", () => {
+      expect(sortLeaderboardEntries(null as any)).toEqual([]);
+    });
+  });
+
+  describe("getDivisionByPercentile", () => {
+    it("maps percentiles to competitive divisions accurately", () => {
+      expect(getDivisionByPercentile(100)).toBe("Matrix Lord");
+      expect(getDivisionByPercentile(99)).toBe("Matrix Lord");
+      expect(getDivisionByPercentile(95)).toBe("Diamond");
+      expect(getDivisionByPercentile(90)).toBe("Diamond");
+      expect(getDivisionByPercentile(80)).toBe("Platinum");
+      expect(getDivisionByPercentile(75)).toBe("Platinum");
+      expect(getDivisionByPercentile(60)).toBe("Gold");
+      expect(getDivisionByPercentile(50)).toBe("Gold");
+      expect(getDivisionByPercentile(30)).toBe("Silver");
+      expect(getDivisionByPercentile(25)).toBe("Silver");
+      expect(getDivisionByPercentile(10)).toBe("Bronze");
+      expect(getDivisionByPercentile(0)).toBe("Bronze");
+    });
+
+    it("handles NaN and non-finite numbers safely", () => {
+      expect(getDivisionByPercentile(NaN)).toBe("Bronze");
+      expect(getDivisionByPercentile(-10)).toBe("Bronze");
+      expect(getDivisionByPercentile(Infinity)).toBe("Bronze");
     });
   });
 });
