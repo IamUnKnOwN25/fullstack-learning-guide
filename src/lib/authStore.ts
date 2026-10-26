@@ -111,8 +111,34 @@ interface AuthState {
   switchAccount: (username: string) => boolean;
 }
 
+export function getAvatarById(avatarId?: string | null): AvatarOption {
+  if (!avatarId) return AVATAR_OPTIONS[0];
+  const found = AVATAR_OPTIONS.find((a) => a.id === avatarId);
+  return found || AVATAR_OPTIONS[0];
+}
+
+export interface CredentialValidationResult {
+  valid: boolean;
+  message?: string;
+}
+
+export function validateUsername(username: string): CredentialValidationResult {
+  const clean = (username || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  if (!clean || clean.length < 3) {
+    return { valid: false, message: "Username must be at least 3 alphanumeric characters." };
+  }
+  return { valid: true };
+}
+
+export function validatePassphrase(pass: string): CredentialValidationResult {
+  if (!pass || pass.length < 4) {
+    return { valid: false, message: "Passphrase must be at least 4 characters." };
+  }
+  return { valid: true };
+}
+
 // Simple deterministic hash for client vault passphrases
-function hashPassword(pass: string): string {
+export function hashPassword(pass: string): string {
   let hash = 0;
   for (let i = 0; i < pass.length; i++) {
     const char = pass.charCodeAt(i);
@@ -122,7 +148,7 @@ function hashPassword(pass: string): string {
   return `hash_${Math.abs(hash).toString(16)}`;
 }
 
-const DEFAULT_GUEST_USER: UserProfile = {
+export const DEFAULT_GUEST_USER: UserProfile = {
   id: "guest-cadet",
   username: "cadet_guest",
   displayName: "Cadet Recruit",
@@ -142,13 +168,15 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       signup: (username, displayName, pass, avatarId = "neon-hacker") => {
+        const userValidation = validateUsername(username);
+        if (!userValidation.valid) {
+          return { success: false, message: userValidation.message || "Username must be at least 3 alphanumeric characters." };
+        }
+        const passValidation = validatePassphrase(pass);
+        if (!passValidation.valid) {
+          return { success: false, message: passValidation.message || "Passphrase must be at least 4 characters." };
+        }
         const cleanUser = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
-        if (!cleanUser || cleanUser.length < 3) {
-          return { success: false, message: "Username must be at least 3 alphanumeric characters." };
-        }
-        if (!pass || pass.length < 4) {
-          return { success: false, message: "Passphrase must be at least 4 characters." };
-        }
 
         const state = get();
         if (state.accounts[cleanUser]) {

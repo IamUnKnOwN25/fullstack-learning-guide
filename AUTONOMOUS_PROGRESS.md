@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-26 13:18] Cycle 143: Auth Store Lifecycle, Avatar Resolution & Credential Validation (Tests: PASS)**
+  - Enhanced `src/lib/authStore.ts` with `getAvatarById` fallback resolution, pure credential validators (`validateUsername`, `validatePassphrase`), deterministic `hashPassword` export, and exported `DEFAULT_GUEST_USER`.
+  - Added dedicated unit test suite in `src/__tests__/authStore.test.ts` (20 tests) covering avatar ID lookups, short/invalid username and password sanitization, duplicate handle rejections, account switching, progress snapshot restoration, and guest session resets.
+  - Verified with `npm run validate` (57 test files, 547 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-26 13:16] Cycle 142: Speedrun Timer Precision & Clock Anomaly Suite (Tests: PASS)**
   - Hardened `src/lib/speedrunTimer.ts` with `formatSpeedrunTimeWithMs` (`MM:SS.mmm`), non-finite/negative input clamping via `Number.isFinite`, and clock anomaly resilience against backwards system time drift.
   - Expanded unit test suite in `src/__tests__/speedrunTimer.test.ts` to 19 tests testing sub-second millisecond formatting, negative time inputs, non-finite values, and clock regression resilience.
