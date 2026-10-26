@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { useSpeedrunTimer, formatSpeedrunTime } from "../lib/speedrunTimer";
+import { useSpeedrunTimer, formatSpeedrunTime, formatSpeedrunTimeWithMs } from "../lib/speedrunTimer";
 
 describe("speedrunTimer", () => {
   beforeEach(() => {
@@ -31,6 +31,28 @@ describe("speedrunTimer", () => {
     it("formats large elapsed times over 60 minutes correctly", () => {
       expect(formatSpeedrunTime(3661000)).toBe("61:01");
       expect(formatSpeedrunTime(7200000)).toBe("120:00");
+    });
+
+    it("handles negative, NaN, and non-finite numbers safely", () => {
+      expect(formatSpeedrunTime(-5000)).toBe("00:00");
+      expect(formatSpeedrunTime(NaN)).toBe("00:00");
+      expect(formatSpeedrunTime(Infinity)).toBe("00:00");
+      expect(formatSpeedrunTime(null as any)).toBe("00:00");
+    });
+  });
+
+  describe("formatSpeedrunTimeWithMs", () => {
+    it("formats milliseconds with millisecond precision", () => {
+      expect(formatSpeedrunTimeWithMs(0)).toBe("00:00.000");
+      expect(formatSpeedrunTimeWithMs(500)).toBe("00:00.500");
+      expect(formatSpeedrunTimeWithMs(1500)).toBe("00:01.500");
+      expect(formatSpeedrunTimeWithMs(65123)).toBe("01:05.123");
+      expect(formatSpeedrunTimeWithMs(3661042)).toBe("61:01.042");
+    });
+
+    it("handles negative and invalid values for formatSpeedrunTimeWithMs", () => {
+      expect(formatSpeedrunTimeWithMs(-100)).toBe("00:00.000");
+      expect(formatSpeedrunTimeWithMs(NaN)).toBe("00:00.000");
     });
   });
 
@@ -152,6 +174,19 @@ describe("speedrunTimer", () => {
       expect(useSpeedrunTimer.getState().getRecord("quest-1")?.bestTimeMs).toBe(15000);
       expect(useSpeedrunTimer.getState().getRecord("quest-1")?.lastTimeMs).toBe(25000);
       expect(useSpeedrunTimer.getState().getRecord("quest-1")?.completionCount).toBe(3);
+    });
+
+    it("safely clamps negative elapsed time if clock drifts backward during run", () => {
+      const store = useSpeedrunTimer.getState();
+      vi.setSystemTime(100000);
+      store.startRun("quest-drift");
+
+      // Clock moves backwards by 5000ms
+      vi.setSystemTime(95000);
+      expect(store.getElapsedMs("quest-drift")).toBe(0);
+
+      const result = store.finishRun("quest-drift");
+      expect(result?.timeMs).toBe(0);
     });
 
     it("returns null when finishing a run that hasn't started", () => {

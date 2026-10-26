@@ -23,10 +23,24 @@ export interface SpeedrunActions {
 }
 
 export const formatSpeedrunTime = (ms: number): string => {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms <= 0) {
+    return "00:00";
+  }
   const totalSeconds = Math.floor(ms / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+export const formatSpeedrunTimeWithMs = (ms: number): string => {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || ms <= 0) {
+    return "00:00.000";
+  }
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const millis = Math.floor(ms % 1000);
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 };
 
 export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
@@ -46,7 +60,7 @@ export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
         const startTime = state.activeRuns[questId];
         if (!startTime) return null;
 
-        const timeMs = Date.now() - startTime;
+        const timeMs = Math.max(0, Date.now() - startTime);
         const existingRecord = state.records[questId];
         const isNewRecord = !existingRecord || timeMs < existingRecord.bestTimeMs;
 
@@ -85,7 +99,7 @@ export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
       getElapsedMs: (questId) => {
         const startTime = get().activeRuns[questId];
         if (!startTime) return null;
-        return Date.now() - startTime;
+        return Math.max(0, Date.now() - startTime);
       },
 
       clearAllRecords: () => {
