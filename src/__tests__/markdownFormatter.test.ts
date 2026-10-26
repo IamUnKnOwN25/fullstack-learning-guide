@@ -173,5 +173,43 @@ describe("markdownFormatter", () => {
       expect(aNode).toBeDefined();
       expect(aNode?.props.href).toBe("#syntax");
     });
+
+    it("handles empty strings and special character-only inputs across slugifier and formatter", () => {
+      expect(slugifyHeading("")).toBe("");
+      expect(slugifyHeading("@#$%^&*()_+{}[]|\\")).toBe("");
+      expect(formatInlineText("")).toEqual([]);
+    });
+
+    it("handles multiple distinct inline code spans in the same sentence", () => {
+      const input = "Use `const` instead of `var` and avoid `any`";
+      const nodes = formatInlineText(input);
+      const codeNodes = nodes.filter(
+        (n): n is React.ReactElement<{ children?: React.ReactNode }> => React.isValidElement(n) && n.type === "code"
+      );
+      expect(codeNodes).toHaveLength(3);
+      expect(codeNodes[0].props.children).toBe("const");
+      expect(codeNodes[1].props.children).toBe("var");
+      expect(codeNodes[2].props.children).toBe("any");
+    });
+
+    it("handles adjacent strong and italic formatting without spacing errors", () => {
+      const input = "**Bold***Italic*";
+      const nodes = formatInlineText(input);
+      expect(nodes.some((n) => React.isValidElement(n) && n.type === "strong")).toBe(true);
+      expect(nodes.some((n) => React.isValidElement(n) && n.type === "em")).toBe(true);
+    });
+
+    it("handles relative path document navigation links", () => {
+      const mockOnSelect = vi.fn();
+      const input = "Go to [CSS Labyrinth](../02-css/css_1_flexbox.md)";
+      const nodes = formatInlineText(input, mockOnSelect);
+
+      const btnNode = nodes.find(
+        (n): n is React.ReactElement<{ onClick: () => void }> => React.isValidElement(n) && n.type === "button"
+      );
+      expect(btnNode).toBeDefined();
+      btnNode?.props.onClick();
+      expect(mockOnSelect).toHaveBeenCalledWith("../02-css/css_1_flexbox.md");
+    });
   });
 });
