@@ -153,4 +153,60 @@ describe("XpGainFloatie Component", () => {
 
     expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
   });
+
+  it("cleans up active timers when component unmounts prematurely", () => {
+    vi.useFakeTimers();
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 150,
+        streakBonus: 10,
+        source: "Unmount Test",
+        timestamp: Date.now(),
+      },
+    });
+
+    const { unmount } = render(<XpGainFloatie />);
+    expect(screen.getByText("+150 XP")).toBeDefined();
+
+    unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+  });
+
+  it("hides immediately when recentXpGain is dismissed to null", () => {
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 80,
+        streakBonus: 0,
+        source: "",
+        timestamp: Date.now(),
+      },
+    });
+
+    const { rerender } = render(<XpGainFloatie />);
+    expect(screen.getByText("+80 XP")).toBeDefined();
+
+    act(() => {
+      useGameStore.setState({ recentXpGain: null });
+    });
+
+    rerender(<XpGainFloatie />);
+    expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
+  });
+
+  it("renders with 0 XP without crashing", () => {
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 0,
+        streakBonus: 0,
+        source: "Zero XP Event",
+        timestamp: Date.now(),
+      },
+    });
+
+    render(<XpGainFloatie />);
+    expect(screen.getByText("+0 XP")).toBeDefined();
+    expect(screen.getByText("(Zero XP Event)")).toBeDefined();
+  });
 });
