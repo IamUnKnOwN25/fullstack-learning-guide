@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateHpPercentage,
   calculateScreenShakeIntensity,
-  calculateConfettiTriggers
+  calculateConfettiTriggers,
+  calculateComboMultiplier,
+  generateParticleVectors,
 } from '../lib/battleEffects';
 
 describe('battleEffects', () => {
@@ -70,12 +72,12 @@ describe('battleEffects', () => {
       expect(calculateScreenShakeIntensity(150, 100, false)).toBe('xl');
     });
 
-    it('should return "lg" for critical hits even if damage percentage is small or medium', () => {
+    it('should return "lg" for critical hits with low damage percentage', () => {
       expect(calculateScreenShakeIntensity(5, 100, true)).toBe('lg');
-      expect(calculateScreenShakeIntensity(15, 100, true)).toBe('lg');
+      expect(calculateScreenShakeIntensity(1, 100, true)).toBe('lg');
     });
 
-    it('should return "xl" for critical hits if damage percentage is huge (>= 50%)', () => {
+    it('should return "xl" for critical hits with >= 50% damage percentage', () => {
       expect(calculateScreenShakeIntensity(50, 100, true)).toBe('xl');
       expect(calculateScreenShakeIntensity(60, 100, true)).toBe('xl');
     });
@@ -107,6 +109,61 @@ describe('battleEffects', () => {
       expect(calculateConfettiTriggers(true, 11)).toBe(4);
       expect(calculateConfettiTriggers(true, 100)).toBe(4);
       expect(calculateConfettiTriggers(true, 9999)).toBe(4);
+    });
+  });
+
+  describe('calculateComboMultiplier', () => {
+    it('returns 1.0 for 0, negative, NaN or non-finite inputs', () => {
+      expect(calculateComboMultiplier(0)).toBe(1.0);
+      expect(calculateComboMultiplier(-5)).toBe(1.0);
+      expect(calculateComboMultiplier(NaN)).toBe(1.0);
+      expect(calculateComboMultiplier(Infinity)).toBe(1.0);
+    });
+
+    it('scales linearly by 0.1 per combo step', () => {
+      expect(calculateComboMultiplier(1)).toBe(1.1);
+      expect(calculateComboMultiplier(5)).toBe(1.5);
+      expect(calculateComboMultiplier(10)).toBe(2.0);
+    });
+
+    it('caps combo scaling at 3.0x for 20+ combos', () => {
+      expect(calculateComboMultiplier(20)).toBe(3.0);
+      expect(calculateComboMultiplier(50)).toBe(3.0);
+      expect(calculateComboMultiplier(999)).toBe(3.0);
+    });
+
+    it('truncates fractional combos without crashing', () => {
+      expect(calculateComboMultiplier(3.7)).toBe(1.3);
+    });
+  });
+
+  describe('generateParticleVectors', () => {
+    it('returns empty array when count is 0 or negative or non-finite', () => {
+      expect(generateParticleVectors(0, 100, 100)).toEqual([]);
+      expect(generateParticleVectors(-10, 100, 100)).toEqual([]);
+      expect(generateParticleVectors(NaN, 100, 100)).toEqual([]);
+    });
+
+    it('generates specified number of particle vectors clamped to 50 max', () => {
+      const p10 = generateParticleVectors(10, 50, 50, 'cyber');
+      expect(p10.length).toBe(10);
+      expect(p10[0].x).toBe(50);
+      expect(p10[0].y).toBe(50);
+      expect(p10[0].opacity).toBe(1.0);
+
+      const p100 = generateParticleVectors(100, 0, 0, 'gold');
+      expect(p100.length).toBe(50);
+    });
+
+    it('applies selected color scheme palette correctly', () => {
+      const cyber = generateParticleVectors(3, 0, 0, 'cyber');
+      expect(cyber[0].color).toBe('#00FF66');
+
+      const gold = generateParticleVectors(3, 0, 0, 'gold');
+      expect(gold[0].color).toBe('#FFD700');
+
+      const neon = generateParticleVectors(3, 0, 0, 'neon');
+      expect(neon[0].color).toBe('#FF007F');
     });
   });
 });

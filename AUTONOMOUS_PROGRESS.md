@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-26 13:20] Cycle 144: Battle Effects Combo Scaling & Particle Vectors Suite (Tests: PASS)**
+  - Enhanced `src/lib/battleEffects.ts` with `calculateComboMultiplier` (linear scaling +10%/hit, bounded to 3.0x max, resilient to NaN/non-finite inputs) and `generateParticleVectors` (deterministic circular velocity vectors, palette mapping for cyber/gold/neon themes, bounded to 50 particles max).
+  - Expanded unit test suite in `src/__tests__/battleEffects.test.ts` to 26 tests validating combo multiplier progression, boundary capping, non-finite handling, particle count clamping, and color theme palettes.
+  - Verified with `npm run validate` (57 test files, 554 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-26 13:18] Cycle 143: Auth Store Lifecycle, Avatar Resolution & Credential Validation (Tests: PASS)**
   - Enhanced `src/lib/authStore.ts` with `getAvatarById` fallback resolution, pure credential validators (`validateUsername`, `validatePassphrase`), deterministic `hashPassword` export, and exported `DEFAULT_GUEST_USER`.
   - Added dedicated unit test suite in `src/__tests__/authStore.test.ts` (20 tests) covering avatar ID lookups, short/invalid username and password sanitization, duplicate handle rejections, account switching, progress snapshot restoration, and guest session resets.
