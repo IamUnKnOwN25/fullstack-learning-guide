@@ -4,7 +4,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { CyberCompanionByte } from "../components/CyberCompanionByte";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -15,6 +15,7 @@ describe("CyberCompanionByte Component", () => {
     vi.spyOn(soundEngine, "playSfx").mockImplementation(() => {});
 
     useGameStore.setState({
+      xp: 100,
       level: 5,
       rankTitle: "Markup Apprentice",
       hp: 100,
@@ -29,12 +30,13 @@ describe("CyberCompanionByte Component", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders only the floating orb button initially", () => {
+  it("renders only the floating orb button initially with happy eyes", () => {
     render(<CyberCompanionByte />);
 
     const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
     expect(orbBtn).toBeDefined();
     expect(screen.queryByText(/BYTE • AI Cybernetic Familiar/)).toBeNull();
+    expect(screen.getByText("(◕‿◕)")).toBeDefined();
   });
 
   it("opens dialogue drawer when orb is clicked", () => {
@@ -49,7 +51,7 @@ describe("CyberCompanionByte Component", () => {
     expect(screen.getByText(/Quick Quiz/)).toBeDefined();
   });
 
-  it("cycles tips when Next Tip is clicked", () => {
+  it("cycles tips when Next Tip is clicked and rotates eye expression", () => {
     render(<CyberCompanionByte />);
 
     const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
@@ -61,7 +63,7 @@ describe("CyberCompanionByte Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 
-  it("switches to Quick Quiz mode and handles answering questions", () => {
+  it("switches to Quick Quiz mode and handles answering questions correctly", () => {
     render(<CyberCompanionByte />);
 
     const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
@@ -86,13 +88,37 @@ describe("CyberCompanionByte Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 
-  it("renders Emergency Heal button when player HP is below maxHp", () => {
+  it("handles incorrect quiz answers without granting XP and sets thinking mood", () => {
+    render(<CyberCompanionByte />);
+
+    const initialXp = useGameStore.getState().xp;
+
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+
+    const quizTab = screen.getByText(/Quick Quiz/);
+    fireEvent.click(quizTab);
+
+    // Question 1: HTML Landmark element (0: "<div class='main'>", 1: "<main>", 2: "<section>")
+    // Click incorrect option "<section>"
+    const wrongOption = screen.getByText("<section>");
+    fireEvent.click(wrongOption);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("error");
+    // XP should not have increased
+    expect(useGameStore.getState().xp).toBe(initialXp);
+
+    // Eye expression should reflect thinking "(o_O)"
+    expect(screen.getByText("(o_O)")).toBeDefined();
+  });
+
+  it("renders Emergency Heal button only when player HP is below maxHp", () => {
     useGameStore.setState({
       hp: 40,
       maxHp: 100,
     });
 
-    render(<CyberCompanionByte />);
+    const { rerender } = render(<CyberCompanionByte />);
 
     const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
     fireEvent.click(orbBtn);
@@ -100,9 +126,36 @@ describe("CyberCompanionByte Component", () => {
     const healBtn = screen.getByTitle("Emergency Field Medic Repair");
     expect(healBtn).toBeDefined();
 
-    fireEvent.click(healBtn);
+    act(() => {
+      fireEvent.click(healBtn);
+    });
     expect(soundEngine.playSfx).toHaveBeenCalledWith("heal");
     expect(useGameStore.getState().hp).toBe(65); // heals +25 HP
+
+    // Set HP to 100 (full)
+    act(() => {
+      useGameStore.setState({ hp: 100 });
+      rerender(<CyberCompanionByte />);
+    });
+
+    expect(screen.queryByTitle("Emergency Field Medic Repair")).toBeNull();
+  });
+
+  it("displays player cadet briefing stats in the dialogue footer", () => {
+    useGameStore.setState({
+      level: 7,
+      rankTitle: "Style Weaver",
+      completedQuests: ["html_1", "html_2", "css_1"],
+      completedBosses: ["boss_1", "boss_2"],
+    });
+
+    render(<CyberCompanionByte />);
+
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+
+    expect(screen.getByText(/Style Weaver \(L7\)/)).toBeDefined();
+    expect(screen.getByText(/3\/24 Quests • 2\/12 Bosses/)).toBeDefined();
   });
 
   it("closes drawer when the close button is clicked", () => {
