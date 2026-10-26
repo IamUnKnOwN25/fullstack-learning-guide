@@ -64,7 +64,6 @@ describe("SnippetResetGuard", () => {
     });
 
     it("should handle error during save gracefully", () => {
-      // By setting the id to "throw_error", our mock will throw an exception but it should be caught
       expect(() => SnippetResetGuard.saveBackup("throw_error", "code")).not.toThrow();
       expect(console.warn).toHaveBeenCalledWith("SnippetResetGuard: Failed to save backup", expect.any(Error));
     });
@@ -91,6 +90,59 @@ describe("SnippetResetGuard", () => {
        expect(() => SnippetResetGuard.saveBackup("q1", "code")).not.toThrow();
        expect(SnippetResetGuard.getBackup("q1")).toBeNull();
        expect(() => SnippetResetGuard.clearBackup("q1")).not.toThrow();
+    });
+
+    it("should handle error during retrieval gracefully when localStorage throws", () => {
+      vi.stubGlobal("window", {
+        localStorage: {
+          getItem: () => {
+            throw new Error("SecurityError: Access denied");
+          },
+        },
+      });
+
+      expect(SnippetResetGuard.getBackup("any_id")).toBeNull();
+      expect(console.warn).toHaveBeenCalledWith(
+        "SnippetResetGuard: Failed to retrieve backup",
+        expect.any(Error)
+      );
+    });
+
+    it("should handle error during clearBackup gracefully when localStorage throws", () => {
+      vi.stubGlobal("window", {
+        localStorage: {
+          removeItem: () => {
+            throw new Error("SecurityError: Access denied");
+          },
+        },
+      });
+
+      expect(() => SnippetResetGuard.clearBackup("any_id")).not.toThrow();
+      expect(console.warn).toHaveBeenCalledWith(
+        "SnippetResetGuard: Failed to clear backup",
+        expect.any(Error)
+      );
+    });
+
+    it("preserves unicode, emojis, and multiline formatting across backup cycles", () => {
+      const complexSnippet = "const matrixSymbol = '💎';\n/* \t\r\n Matrix Core */\nreturn 42;";
+      SnippetResetGuard.saveBackup("unicode_test", complexSnippet);
+      const retrieved = SnippetResetGuard.getBackup("unicode_test");
+      expect(retrieved).toBe(complexSnippet);
+    });
+  });
+
+  describe("isSafeToReset edge cases", () => {
+    it("handles null or undefined inputs safely", () => {
+      expect(SnippetResetGuard.isSafeToReset(null as any, "const x = 1;")).toBe(true);
+      expect(SnippetResetGuard.isSafeToReset("const x = 1;", null as any)).toBe(false);
+      expect(SnippetResetGuard.isSafeToReset(null as any, null as any)).toBe(true);
+    });
+
+    it("ignores tabs, carriage returns, and mixed indentation", () => {
+      const codeWithTabs = "\tconst\t\tx\t=\t1;\r\n";
+      const codeWithSpaces = "  const   x = 1;\n";
+      expect(SnippetResetGuard.isSafeToReset(codeWithTabs, codeWithSpaces)).toBe(true);
     });
   });
 });
