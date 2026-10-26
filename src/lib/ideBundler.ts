@@ -59,10 +59,13 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
         allHtmlFiles.find((f) => f.name.toLowerCase() === "index.html") ||
         allHtmlFiles[0];
 
-  // If the active file is SQL, JSON, or Markdown and there is no HTML file, use sandboxBuilder
+  // If the active file is SQL, CSS, JSON, or Markdown and there is no HTML file, use sandboxBuilder or preview
   if (!htmlFile && activeFile) {
     if (activeFile.language === "sql") {
       return buildSandboxSrcDoc(activeFile.content, "sql", "console");
+    }
+    if (activeFile.language === "css") {
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>:root{color-scheme:dark;}body{background:#0a0e17;color:#f8fafc;font-family:ui-monospace,monospace;padding:20px;}${activeFile.content}</style></head><body><div id="devquest-ide-preview"><h2>CSS Preview (${activeFile.name})</h2><p>Active stylesheet applied.</p></div></body></html>`;
     }
     return buildSandboxSrcDoc(
       activeFile.content,

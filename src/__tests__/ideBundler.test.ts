@@ -167,4 +167,30 @@ console.log('Score:', score);`,
     const doctypeMatches = doc.match(/<!DOCTYPE/gi);
     expect(doctypeMatches?.length).toBe(1);
   });
+
+  it("handles empty files array gracefully in bundleIdeProject and analyzeWorkspaceDiagnostics", () => {
+    const emptyDoc = bundleIdeProject([]);
+    expect(emptyDoc).toContain("<!DOCTYPE html>");
+    expect(emptyDoc).toContain("devquest-ide-preview");
+
+    const diags = analyzeWorkspaceDiagnostics([]);
+    expect(diags).toEqual([]);
+  });
+
+  it("provides styled HTML preview for standalone CSS files without HTML", () => {
+    const cssDoc = bundleIdeProject([
+      { name: "theme.css", language: "css", content: ".card { background: red; }" },
+    ]);
+    expect(cssDoc).toContain("CSS Preview (theme.css)");
+    expect(cssDoc).toContain(".card { background: red; }");
+    expect(cssDoc).toContain("Active stylesheet applied.");
+  });
+
+  it("ensures postMessage communication bridge is injected into bundled preview", () => {
+    const doc = bundleIdeProject([
+      { name: "index.html", language: "html", content: "<h1>Bridge Test</h1>" },
+    ]);
+    expect(doc).toContain("window.parent.postMessage");
+    expect(doc).toContain("source: 'devquest-ide-preview'");
+  });
 });
