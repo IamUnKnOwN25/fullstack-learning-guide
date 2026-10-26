@@ -1,3 +1,105 @@
+function cleanSingleParam(param: string): string {
+  const trimmed = param.trim();
+  if (!trimmed.includes(":")) return trimmed;
+  let depth = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (ch === "(" || ch === "{" || ch === "[" || ch === "<") depth++;
+    else if (ch === ")" || ch === "}" || ch === "]" || ch === ">") depth--;
+    else if (ch === ":" && depth === 0) {
+      return trimmed.slice(0, i).trim().replace(/\?$/, "");
+    }
+  }
+  return trimmed;
+}
+
+function cleanFunctionDeclarations(code: string): string {
+  const funcRegex = /\b(async\s+function|function)\b/g;
+  let match: RegExpExecArray | null;
+  const regions: { start: number; end: number; replacement: string }[] = [];
+
+  while ((match = funcRegex.exec(code)) !== null) {
+    const startIdx = match.index;
+    const isAsync = match[1].startsWith("async");
+
+    // Find opening paren '(' for params
+    const openParen = code.indexOf("(", startIdx);
+    if (openParen === -1) continue;
+
+    // Extract function name (between 'function' and '(')
+    const betweenFuncAndParen = code.slice(startIdx + match[1].length, openParen).trim();
+    // Strip generic e.g. "wrapResponse<T>" -> "wrapResponse"
+    const funcName = betweenFuncAndParen.replace(/<[^>]+>/g, "").trim();
+
+    // Track matching closing paren ')'
+    let depth = 0;
+    let closeParen = -1;
+    for (let i = openParen; i < code.length; i++) {
+      const ch = code[i];
+      if (ch === "(") depth++;
+      else if (ch === ")") {
+        depth--;
+        if (depth === 0) {
+          closeParen = i;
+          break;
+        }
+      }
+    }
+    if (closeParen === -1) continue;
+
+    // Clean params inside ( ... )
+    const rawParams = code.slice(openParen + 1, closeParen);
+    const cleanedParams: string[] = [];
+    let curParam = "";
+    let pDepth = 0;
+    for (let i = 0; i < rawParams.length; i++) {
+      const ch = rawParams[i];
+      if (ch === "(" || ch === "{" || ch === "[" || ch === "<") {
+        pDepth++;
+        curParam += ch;
+      } else if (ch === ")" || ch === "}" || ch === "]" || ch === ">") {
+        pDepth--;
+        curParam += ch;
+      } else if (ch === "," && pDepth === 0) {
+        cleanedParams.push(cleanSingleParam(curParam));
+        curParam = "";
+      } else {
+        curParam += ch;
+      }
+    }
+    if (curParam.trim()) {
+      cleanedParams.push(cleanSingleParam(curParam));
+    }
+
+    // Now find the function body opening brace '{'
+    let bodyBrace = -1;
+    let rDepth = 0;
+    for (let i = closeParen + 1; i < code.length; i++) {
+      const ch = code[i];
+      if (ch === "{" && rDepth === 0) {
+        bodyBrace = i;
+        break;
+      } else if (ch === "{" || ch === "<" || ch === "(" || ch === "[") {
+        rDepth++;
+      } else if (ch === "}" || ch === ">" || ch === ")" || ch === "]") {
+        rDepth--;
+      }
+    }
+    if (bodyBrace === -1) continue;
+
+    const signature = `${isAsync ? "async function" : "function"}${funcName ? " " + funcName : ""}(${cleanedParams.join(", ")}) {`;
+    regions.push({ start: startIdx, end: bodyBrace + 1, replacement: signature });
+  }
+
+  // Apply replacements in reverse order to keep indices valid
+  let result = code;
+  for (let i = regions.length - 1; i >= 0; i--) {
+    const reg = regions[i];
+    result = result.slice(0, reg.start) + reg.replacement + result.slice(reg.end);
+  }
+  return result;
+}
+
 export function transpileToRunnableJs(rawCode: string): string {
   let code = rawCode;
 
@@ -17,32 +119,11 @@ export function transpileToRunnableJs(rawCode: string): string {
   // Strip 'export' keyword before declarations
   code = code.replace(/\bexport\s+(async\s+function|function|const|let|var|class)\b/g, "$1");
 
-  // Strip generic type parameters on functions e.g. function wrapResponse<T>(
-  code = code.replace(/(function\s+\w+)\s*<[^>]+>\s*\(/g, "$1(");
+  // Clean function declarations (parameters and return types)
+  code = cleanFunctionDeclarations(code);
 
   // Strip variable type annotations e.g. const cadet: MatrixOperator =
   code = code.replace(/\b(const|let|var)\s+(\w+)\s*:\s*[^=]+=/g, "$1 $2 =");
-
-  // Strip function return type annotations e.g. ): ApiResponse<T> { or ): number {
-  code = code.replace(/\)\s*:\s*[A-Za-z0-9_<>\[\]|&\s{}.,?:]+\s*\{/g, ") {");
-
-  // Strip parameter type annotations inside function signatures
-  code = code.replace(/\(([^)]*)\)/g, (fullMatch, inner: string) => {
-    if (!inner.includes(":")) return fullMatch;
-    // Avoid touching object literals by only stripping simple param: Type pairs
-    const cleaned = inner
-      .split(",")
-      .map((param) => {
-        const trimmed = param.trim();
-        const match = trimmed.match(/^(\.\.\.)?([A-Za-z_$][\w$]*)\??\s*:\s*(.+)$/);
-        if (match) {
-          return `${match[1] || ""}${match[2]}`;
-        }
-        return param;
-      })
-      .join(", ");
-    return `(${cleaned})`;
-  });
 
   // Strip TypeScript `as Type` assertions
   code = code.replace(/\s+as\s+[A-Za-z0-9_<>\[\]|&]+/g, "");

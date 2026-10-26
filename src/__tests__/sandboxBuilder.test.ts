@@ -50,7 +50,11 @@ describe("Sandbox Builder & TypeScript Transpiler", () => {
     expect(htmlFragmentDoc).toContain("<h1>Hello Matrix</h1>");
 
     // Full HTML document with existing head tag
-    const fullHtmlDoc = buildSandboxSrcDoc("<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Matrix</h1></body></html>", "html", "html");
+    const fullHtmlDoc = buildSandboxSrcDoc(
+      "<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Matrix</h1></body></html>",
+      "html",
+      "html"
+    );
     expect(fullHtmlDoc).toContain("color-scheme: dark");
     expect(fullHtmlDoc).toContain("<title>Test</title>");
   });
@@ -76,6 +80,48 @@ describe("Sandbox Builder & TypeScript Transpiler", () => {
     expect(jsDoc).toContain("revalidatePath");
     expect(jsDoc).toContain("mockResolvedValue");
     expect(jsDoc).toContain("Live Sandbox Console");
+  });
+
+  it("handles empty or whitespace-only code strings across preview types", () => {
+    const emptyHtml = buildSandboxSrcDoc("", "html", "html");
+    expect(emptyHtml).toContain("<!DOCTYPE html>");
+    expect(emptyHtml).toContain("color-scheme: dark");
+
+    const emptySql = buildSandboxSrcDoc("   ", "sql", "console");
+    expect(emptySql).toContain("PostgreSQL 16 Engine Simulator");
+    expect(emptySql).toContain("WAITING");
+
+    const emptyJs = buildSandboxSrcDoc("", "javascript", "console");
+    expect(emptyJs).toContain("Live Sandbox Console");
+    expect(emptyJs).toContain("Runtime Active");
+  });
+
+  it("transpiles complex generic return types and stripped type assertions", () => {
+    const complexTs = `
+      export async function checkSystemReadiness(
+        db: { isConnected: () => Promise<boolean> }
+      ): Promise<{ status: "healthy" | "degraded"; timestamp: number }> {
+        const ok = (await db.isConnected()) as boolean;
+        return { status: "healthy", timestamp: Date.now() };
+      }
+    `;
+    const js = transpileToRunnableJs(complexTs);
+    expect(js).not.toContain("Promise<{");
+    expect(js).toContain("async function checkSystemReadiness(db) {");
+    expect(js).toContain("const ok = (await db.isConnected());");
+  });
+
+  it("generates SQL simulator displaying primary key and foreign key constraint badges", () => {
+    const sqlWithConstraints = `
+      CREATE TABLE users (id SERIAL PRIMARY KEY, email TEXT NOT NULL);
+      CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INT REFERENCES users(id));
+      CREATE INDEX idx_orders_user ON orders(user_id);
+    `;
+    const doc = buildSandboxSrcDoc(sqlWithConstraints, "sql", "console");
+    expect(doc).toContain("Detected Tables");
+    expect(doc).toContain("Primary Key Constraint");
+    expect(doc).toContain("Foreign Key Reference");
+    expect(doc).toContain("B-TREE INDEX");
   });
 
   it("safely builds sandbox srcDoc for every quest across all 12 realms", () => {
