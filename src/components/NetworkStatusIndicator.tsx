@@ -29,6 +29,8 @@ export function NetworkStatusIndicator() {
   return (
     <div
       role="alert"
+      aria-live="assertive"
+      data-testid="network-status-indicator"
       className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-red-950/90 text-red-200 px-4 py-3 rounded-lg shadow-lg border border-red-800/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4"
     >
       <WifiOff className="w-5 h-5 text-red-400" />
