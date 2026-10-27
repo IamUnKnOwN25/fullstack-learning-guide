@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { useThemeStore, Theme } from "../lib/themeStore";
+import {
+  useThemeStore,
+  Theme,
+  THEMES,
+  DEFAULT_THEME,
+  isValidTheme,
+  getThemeMeta,
+} from "../lib/themeStore";
 
 describe("Theme Store", () => {
   beforeEach(() => {
@@ -66,5 +73,38 @@ describe("Theme Store", () => {
       const parsed = JSON.parse(rawStorage);
       expect(parsed.state.theme).toBe("obsidian-high-contrast");
     }
+  });
+
+  describe("Theme Validators and Metadata", () => {
+    it("validates theme identifiers with isValidTheme", () => {
+      expect(isValidTheme("matrix-emerald")).toBe(true);
+      expect(isValidTheme("cyber-neon")).toBe(true);
+      expect(isValidTheme("obsidian-high-contrast")).toBe(true);
+      expect(isValidTheme("invalid-theme")).toBe(false);
+      expect(isValidTheme(null)).toBe(false);
+      expect(isValidTheme(undefined)).toBe(false);
+      expect(isValidTheme(123)).toBe(false);
+    });
+
+    it("retrieves theme metadata for each theme", () => {
+      THEMES.forEach((t) => {
+        const meta = getThemeMeta(t);
+        expect(meta.id).toBe(t);
+        expect(meta.primaryColor).toBeDefined();
+        expect(meta.accentColor).toBeDefined();
+        expect(meta.darkBg).toBeDefined();
+      });
+
+      const fallback = getThemeMeta("unknown" as any);
+      expect(fallback.id).toBe(DEFAULT_THEME);
+    });
+
+    it("falls back to DEFAULT_THEME when setting an invalid theme", () => {
+      useThemeStore.getState().setTheme("cyber-neon");
+      expect(useThemeStore.getState().theme).toBe("cyber-neon");
+
+      useThemeStore.getState().setTheme("invalid-custom-theme" as any);
+      expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
+    });
   });
 });
