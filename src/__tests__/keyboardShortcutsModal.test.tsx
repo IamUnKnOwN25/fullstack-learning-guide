@@ -1,10 +1,16 @@
 /** @vitest-environment jsdom */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { soundEngine } from "../lib/soundEngine";
 
 describe("KeyboardShortcutsModal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(soundEngine, "playSfx").mockImplementation(() => {});
+  });
+
   afterEach(() => {
     cleanup();
   });
@@ -33,7 +39,7 @@ describe("KeyboardShortcutsModal", () => {
     expect(screen.queryByText("Keyboard Shortcuts")).toBeNull();
   });
 
-  it("calls onClose when the close icon button is clicked", () => {
+  it("calls onClose and plays SFX when the close icon button is clicked", () => {
     const handleClose = vi.fn();
     render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
 
@@ -41,6 +47,49 @@ describe("KeyboardShortcutsModal", () => {
     expect(closeBtn).toBeDefined();
 
     fireEvent.click(closeBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when footer Close button is clicked", () => {
+    const handleClose = vi.fn();
+    render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+    const footerCloseBtn = screen.getByRole("button", { name: /close \(esc\)/i });
+    fireEvent.click(footerCloseBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when Escape key is pressed", () => {
+    const handleClose = vi.fn();
+    render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when backdrop is clicked", () => {
+    const handleClose = vi.fn();
+    render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+    const backdrop = screen.getByRole("dialog");
+    fireEvent.click(backdrop);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onClose when modal content is clicked", () => {
+    const handleClose = vi.fn();
+    render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+    const heading = screen.getByRole("heading", { name: /keyboard shortcuts/i, level: 2 });
+    fireEvent.click(heading);
+
+    expect(handleClose).not.toHaveBeenCalled();
   });
 });
