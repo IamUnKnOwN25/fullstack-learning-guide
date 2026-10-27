@@ -170,6 +170,7 @@ export function NavigationHud() {
             {/* Operator Profile Trigger */}
             <button
               type="button"
+              aria-label="Open Operative Profile Dossier"
               onClick={() => {
                 soundEngine.playSfx("click");
                 setProfileOpen(true);
@@ -193,6 +194,7 @@ export function NavigationHud() {
             {/* Interactive Rank & Level Trigger Button */}
             <button
               type="button"
+              aria-label="View Level & Rank Progression Journey"
               onClick={() => {
                 soundEngine.playSfx("click");
                 setLevelJourneyOpen(true);
@@ -233,7 +235,14 @@ export function NavigationHud() {
                   </span>
                 </div>
                 {/* XP Bar */}
-                <div className="w-28 sm:w-36 h-2 rounded-full bg-matrix-border overflow-hidden mt-1 relative">
+                <div
+                  role="progressbar"
+                  aria-label="Level XP Progress"
+                  aria-valuenow={Math.round(progress.progressPercent)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  className="w-28 sm:w-36 h-2 rounded-full bg-matrix-border overflow-hidden mt-1 relative"
+                >
                   <div
                     className="h-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500"
                     style={{ width: `${progress.progressPercent}%` }}
@@ -254,6 +263,43 @@ export function NavigationHud() {
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-matrix-card border border-matrix-border text-matrix-neonGold">
               <Flame className="w-3.5 h-3.5 fill-matrix-neonGold" />
               <span className="font-mono text-xs font-bold">{streak}d</span>
+            </div>
+
+            {/* Mobile Sound Quick Toggle */}
+            <div className="sm:hidden flex items-center gap-1">
+              <button
+                onClick={() => {
+                  toggleAudio();
+                  soundEngine.playSfx("click");
+                }}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  audioMuted
+                    ? "bg-matrix-card border-matrix-border text-gray-500"
+                    : "bg-matrix-card border-matrix-accent/40 text-matrix-accent"
+                }`}
+                type="button"
+                aria-label={audioMuted ? "Unmute Audio Mobile" : "Mute Audio Mobile"}
+                title={audioMuted ? "Unmute Audio" : "Mute Audio"}
+              >
+                {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+
+              <button
+                onClick={() => {
+                  toggleBgm();
+                  soundEngine.playSfx("click");
+                }}
+                className={`p-1.5 rounded-lg border transition-all ${
+                  bgmActive
+                    ? "bg-matrix-neonCyan/10 border-matrix-neonCyan text-matrix-neonCyan"
+                    : "bg-matrix-card border-matrix-border text-gray-400"
+                }`}
+                type="button"
+                aria-label={bgmActive ? "Stop 8-bit Chiptune Music Mobile" : "Play 8-bit Chiptune Music Mobile"}
+                title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
+              >
+                <Music className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Action Buttons: Quick Search, Skills & Trophies */}
@@ -280,7 +326,9 @@ export function NavigationHud() {
                   setSkillTreeOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonPurple transition-all"
-                type="button" aria-label="Skill Tree" title="Skill Tree"
+                type="button"
+                aria-label="Skill Tree"
+                title="Skill Tree"
               >
                 <Shield className="w-4 h-4" />
               </button>
@@ -291,7 +339,9 @@ export function NavigationHud() {
                   setInventoryOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonGold relative transition-all"
-                type="button" aria-label="Trophies & Badges" title="Trophies & Badges"
+                type="button"
+                aria-label="Trophies & Badges"
+                title="Trophies & Badges"
               >
                 <Trophy className="w-4 h-4" />
                 {badges.length > 0 && (
@@ -305,7 +355,9 @@ export function NavigationHud() {
                   setKeyboardShortcutsOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
-                type="button" aria-label="Keyboard Shortcuts" title="Keyboard Shortcuts"
+                type="button"
+                aria-label="Keyboard Shortcuts"
+                title="Keyboard Shortcuts"
               >
                 <Keyboard className="w-4 h-4" />
               </button>
@@ -316,7 +368,9 @@ export function NavigationHud() {
                   setLeaderboardOpen(true);
                 }}
                 className="p-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan transition-all"
-                type="button" aria-label="Global Matrix Leaderboards" title="Global Matrix Leaderboards"
+                type="button"
+                aria-label="Global Matrix Leaderboards"
+                title="Global Matrix Leaderboards"
               >
                 <Award className="w-4 h-4" />
               </button>
@@ -332,7 +386,9 @@ export function NavigationHud() {
                     ? "bg-matrix-card border-matrix-border text-gray-500"
                     : "bg-matrix-card hover:bg-matrix-cardHover border-matrix-accent/40 text-matrix-accent"
                 }`}
-                type="button" aria-label={audioMuted ? "Unmute Audio" : "Mute Audio"} title={audioMuted ? "Unmute Audio" : "Mute Audio"}
+                type="button"
+                aria-label={audioMuted ? "Unmute Audio" : "Mute Audio"}
+                title={audioMuted ? "Unmute Audio" : "Mute Audio"}
               >
                 {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
@@ -347,7 +403,9 @@ export function NavigationHud() {
                     ? "bg-matrix-neonCyan/10 border-matrix-neonCyan text-matrix-neonCyan shadow-sm shadow-matrix-neonCyan/40"
                     : "bg-matrix-card border-matrix-border text-gray-400 hover:text-gray-200"
                 }`}
-                type="button" aria-label={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"} title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
+                type="button"
+                aria-label={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
+                title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
               >
                 <Music className="w-4 h-4" />
               </button>
@@ -647,6 +705,19 @@ export function NavigationHud() {
         >
           <span className="text-xs mb-0.5 leading-none">{currentAvatar.emoji}</span>
           <span>{isAuthenticated ? "Profile" : "Sign In"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setKeyboardShortcutsOpen(true);
+          }}
+          className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-neonCyan transition-all"
+          aria-label="Mobile Keyboard Shortcuts"
+        >
+          <Keyboard className="w-4 h-4 mb-0.5" />
+          <span>Keys</span>
         </button>
 
         <button

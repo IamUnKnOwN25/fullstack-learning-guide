@@ -57,14 +57,24 @@ describe("NavigationHud Component", () => {
 
     expect(screen.getByText("DevQuest")).toBeDefined();
     expect(screen.getByText("The Web Matrix")).toBeDefined();
-    expect(screen.getByText("World Map")).toBeDefined();
-    expect(screen.getByText("Curriculum Vault")).toBeDefined();
-    expect(screen.getByText("Matrix IDE")).toBeDefined();
+    expect(screen.getAllByText("World Map")[0]).toBeDefined();
+    expect(screen.getAllByText("Curriculum Vault")[0]).toBeDefined();
+    expect(screen.getAllByText("Matrix IDE")[0]).toBeDefined();
 
     // Stats
     expect(screen.getByText(/Script Adept/)).toBeDefined();
     expect(screen.getByText("100/120")).toBeDefined();
     expect(screen.getByText("5d")).toBeDefined();
+  });
+
+  it("renders level progress bar with accessibility attributes", () => {
+    render(<NavigationHud />);
+
+    const progressBar = screen.getByRole("progressbar");
+    expect(progressBar).toBeDefined();
+    expect(progressBar.getAttribute("aria-label")).toBe("Level XP Progress");
+    expect(progressBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(progressBar.getAttribute("aria-valuemax")).toBe("100");
   });
 
   it("opens Quick Jump search palette when Jump button is clicked", () => {
@@ -92,6 +102,19 @@ describe("NavigationHud Component", () => {
     const bgmBtn = screen.getByLabelText("Play 8-bit Chiptune Music");
     fireEvent.click(bgmBtn);
 
+    expect(soundEngine.toggleBgm).toHaveBeenCalledWith(true);
+    expect(useGameStore.getState().bgmActive).toBe(true);
+  });
+
+  it("toggles audio mute and BGM via mobile quick toggle controls", () => {
+    render(<NavigationHud />);
+
+    const mobileAudioBtn = screen.getByLabelText("Mute Audio Mobile");
+    fireEvent.click(mobileAudioBtn);
+    expect(useGameStore.getState().audioMuted).toBe(true);
+
+    const mobileBgmBtn = screen.getByLabelText("Play 8-bit Chiptune Music Mobile");
+    fireEvent.click(mobileBgmBtn);
     expect(soundEngine.toggleBgm).toHaveBeenCalledWith(true);
     expect(useGameStore.getState().bgmActive).toBe(true);
   });
@@ -126,6 +149,16 @@ describe("NavigationHud Component", () => {
     expect(screen.getByText("Keyboard Shortcuts")).toBeDefined();
   });
 
+  it("opens Keyboard Shortcuts modal from mobile bottom navigation bar", () => {
+    render(<NavigationHud />);
+
+    const mobileKeysBtn = screen.getByLabelText("Mobile Keyboard Shortcuts");
+    fireEvent.click(mobileKeysBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText("Keyboard Shortcuts")).toBeDefined();
+  });
+
   it("opens Leaderboard modal when leaderboard icon button is clicked", () => {
     render(<NavigationHud />);
 
@@ -134,5 +167,36 @@ describe("NavigationHud Component", () => {
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.getByText("Matrix Global Leaderboards")).toBeDefined();
+  });
+
+  it("opens Profile modal when Operative Profile button is clicked", () => {
+    render(<NavigationHud />);
+
+    const profileBtn = screen.getByLabelText("Open Operative Profile Dossier");
+    fireEvent.click(profileBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    const profileDialog = screen.getByLabelText("Agent Profile Dossier");
+    expect(profileDialog).toBeDefined();
+  });
+
+  it("opens Level Journey modal when Rank & Level button is clicked", () => {
+    render(<NavigationHud />);
+
+    const levelBtn = screen.getByLabelText("View Level & Rank Progression Journey");
+    fireEvent.click(levelBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText("Level & Rank Progression")).toBeDefined();
+  });
+
+  it("displays Full-Stack Archmage and crown when Grandmaster skill is unlocked", () => {
+    useGameStore.setState({
+      unlockedSkills: ["syntax_sense", "matrix_grandmaster"],
+    });
+
+    render(<NavigationHud />);
+
+    expect(screen.getByText("Full-Stack Archmage")).toBeDefined();
   });
 });
