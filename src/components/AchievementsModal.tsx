@@ -9,6 +9,8 @@ import {
   ACHIEVEMENTS,
   RARITY_CONFIG,
   AchievementCategory,
+  getAchievementsByCategory,
+  calculateAchievementProgress,
 } from "@/data/achievements";
 import {
   X,
@@ -63,13 +65,9 @@ export function AchievementsModal({
 
   if (!isOpen) return null;
 
-  const filteredAchievements =
-    activeCategory === "all"
-      ? ACHIEVEMENTS
-      : ACHIEVEMENTS.filter((a) => a.category === activeCategory);
-
-  const unlockedCount = ACHIEVEMENTS.filter((a) => a.checkProgress(storeState).isUnlocked).length;
-  const progressPercent = Math.round((unlockedCount / ACHIEVEMENTS.length) * 100);
+  const filteredAchievements = getAchievementsByCategory(activeCategory);
+  const { unlocked: unlockedCount, percentUnlocked: progressPercent } =
+    calculateAchievementProgress(storeState, claimedAchievements);
 
   const handleClaim = (achievementId: string, xpReward: number) => {
     const ok = claimAchievement(achievementId, xpReward);

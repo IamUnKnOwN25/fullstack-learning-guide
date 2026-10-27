@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { ACHIEVEMENTS, RARITY_CONFIG } from "../data/achievements";
+import {
+  ACHIEVEMENTS,
+  RARITY_CONFIG,
+  getAchievementsByCategory,
+  getAchievementsByRarity,
+  getAchievementById,
+  calculateAchievementProgress,
+} from "../data/achievements";
 import { PlayerStats } from "../lib/gameStore";
 
 describe("Achievements Data & Logic", () => {
@@ -230,6 +237,90 @@ describe("Achievements Data & Logic", () => {
       expect(a.checkProgress(createMockStats({ level: 49, unlockedSkills: ["matrix_grandmaster"] })).isUnlocked).toBe(false);
       expect(a.checkProgress(createMockStats({ level: 50, unlockedSkills: [] })).isUnlocked).toBe(false);
       expect(a.checkProgress(createMockStats({ level: 50, unlockedSkills: ["matrix_grandmaster"] })).isUnlocked).toBe(true);
+    });
+  });
+
+  describe("Helper Functions & Progress Calculation", () => {
+    it("getAchievementsByCategory filters properly or returns all", () => {
+      expect(getAchievementsByCategory("all").length).toBe(ACHIEVEMENTS.length);
+      expect(getAchievementsByCategory(undefined).length).toBe(ACHIEVEMENTS.length);
+
+      const bosses = getAchievementsByCategory("bosses");
+      expect(bosses.length).toBeGreaterThan(0);
+      expect(bosses.every((a) => a.category === "bosses")).toBe(true);
+
+      const quests = getAchievementsByCategory("quests");
+      expect(quests.length).toBeGreaterThan(0);
+      expect(quests.every((a) => a.category === "quests")).toBe(true);
+
+      const scholar = getAchievementsByCategory("scholar");
+      expect(scholar.length).toBeGreaterThan(0);
+      expect(scholar.every((a) => a.category === "scholar")).toBe(true);
+
+      const mastery = getAchievementsByCategory("mastery");
+      expect(mastery.length).toBeGreaterThan(0);
+      expect(mastery.every((a) => a.category === "mastery")).toBe(true);
+    });
+
+    it("getAchievementsByRarity filters correctly by rarity tier", () => {
+      const legendaries = getAchievementsByRarity("legendary");
+      expect(legendaries.length).toBeGreaterThan(0);
+      expect(legendaries.every((a) => a.rarity === "legendary")).toBe(true);
+
+      const mythics = getAchievementsByRarity("mythic");
+      expect(mythics.length).toBeGreaterThan(0);
+      expect(mythics.every((a) => a.rarity === "mythic")).toBe(true);
+    });
+
+    it("getAchievementById returns matching achievement or undefined", () => {
+      const found = getAchievementById("first_blood_boss");
+      expect(found).toBeDefined();
+      expect(found?.name).toBe("Semantic Warden");
+
+      expect(getAchievementById("non_existent_id")).toBeUndefined();
+      expect(getAchievementById("")).toBeUndefined();
+    });
+
+    it("calculateAchievementProgress calculates initial stats correctly (includes welcome_initiate)", () => {
+      const stats = createMockStats();
+      const progress = calculateAchievementProgress(stats);
+
+      expect(progress.total).toBe(ACHIEVEMENTS.length);
+      // welcome_initiate is unlocked by default for any recruit plugging into DevQuest
+      expect(progress.unlocked).toBe(1);
+      expect(progress.claimed).toBe(0);
+      expect(progress.claimable).toBe(1);
+      expect(progress.percentUnlocked).toBe(Math.round((1 / ACHIEVEMENTS.length) * 100));
+      expect(progress.totalXpAvailable).toBeGreaterThan(0);
+      expect(progress.totalXpClaimed).toBe(0);
+    });
+
+    it("calculateAchievementProgress tracks unlocked and claimed achievements with XP", () => {
+      const stats = createMockStats({
+        completedBosses: ["html"], // Unlocks first_blood_boss (100 XP)
+        claimedAchievements: ["welcome_initiate", "first_blood_boss"],
+      });
+      const progress = calculateAchievementProgress(stats);
+
+      // welcome_initiate + first_blood_boss
+      expect(progress.unlocked).toBe(2);
+      expect(progress.claimed).toBe(2);
+      expect(progress.claimable).toBe(0);
+      expect(progress.percentUnlocked).toBe(Math.round((2 / ACHIEVEMENTS.length) * 100));
+      expect(progress.totalXpClaimed).toBe(150); // 50 + 100
+    });
+
+    it("calculateAchievementProgress correctly reports claimable count when unlocked but unclaimed", () => {
+      const stats = createMockStats({
+        completedBosses: ["html"], // first_blood_boss unlocked (welcome_initiate is also unlocked = 2 total)
+        unlockedSkills: ["some_skill"], // skill_pioneer unlocked = 3 total
+        claimedAchievements: ["welcome_initiate"], // only 1 claimed
+      });
+      const progress = calculateAchievementProgress(stats);
+
+      expect(progress.unlocked).toBe(3);
+      expect(progress.claimed).toBe(1);
+      expect(progress.claimable).toBe(2); // first_blood_boss and skill_pioneer are claimable
     });
   });
 });

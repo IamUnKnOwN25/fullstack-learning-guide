@@ -318,3 +318,92 @@ export const ACHIEVEMENTS: Achievement[] = [
     },
   },
 ];
+
+/**
+ * Retrieve achievements filtered by category or returns all if 'all' or undefined.
+ */
+export function getAchievementsByCategory(category?: AchievementCategory | "all"): Achievement[] {
+  if (!category || category === "all") {
+    return ACHIEVEMENTS;
+  }
+  return ACHIEVEMENTS.filter((a) => a.category === category);
+}
+
+/**
+ * Retrieve achievements filtered by rarity tier.
+ */
+export function getAchievementsByRarity(rarity: AchievementRarity): Achievement[] {
+  return ACHIEVEMENTS.filter((a) => a.rarity === rarity);
+}
+
+/**
+ * Find a specific achievement by its unique identifier.
+ */
+export function getAchievementById(id: string): Achievement | undefined {
+  if (!id) return undefined;
+  return ACHIEVEMENTS.find((a) => a.id === id);
+}
+
+export interface AchievementProgressSummary {
+  total: number;
+  unlocked: number;
+  claimed: number;
+  claimable: number;
+  percentUnlocked: number;
+  totalXpAvailable: number;
+  totalXpClaimed: number;
+}
+
+/**
+ * Calculate comprehensive achievement unlock and claim statistics for given player stats.
+ */
+export function calculateAchievementProgress(
+  stats: PlayerStats,
+  claimedList: string[] = stats.claimedAchievements || []
+): AchievementProgressSummary {
+  const total = ACHIEVEMENTS.length;
+  if (total === 0) {
+    return {
+      total: 0,
+      unlocked: 0,
+      claimed: 0,
+      claimable: 0,
+      percentUnlocked: 0,
+      totalXpAvailable: 0,
+      totalXpClaimed: 0,
+    };
+  }
+
+  let unlocked = 0;
+  let claimed = 0;
+  let totalXpAvailable = 0;
+  let totalXpClaimed = 0;
+
+  for (const ach of ACHIEVEMENTS) {
+    totalXpAvailable += ach.xpReward;
+    const isUnlocked = ach.checkProgress(stats).isUnlocked;
+    if (isUnlocked) {
+      unlocked++;
+    }
+    if (claimedList.includes(ach.id)) {
+      claimed++;
+      totalXpClaimed += ach.xpReward;
+    }
+  }
+
+  const claimable = ACHIEVEMENTS.filter(
+    (a) => a.checkProgress(stats).isUnlocked && !claimedList.includes(a.id)
+  ).length;
+
+  const percentUnlocked = Math.round((unlocked / total) * 100);
+
+  return {
+    total,
+    unlocked,
+    claimed,
+    claimable,
+    percentUnlocked,
+    totalXpAvailable,
+    totalXpClaimed,
+  };
+}
