@@ -28,7 +28,7 @@ describe("RealmConceptVisualizer Component", () => {
     expect(screen.getByText(/Container for page title, viewport meta tags/i)).toBeDefined();
   });
 
-  it("switches to CSS Flexbox lab and updates layout properties", () => {
+  it("switches to CSS Flexbox lab and updates layout properties and computed code", () => {
     render(<RealmConceptVisualizer realmId="html" />);
 
     const cssLabBtn = screen.getByRole("button", {
@@ -42,6 +42,7 @@ describe("RealmConceptVisualizer Component", () => {
     const colBtn = screen.getByRole("button", { name: "column" });
     fireEvent.click(colBtn);
     expect(colBtn.className).toContain("bg-matrix-accent");
+    expect(screen.getByText(/flex-direction: column;/i)).toBeDefined();
 
     // Change justify-content
     const justifySelect = screen.getByRole("combobox", {
@@ -72,6 +73,49 @@ describe("RealmConceptVisualizer Component", () => {
     expect(
       screen.getByText("Step 2: Promise.resolve() Enqueues Microtask")
     ).toBeDefined();
+  });
+
+  it("switches to Computer Science lab and animates binary search halving steps", () => {
+    render(<RealmConceptVisualizer realmId="cs" />);
+
+    expect(screen.getByText(/Binary Search Step-by-Step Animator/i)).toBeDefined();
+    expect(screen.getByText(/in a sorted array of 12 elements/i)).toBeDefined();
+
+    const nextStepBtn = screen.getByRole("button", { name: /next halving step/i });
+    expect(nextStepBtn).toBeDefined();
+
+    // Step 1
+    fireEvent.click(nextStepBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+
+    // Step 2
+    fireEvent.click(nextStepBtn);
+
+    // Step 3 (reaches target 42)
+    fireEvent.click(nextStepBtn);
+    expect(screen.getByText(/Target 42 found at index 6 in only 3 comparisons!/i)).toBeDefined();
+  });
+
+  it("switches to TypeScript lab and tests discriminated union type narrowing", () => {
+    render(<RealmConceptVisualizer realmId="typescript" />);
+
+    expect(screen.getByText(/Discriminated Union & Type Narrowing Lab/i)).toBeDefined();
+
+    // Toggle to "loading" status
+    const loadingBtn = screen.getByRole("button", { name: /"loading"/i });
+    fireEvent.click(loadingBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Narrowed Type: LoadingState/i)).toBeDefined();
+
+    // Toggle to "error" status
+    const errorBtn = screen.getByRole("button", { name: /"error"/i });
+    fireEvent.click(errorBtn);
+    expect(screen.getByText(/Narrowed Type: ErrorState/i)).toBeDefined();
+
+    // Toggle strict mode off (unsafe any mode)
+    const strictToggle = screen.getByRole("button", { name: /strictnullchecks: on/i });
+    fireEvent.click(strictToggle);
+    expect(screen.getByText(/Unsafe 'any' Mode: ON/i)).toBeDefined();
   });
 
   it("switches to Security lab and toggles XSS sanitizer shield", () => {
