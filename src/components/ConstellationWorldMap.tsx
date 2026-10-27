@@ -73,11 +73,13 @@ export function ConstellationWorldMap({
 
   const handleLaunchRealm = (realm: Realm) => {
     const rQuests = QUESTS[realm.id] || [];
-    const nextQuest = rQuests.find((q) => !completedQuests.includes(q.id)) || rQuests[0];
+    const nextQuest = rQuests.find((q) => !completedQuests.includes(q.id));
     if (nextQuest) {
       router.push(`/quest/${realm.id}/${nextQuest.id}`);
     } else if (BOSSES[realm.id]) {
       router.push(`/boss/${realm.id}`);
+    } else if (rQuests[0]) {
+      router.push(`/quest/${realm.id}/${rQuests[0].id}`);
     }
   };
 

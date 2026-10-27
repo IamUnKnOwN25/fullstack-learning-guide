@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ConstellationWorldMap } from "../components/ConstellationWorldMap";
 import { REALMS } from "../data/realms";
+import { QUESTS } from "../data/quests";
 import { soundEngine } from "../lib/soundEngine";
 
 const mockPush = vi.fn();
@@ -98,6 +99,9 @@ describe("ConstellationWorldMap Component", () => {
     expect(onSelectRealm).toHaveBeenCalledWith(
       expect.objectContaining({ id: "html" })
     );
+
+    fireEvent.keyDown(htmlNode, { key: " " });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 
   it("handles double-click to launch quest or boss", () => {
@@ -119,6 +123,28 @@ describe("ConstellationWorldMap Component", () => {
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("attack");
     expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("/quest/html/"));
+  });
+
+  it("routes to boss on double-click if all quests in the realm are completed", () => {
+    const onSelectRealm = vi.fn();
+    const htmlQuestIds = (QUESTS["html"] || []).map((q) => q.id);
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={htmlQuestIds}
+        level={5}
+      />
+    );
+
+    const htmlNode = screen.getByRole("button", { name: /html/i });
+    fireEvent.doubleClick(htmlNode);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("attack");
+    expect(mockPush).toHaveBeenCalledWith("/boss/html");
   });
 
   it("renders selected realm quick-launch bar with trial, boss, and guide links", () => {
@@ -173,5 +199,41 @@ describe("ConstellationWorldMap Component", () => {
 
     expect(htmlNode.className).toContain("opacity-100");
     expect(cssNode.className).toContain("opacity-25");
+  });
+
+  it("renders quest progress pill for unlocked realms", () => {
+    const onSelectRealm = vi.fn();
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={["html_1_skeleton"]}
+        level={1}
+      />
+    );
+
+    expect(screen.getByText("1/2 Quests")).toBeDefined();
+  });
+
+  it("renders Crown icon for Capstone realm with mastered styling when boss cleared", () => {
+    const onSelectRealm = vi.fn();
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["capstone"]}
+        completedBosses={["capstone"]}
+        completedQuests={[]}
+        level={50}
+      />
+    );
+
+    const capstoneNode = screen.getByRole("button", { name: /capstone/i });
+    expect(capstoneNode.getAttribute("aria-label")).toContain("Mastered");
+    expect(capstoneNode.innerHTML).toContain("animate-bounce");
   });
 });
