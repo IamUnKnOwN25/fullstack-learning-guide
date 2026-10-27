@@ -64,6 +64,11 @@ describe("LevelUpModal Component", () => {
       />
     );
 
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-label")).toBe("Level Up Ascension");
+
     expect(soundEngine.playSfx).toHaveBeenCalledWith("level-up");
     expect(confetti).toHaveBeenCalled();
 
@@ -142,7 +147,7 @@ describe("LevelUpModal Component", () => {
     expect(useGameStore.getState().pendingLevelUp).toBeNull();
   });
 
-  it("handles Unlock Skill Perks button click", () => {
+  it("handles Unlock Skill Perks button click with plural points", () => {
     useGameStore.setState({
       pendingLevelUp: {
         previousLevel: 2,
@@ -162,11 +167,88 @@ describe("LevelUpModal Component", () => {
       />
     );
 
+    expect(screen.getByText("+2 Points")).toBeDefined();
+
     const unlockBtn = screen.getByText("Unlock Skill Perks");
     fireEvent.click(unlockBtn);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(mockOpenSkillTree).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState().pendingLevelUp).toBeNull();
+  });
+
+  it("dismisses modal when Escape key is pressed", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 5,
+        newLevel: 6,
+        newRankTitle: "Logic Crafter",
+        isNewRank: false,
+        unlockedSkillPoints: 1,
+        maxHp: 150,
+        maxMana: 75,
+      },
+    });
+
+    render(<LevelUpModal />);
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(useGameStore.getState().pendingLevelUp).toBeNull();
+  });
+
+  it("dismisses modal when clicking backdrop but not modal content", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 5,
+        newLevel: 6,
+        newRankTitle: "Logic Crafter",
+        isNewRank: false,
+        unlockedSkillPoints: 1,
+        maxHp: 150,
+        maxMana: 75,
+      },
+    });
+
+    render(<LevelUpModal />);
+
+    const modalTitle = screen.getByText("Level Up!");
+    fireEvent.click(modalTitle);
+    expect(useGameStore.getState().pendingLevelUp).not.toBeNull();
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(dialog);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(useGameStore.getState().pendingLevelUp).toBeNull();
+  });
+
+  it("navigates to level roadmap when clicking View Rank Ladder", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 9,
+        newLevel: 10,
+        newRankTitle: "DOM Weaver",
+        isNewRank: true,
+        unlockedSkillPoints: 1,
+        maxHp: 190,
+        maxMana: 95,
+      },
+    });
+
+    render(
+      <LevelUpModal
+        onOpenSkillTree={mockOpenSkillTree}
+        onOpenLevelJourney={mockOpenLevelJourney}
+      />
+    );
+
+    const ladderBtn = screen.getByText("View Rank Ladder & Level Roadmap");
+    fireEvent.click(ladderBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOpenLevelJourney).toHaveBeenCalledTimes(1);
     expect(useGameStore.getState().pendingLevelUp).toBeNull();
   });
 });

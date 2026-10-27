@@ -14,6 +14,7 @@ import {
   Crown,
   Flame,
   X,
+  Compass,
 } from "lucide-react";
 
 interface Props {
@@ -40,6 +41,20 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
     }
   }, [pendingLevelUp]);
 
+  useEffect(() => {
+    if (!pendingLevelUp) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        dismissLevelUp();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingLevelUp, dismissLevelUp]);
+
   if (!pendingLevelUp) return null;
 
   const {
@@ -53,7 +68,18 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
   } = pendingLevelUp;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Level Up Ascension"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          dismissLevelUp();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-md bg-matrix-card border-2 border-matrix-neonGold/60 rounded-3xl shadow-2xl shadow-matrix-neonGold/20 overflow-hidden flex flex-col animate-slideUp">
         {/* Glow ambient background element */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-matrix-neonGold/15 rounded-full blur-3xl pointer-events-none" />
@@ -66,7 +92,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
             soundEngine.playSfx("click");
             dismissLevelUp();
           }}
-          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-matrix-dark/80 transition-colors z-10"
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-matrix-dark/80 transition-colors z-10 cursor-pointer"
           title="Dismiss (Esc)"
         >
           <X className="w-5 h-5" />
@@ -187,31 +213,50 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
         </div>
 
         {/* Modal Action Buttons */}
-        <div className="p-6 pt-4 flex flex-col sm:flex-row gap-2.5">
-          {onOpenSkillTree && (
+        <div className="p-6 pt-4 flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            {onOpenSkillTree && (
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  dismissLevelUp();
+                  onOpenSkillTree();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-neonPurple/30 transition-all cursor-pointer"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Unlock Skill Perks</span>
+              </button>
+            )}
+
             <button
+              type="button"
               onClick={() => {
                 soundEngine.playSfx("click");
                 dismissLevelUp();
-                onOpenSkillTree();
               }}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-neonPurple/30 transition-all cursor-pointer"
+              className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-accent hover:bg-matrix-accent/90 text-matrix-dark font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-accent/30 transition-all cursor-pointer"
             >
-              <Shield className="w-4 h-4" />
-              <span>Unlock Skill Perks</span>
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Continue Journey</span>
+            </button>
+          </div>
+
+          {onOpenLevelJourney && (
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                dismissLevelUp();
+                onOpenLevelJourney();
+              }}
+              className="w-full py-2 px-3 rounded-xl bg-matrix-dark/60 hover:bg-matrix-dark border border-matrix-neonGold/30 hover:border-matrix-neonGold text-matrix-neonGold text-xs font-mono font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>View Rank Ladder & Level Roadmap</span>
             </button>
           )}
-
-          <button
-            onClick={() => {
-              soundEngine.playSfx("click");
-              dismissLevelUp();
-            }}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-accent hover:bg-matrix-accent/90 text-matrix-dark font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-accent/30 transition-all cursor-pointer"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Continue Journey</span>
-          </button>
         </div>
       </div>
     </div>
