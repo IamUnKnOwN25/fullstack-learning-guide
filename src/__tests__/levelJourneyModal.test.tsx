@@ -8,6 +8,7 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { LevelJourneyModal } from "../components/LevelJourneyModal";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
+import { RANKS } from "../lib/levelSystem";
 
 describe("LevelJourneyModal Component", () => {
   const mockOnClose = vi.fn();
@@ -41,7 +42,7 @@ describe("LevelJourneyModal Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders progression overview and stats when open", () => {
+  it("renders progression overview and stats when open with dialog accessibility", () => {
     render(
       <LevelJourneyModal
         isOpen={true}
@@ -49,6 +50,11 @@ describe("LevelJourneyModal Component", () => {
         onOpenSkillTree={mockOpenSkillTree}
       />
     );
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("level-journey-title");
 
     expect(screen.getByText("Level & Rank Progression")).toBeDefined();
     expect(screen.getAllByText("Markup Apprentice").length).toBeGreaterThan(0);
@@ -88,6 +94,35 @@ describe("LevelJourneyModal Component", () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
+  it("calls onClose when Escape key is pressed", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when backdrop is clicked", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const backdrop = screen.getByRole("dialog");
+    fireEvent.click(backdrop);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
   it("handles Spend Skill Points button navigation", () => {
     render(
       <LevelJourneyModal
@@ -103,6 +138,22 @@ describe("LevelJourneyModal Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(mockOpenSkillTree).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders all rank ladder tiers showing ACTIVE badge on current rank", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    expect(screen.getByText("ACTIVE")).toBeDefined();
+
+    // Verify all ranks exist in the ladder
+    RANKS.forEach((rank) => {
+      expect(screen.getAllByText(rank.title).length).toBeGreaterThan(0);
+    });
   });
 
   it("displays Grandmaster badge when player level is 50+", () => {

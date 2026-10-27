@@ -45,6 +45,18 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
     completedChapters = [],
   } = useGameStore();
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const progress = getLevelProgress(xp);
@@ -55,7 +67,18 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
   const isGrandmaster = level >= 50;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="level-journey-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp">
         {/* Modal Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/80">
@@ -64,7 +87,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
               <Sparkles className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <h2 id="level-journey-title" className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 Level & Rank Progression
               </h2>
               <p className="text-xs text-gray-400">
