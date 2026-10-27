@@ -197,3 +197,90 @@ export const SKILL_TREE: SkillNode[] = [
     statBonus: "Golden Avatar & +30% All XP",
   },
 ];
+
+/**
+ * Retrieve a skill node by its identifier.
+ */
+export function getSkillById(id: string): SkillNode | undefined {
+  if (!id) return undefined;
+  return SKILL_TREE.find((s) => s.id === id);
+}
+
+/**
+ * Retrieve all skill nodes belonging to a specific branch category.
+ */
+export function getSkillsByCategory(category: SkillCategory): SkillNode[] {
+  return SKILL_TREE.filter((s) => s.category === category);
+}
+
+/**
+ * Retrieve all skills belonging to a specific tier (1, 2, or 3).
+ */
+export function getSkillsByTier(tier: 1 | 2 | 3): SkillNode[] {
+  return SKILL_TREE.filter((s) => s.tier === tier);
+}
+
+/**
+ * Traverses up the prerequisite tree for a given skill and returns
+ * the ordered dependency chain from the root skill to the immediate prerequisite.
+ */
+export function getSkillPrerequisites(skillId: string): SkillNode[] {
+  const chain: SkillNode[] = [];
+  const visited = new Set<string>();
+  let current = getSkillById(skillId);
+
+  while (current && current.prerequisiteId) {
+    if (visited.has(current.prerequisiteId)) {
+      break; // Safeguard against circular dependencies
+    }
+    visited.add(current.prerequisiteId);
+    const prereq = getSkillById(current.prerequisiteId);
+    if (!prereq) break;
+    chain.unshift(prereq);
+    current = prereq;
+  }
+
+  return chain;
+}
+
+/**
+ * Detects whether there are any circular dependencies within the skill tree.
+ * Returns true if a cycle is detected, or false if the dependency graph is a valid DAG.
+ */
+export function detectSkillTreeCycles(): boolean {
+  const visited = new Set<string>();
+  const recStack = new Set<string>();
+  const skillMap = new Map<string, SkillNode>(SKILL_TREE.map((s) => [s.id, s]));
+
+  const hasCycle = (nodeId: string): boolean => {
+    visited.add(nodeId);
+    recStack.add(nodeId);
+
+    const node = skillMap.get(nodeId);
+    if (node && node.prerequisiteId) {
+      if (!visited.has(node.prerequisiteId)) {
+        if (hasCycle(node.prerequisiteId)) return true;
+      } else if (recStack.has(node.prerequisiteId)) {
+        return true;
+      }
+    }
+
+    recStack.delete(nodeId);
+    return false;
+  };
+
+  for (const skill of SKILL_TREE) {
+    if (!visited.has(skill.id)) {
+      if (hasCycle(skill.id)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Calculates the total skill points required to unlock all available skills in the tree.
+ */
+export function getTotalSkillTreeCost(): number {
+  return SKILL_TREE.reduce((acc, skill) => acc + skill.cost, 0);
+}
