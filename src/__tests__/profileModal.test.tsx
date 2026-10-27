@@ -31,7 +31,7 @@ describe("ProfileModal Component", () => {
         title: "Matrix Infiltrator",
         joinedAt: "2026-01-01T00:00:00.000Z",
         isGuest: false,
-        showcaseBadgeId: "first_quest",
+        showcaseBadgeId: "welcome_initiate",
       },
       isAuthenticated: true,
       accounts: {},
@@ -47,7 +47,7 @@ describe("ProfileModal Component", () => {
       completedQuests: ["html-basics", "css-selectors"],
       completedBosses: ["dom-destroyer"],
       stars: { "html-basics": 3, "css-selectors": 2 },
-      badges: ["first_quest", "boss_slayer"],
+      badges: ["welcome_initiate", "first_blood_boss"],
       completedCurriculumTasks: ["task-1"],
       completedChapters: ["ch-1"],
     });
@@ -69,7 +69,7 @@ describe("ProfileModal Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders user information and stats when open", () => {
+  it("renders user information and stats when open with dialog accessibility", () => {
     render(
       <ProfileModal
         isOpen={true}
@@ -79,11 +79,17 @@ describe("ProfileModal Component", () => {
       />
     );
 
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-label")).toBe("Agent Profile Dossier");
+
     expect(screen.getByText("Matrix Runner")).toBeDefined();
     expect(screen.getByText(/Exploring the grid/)).toBeDefined();
     expect(screen.getByText("Script Adept")).toBeDefined();
     expect(screen.getByText(/1,250 XP/)).toBeDefined();
     expect(screen.getByText("Level 4")).toBeDefined();
+    expect(screen.getByText("Matrix Initiate")).toBeDefined();
   });
 
   it("calls onClose when the close button is clicked", () => {
@@ -97,6 +103,39 @@ describe("ProfileModal Component", () => {
 
     const closeBtn = screen.getByLabelText("Close profile modal");
     fireEvent.click(closeBtn);
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
+
+  it("calls onClose when Escape key is pressed", () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
+
+  it("closes when clicking backdrop but not inside modal content", () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    const title = screen.getByText("Matrix Runner");
+    fireEvent.click(title);
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(dialog);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
@@ -117,7 +156,7 @@ describe("ProfileModal Component", () => {
     expect(mockOnOpenLeaderboard).toHaveBeenCalledTimes(1);
   });
 
-  it("allows updating bio and avatar", () => {
+  it("allows updating bio, avatar, and showcased badge", () => {
     render(
       <ProfileModal
         isOpen={true}
@@ -138,6 +177,10 @@ describe("ProfileModal Component", () => {
     const codeMageAvatar = screen.getByText("🧙‍♂️");
     fireEvent.click(codeMageAvatar);
 
+    // Select Semantic Warden badge to showcase
+    const semanticWardenBtn = screen.getByText("Semantic Warden");
+    fireEvent.click(semanticWardenBtn);
+
     // Click Save
     const saveBtn = screen.getByText("Save Bio");
     fireEvent.click(saveBtn);
@@ -145,6 +188,7 @@ describe("ProfileModal Component", () => {
     const currentUser = useAuthStore.getState().currentUser;
     expect(currentUser.customBio).toBe("A new legendary bio.");
     expect(currentUser.avatarId).toBe("code-mage");
+    expect(currentUser.showcaseBadgeId).toBe("first_blood_boss");
   });
 
   it("handles Save JSON download to file", () => {
@@ -189,7 +233,7 @@ describe("ProfileModal Component", () => {
       completedQuests: ["html-basics", "quest-1"],
       completedBosses: ["dom-destroyer"],
       stars: { "html-basics": 3 },
-      badges: ["first_quest"],
+      badges: ["welcome_initiate"],
       streak: 12,
     });
 
@@ -272,7 +316,7 @@ describe("ProfileModal Component", () => {
         title: "Matrix Initiate",
         joinedAt: new Date().toISOString(),
         isGuest: true,
-        showcaseBadgeId: "welcome_recruit",
+        showcaseBadgeId: "welcome_initiate",
       },
     });
 

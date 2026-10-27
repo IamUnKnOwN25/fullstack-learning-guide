@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
 import { serializeSaveData } from "@/lib/saveManager";
+import { getAchievementById } from "@/data/achievements";
 import {
   X,
   User,
@@ -53,18 +54,33 @@ export function ProfileModal({
     stars,
     completedCurriculumTasks = [],
     completedChapters = [],
-    badges,
+    badges = [],
     importSaveData,
   } = useGameStore();
 
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioText, setBioText] = useState(currentUser.customBio || "");
   const [selectedAvatar, setSelectedAvatar] = useState(currentUser.avatarId || "neon-hacker");
+  const [selectedBadge, setSelectedBadge] = useState(currentUser.showcaseBadgeId || "");
   const [copiedSave, setCopiedSave] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -74,7 +90,12 @@ export function ProfileModal({
   const totalStars = Object.values(stars || {}).reduce((sum, s) => sum + s, 0);
 
   const handleSaveBio = () => {
-    updateProfile({ customBio: bioText.trim(), avatarId: selectedAvatar });
+    updateProfile({
+      customBio: bioText.trim(),
+      avatarId: selectedAvatar,
+      showcaseBadgeId: selectedBadge,
+    });
+    soundEngine.playSfx("click");
     setIsEditingBio(false);
   };
 
@@ -99,7 +120,7 @@ export function ProfileModal({
     setTimeout(() => setCopiedSave(false), 2000);
   };
 
-    const handleDownloadSaveFile = () => {
+  const handleDownloadSaveFile = () => {
     const payload = serializeSaveData({
       xp,
       level,
@@ -152,7 +173,7 @@ export function ProfileModal({
     e.target.value = "";
   };
 
-const handleImportSave = () => {
+  const handleImportSave = () => {
     try {
       const ok = importSaveData(importText);
       if (ok) {
@@ -168,8 +189,23 @@ const handleImportSave = () => {
     }
   };
 
+  const showcaseTitle = currentUser.showcaseBadgeId
+    ? getAchievementById(currentUser.showcaseBadgeId)?.name || currentUser.showcaseBadgeId
+    : undefined;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Agent Profile Dossier"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         {/* Glow ambient background element */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-matrix-neonCyan/10 rounded-full blur-3xl pointer-events-none" />
@@ -208,7 +244,7 @@ const handleImportSave = () => {
                   onClose();
                   onOpenAuthModal();
                 }}
-                className="px-3 py-1.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity"
+                className="px-3 py-1.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer"
               >
                 Sign Up / Login
               </button>
@@ -219,7 +255,7 @@ const handleImportSave = () => {
                   logout();
                   soundEngine.playSfx("click");
                 }}
-                className="px-2.5 py-1.5 rounded-xl bg-matrix-dark border border-matrix-border text-gray-400 hover:text-matrix-neonRed text-xs flex items-center gap-1.5 transition-colors"
+                className="px-2.5 py-1.5 rounded-xl bg-matrix-dark border border-matrix-border text-gray-400 hover:text-matrix-neonRed text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Switch Account / Sign Out"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -232,7 +268,7 @@ const handleImportSave = () => {
                 soundEngine.playSfx("click");
                 onClose();
               }}
-              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
+              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
               type="button"
               aria-label="Close profile modal"
               title="Close (Esc)"
@@ -256,6 +292,15 @@ const handleImportSave = () => {
               </div>
 
               <div className="flex items-center gap-3 text-gray-400 text-[11px]">
+                {showcaseTitle && (
+                  <div
+                    className="flex items-center gap-1 text-matrix-neonGold font-bold px-2 py-0.5 rounded bg-matrix-neonGold/10 border border-matrix-neonGold/30"
+                    title="Showcased Honor Badge"
+                  >
+                    <Award className="w-3.5 h-3.5" />
+                    <span>{showcaseTitle}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
                   <span>Joined {new Date(currentUser.joinedAt).toLocaleDateString()}</span>
@@ -286,7 +331,7 @@ const handleImportSave = () => {
                         type="button"
                         key={av.id}
                         onClick={() => setSelectedAvatar(av.id)}
-                        className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all ${
+                        className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
                           selectedAvatar === av.id
                             ? `${av.borderColor} bg-matrix-dark shadow-md ring-1 ring-matrix-neonCyan`
                             : "border-matrix-border bg-matrix-dark/40 opacity-60"
@@ -301,13 +346,43 @@ const handleImportSave = () => {
                   </div>
                 </div>
 
+                {badges && badges.length > 0 && (
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">
+                      Showcase Honor Badge:
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 rounded-xl bg-matrix-dark border border-matrix-border">
+                      {badges.map((bId) => {
+                        const ach = getAchievementById(bId);
+                        const isSelected = selectedBadge === bId;
+                        return (
+                          <button
+                            type="button"
+                            key={bId}
+                            onClick={() => setSelectedBadge(bId)}
+                            className={`px-2 py-1 rounded-lg border text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-matrix-neonGold/20 border-matrix-neonGold text-matrix-neonGold font-bold shadow-sm"
+                                : "border-matrix-border bg-matrix-card/60 text-gray-400 hover:text-white"
+                            }`}
+                          >
+                            <span>{ach?.icon || "🎖️"}</span>
+                            <span className="truncate max-w-[120px]">{ach?.name || bId}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] text-gray-400 mb-1">
                     Cadet Bio / Motto:
                   </label>
                   <textarea
                     rows={2}
-                    aria-label="Cadet Bio / Motto" value={bioText}
+                    aria-label="Cadet Bio / Motto"
+                    value={bioText}
                     onChange={(e) => setBioText(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-matrix-dark border border-matrix-border text-white text-xs outline-none focus:border-matrix-neonCyan"
                   />
@@ -317,14 +392,14 @@ const handleImportSave = () => {
                   <button
                     type="button"
                     onClick={() => setIsEditingBio(false)}
-                    className="px-3 py-1.5 rounded-lg bg-matrix-card border border-matrix-border text-gray-400 text-xs"
+                    className="px-3 py-1.5 rounded-lg bg-matrix-card border border-matrix-border text-gray-400 text-xs cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleSaveBio}
-                    className="px-3 py-1.5 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-matrix-accent text-matrix-dark font-bold text-xs flex items-center gap-1 cursor-pointer"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>Save Bio</span>
@@ -340,9 +415,11 @@ const handleImportSave = () => {
                   type="button"
                   onClick={() => {
                     setIsEditingBio(true);
-                    setBioText(currentUser.customBio);
+                    setBioText(currentUser.customBio || "");
+                    setSelectedAvatar(currentUser.avatarId || "neon-hacker");
+                    setSelectedBadge(currentUser.showcaseBadgeId || "");
                   }}
-                  className="p-1 text-gray-400 hover:text-matrix-neonCyan transition-colors shrink-0"
+                  className="p-1 text-gray-400 hover:text-matrix-neonCyan transition-colors shrink-0 cursor-pointer"
                   title="Edit Profile"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
@@ -594,7 +671,7 @@ const handleImportSave = () => {
               <button
                 type="button"
                 onClick={() => setImportMsg(null)}
-                className="text-gray-400 hover:text-white p-0.5"
+                className="text-gray-400 hover:text-white p-0.5 cursor-pointer"
                 title="Dismiss message"
               >
                 <X className="w-3.5 h-3.5" />
@@ -622,14 +699,14 @@ const handleImportSave = () => {
                 <button
                   type="button"
                   onClick={() => setShowImport(false)}
-                  className="px-3 py-1 rounded bg-matrix-card border border-matrix-border text-gray-400 text-xs"
+                  className="px-3 py-1 rounded bg-matrix-card border border-matrix-border text-gray-400 text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleImportSave}
-                  className="px-3 py-1 rounded bg-matrix-neonCyan text-matrix-dark font-bold text-xs"
+                  className="px-3 py-1 rounded bg-matrix-neonCyan text-matrix-dark font-bold text-xs cursor-pointer"
                 >
                   Apply Backup
                 </button>
