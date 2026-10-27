@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { serializeSaveData, deserializeSaveData, SAVE_FORMAT_VERSION } from "../lib/saveManager";
+import {
+  serializeSaveData,
+  deserializeSaveData,
+  generateSaveSummary,
+  isValidStatsObject,
+  SAVE_FORMAT_VERSION,
+} from "../lib/saveManager";
 import type { PlayerStats } from "../lib/gameStore";
 
 describe("saveManager", () => {
@@ -127,6 +133,47 @@ describe("saveManager", () => {
       });
       const deserialized = deserializeSaveData(flatWithBadType);
       expect(deserialized).toBeNull();
+    });
+
+    it("handles non-string and empty strings gracefully", () => {
+      expect(deserializeSaveData("")).toBeNull();
+      expect(deserializeSaveData("   ")).toBeNull();
+      expect(deserializeSaveData(null as any)).toBeNull();
+      expect(deserializeSaveData(undefined as any)).toBeNull();
+    });
+  });
+
+  describe("generateSaveSummary & isValidStatsObject", () => {
+    it("generates correct summaries from player stats", () => {
+      const summary = generateSaveSummary({
+        level: 15,
+        xp: 12500,
+        completedQuests: ["q1", "q2", "q3"],
+        completedBosses: ["b1"],
+        rankTitle: "Type Warden",
+      });
+
+      expect(summary.level).toBe(15);
+      expect(summary.xp).toBe(12500);
+      expect(summary.questsCompleted).toBe(3);
+      expect(summary.bossesDefeated).toBe(1);
+      expect(summary.rankTitle).toBe("Type Warden");
+    });
+
+    it("returns default summary values for null or empty stats", () => {
+      const empty = generateSaveSummary(null);
+      expect(empty.level).toBe(1);
+      expect(empty.xp).toBe(0);
+      expect(empty.questsCompleted).toBe(0);
+      expect(empty.bossesDefeated).toBe(0);
+      expect(empty.rankTitle).toBe("Novice Byte");
+    });
+
+    it("validates stats objects directly with isValidStatsObject", () => {
+      expect(isValidStatsObject({ xp: 100, level: 2 })).toBe(true);
+      expect(isValidStatsObject({ xp: -1 })).toBe(false);
+      expect(isValidStatsObject("string")).toBe(false);
+      expect(isValidStatsObject(null)).toBe(false);
     });
   });
 });

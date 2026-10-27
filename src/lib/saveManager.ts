@@ -8,7 +8,15 @@ export interface SaveFile {
   data: Partial<PlayerStats>;
 }
 
-function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
+export interface SaveSummary {
+  level: number;
+  xp: number;
+  questsCompleted: number;
+  bossesDefeated: number;
+  rankTitle: string;
+}
+
+export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
     return false;
   }
@@ -63,6 +71,25 @@ function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
   return true;
 }
 
+export function generateSaveSummary(stats: Partial<PlayerStats> | null): SaveSummary {
+  if (!stats || typeof stats !== "object") {
+    return {
+      level: 1,
+      xp: 0,
+      questsCompleted: 0,
+      bossesDefeated: 0,
+      rankTitle: "Novice Byte",
+    };
+  }
+  return {
+    level: Number.isFinite(stats.level) ? Math.max(1, Math.floor(stats.level!)) : 1,
+    xp: Number.isFinite(stats.xp) ? Math.max(0, Math.floor(stats.xp!)) : 0,
+    questsCompleted: Array.isArray(stats.completedQuests) ? stats.completedQuests.length : 0,
+    bossesDefeated: Array.isArray(stats.completedBosses) ? stats.completedBosses.length : 0,
+    rankTitle: typeof stats.rankTitle === "string" && stats.rankTitle ? stats.rankTitle : "Novice Byte",
+  };
+}
+
 export function serializeSaveData(stats: Partial<PlayerStats>): string {
   const savePayload: SaveFile = {
     version: SAVE_FORMAT_VERSION,
@@ -75,6 +102,10 @@ export function serializeSaveData(stats: Partial<PlayerStats>): string {
 export function deserializeSaveData(
   jsonString: string
 ): Partial<PlayerStats> | null {
+  if (typeof jsonString !== "string" || !jsonString.trim()) {
+    return null;
+  }
+
   try {
     const rawData = JSON.parse(jsonString);
     if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) {
