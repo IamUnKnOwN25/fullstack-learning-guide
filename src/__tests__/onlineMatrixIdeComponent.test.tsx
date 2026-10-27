@@ -14,6 +14,7 @@ vi.mock("canvas-confetti", () => ({
 describe("OnlineMatrixIde Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     vi.spyOn(soundEngine, "playSfx").mockImplementation(() => {});
 
     useGameStore.setState({
@@ -50,6 +51,25 @@ describe("OnlineMatrixIde Component", () => {
     expect(editor.value).toBe(defaultTemplate.files[1].content);
   });
 
+  it("switches project templates when selecting a different template from the dropdown", () => {
+    render(<OnlineMatrixIde />);
+
+    const templateSelect = screen.getByRole("combobox", {
+      name: /select project template/i,
+    });
+    expect(templateSelect).toBeDefined();
+
+    // Select the second template
+    const secondTemplate = IDE_PROJECT_TEMPLATES[1];
+    fireEvent.change(templateSelect, { target: { value: secondTemplate.id } });
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    const editor = screen.getByRole("textbox", {
+      name: /matrix studio code editor/i,
+    }) as HTMLTextAreaElement;
+    expect(editor.value).toBe(secondTemplate.files[0].content);
+  });
+
   it("inserts programmer symbols at cursor", () => {
     render(<OnlineMatrixIde />);
 
@@ -63,7 +83,46 @@ describe("OnlineMatrixIde Component", () => {
     expect(editor.value).toContain("  ");
   });
 
-  it("toggles bottom panel and executes terminal help command", () => {
+  it("creates a new file in explorer and opens it in editor", () => {
+    render(<OnlineMatrixIde />);
+
+    // Click "+" (New File) button in file explorer
+    const newFileBtn = screen.getByTitle("New File");
+    fireEvent.click(newFileBtn);
+
+    const input = screen.getByPlaceholderText(/e\.g\. helper\.js/i);
+    expect(input).toBeDefined();
+
+    fireEvent.change(input, { target: { value: "mathUtils.js" } });
+    fireEvent.submit(input);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    const newTab = screen.getByRole("tab", { name: /mathUtils\.js/i });
+    expect(newTab).toBeDefined();
+
+    const editor = screen.getByRole("textbox", {
+      name: /matrix studio code editor/i,
+    }) as HTMLTextAreaElement;
+    expect(editor.value).toContain("mathUtils.js");
+  });
+
+  it("closes a file tab when clicking close icon", () => {
+    render(<OnlineMatrixIde />);
+
+    // styles.css tab should be open initially
+    const cssTab = screen.getByRole("tab", { name: /styles\.css/i });
+    expect(cssTab).toBeDefined();
+
+    // Find close button inside styles.css tab
+    const closeBtn = cssTab.querySelector("button");
+    expect(closeBtn).not.toBeNull();
+    fireEvent.click(closeBtn!);
+
+    // styles.css tab should no longer be present
+    expect(screen.queryByRole("tab", { name: /styles\.css/i })).toBeNull();
+  });
+
+  it("toggles bottom panel and executes terminal help, ls, and pwd commands", () => {
     render(<OnlineMatrixIde />);
 
     // Open terminal tab at bottom
@@ -77,11 +136,18 @@ describe("OnlineMatrixIde Component", () => {
     });
     expect(terminalInput).toBeDefined();
 
-    // Type 'help' and submit form
+    // Type 'help' and submit
     fireEvent.change(terminalInput, { target: { value: "help" } });
     fireEvent.submit(terminalInput);
-
-    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.getByText(/matrix-sh v2.4/i)).toBeDefined();
+
+    // Type 'ls' and submit
+    fireEvent.change(terminalInput, { target: { value: "ls" } });
+    fireEvent.submit(terminalInput);
+
+    // Type 'pwd' and submit
+    fireEvent.change(terminalInput, { target: { value: "pwd" } });
+    fireEvent.submit(terminalInput);
+    expect(screen.getByText(/\/workspace/i)).toBeDefined();
   });
 });
