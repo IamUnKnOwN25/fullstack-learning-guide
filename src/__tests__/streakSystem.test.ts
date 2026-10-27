@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { calculateStreakBonus, updateStreak, StreakState } from "../lib/streakSystem";
+import {
+  calculateStreakBonus,
+  updateStreak,
+  getStreakMilestone,
+  isStreakAtRisk,
+  StreakState,
+  STREAK_MILESTONES,
+} from "../lib/streakSystem";
 
 describe("streakSystem", () => {
   describe("calculateStreakBonus", () => {
@@ -100,6 +107,31 @@ describe("streakSystem", () => {
       const { streak, streakReset } = updateStreak(currentStreak, "2023-10-01");
       expect(streak).toEqual({ streakDays: 3, lastLoginDate: "2023-10-02" });
       expect(streakReset).toBe(false);
+    });
+  });
+
+  describe("Streak Milestones & At-Risk Status", () => {
+    it("returns correct streak milestones across progression tiers", () => {
+      expect(getStreakMilestone(1).title).toBe("Initiate");
+      expect(getStreakMilestone(3).title).toBe("Consistent Hacker");
+      expect(getStreakMilestone(5).title).toBe("Consistent Hacker");
+      expect(getStreakMilestone(7).title).toBe("Weekly Sentinel");
+      expect(getStreakMilestone(14).title).toBe("Fortnight Champion");
+      expect(getStreakMilestone(30).title).toBe("Monthly Grandmaster");
+      expect(getStreakMilestone(150).title).toBe("Century Legend");
+      expect(getStreakMilestone(NaN).title).toBe("Initiate");
+    });
+
+    it("evaluates whether a streak is at risk of breaking", () => {
+      // 1 day apart -> at risk
+      expect(isStreakAtRisk("2024-03-01", "2024-03-02")).toBe(true);
+      // Same day -> not at risk
+      expect(isStreakAtRisk("2024-03-01", "2024-03-01")).toBe(false);
+      // 2+ days apart -> already broken, not at risk
+      expect(isStreakAtRisk("2024-03-01", "2024-03-03")).toBe(false);
+      // Missing or malformed
+      expect(isStreakAtRisk(null, "2024-03-02")).toBe(false);
+      expect(isStreakAtRisk("invalid", "2024-03-02")).toBe(false);
     });
   });
 });
