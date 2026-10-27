@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-27 09:37] Cycle 157: Sound Engine State Persistence, Mute Toggles & Audio Resilience (Tests: PASS)**
+  - Enhanced `src/lib/soundEngine.ts` by exporting `SoundEngine` class, adding `getIsMuted()`, `getVolume()`, `toggleMute()`, and `isAudioContextReady()` methods.
+  - Expanded unit test suite in `src/__tests__/soundEngine.test.ts` to 20 tests verifying mute getters/toggles, volume clamping, and class instantiation.
+  - Verified with `npm run validate` (57 test files, 604 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-27 09:34] Cycle 156: Save Manager Save Summary, Defensive Deserialization & Validator Exports (Tests: PASS)**
   - Enhanced `src/lib/saveManager.ts` by exporting `isValidStatsObject`, adding `generateSaveSummary` for quick stats overviews (level, XP, completed quests, bosses, rank title), and adding non-string / empty string defensive deserialization guards.
   - Expanded unit test suite in `src/__tests__/saveManager.test.ts` to 14 tests validating save summaries for complete/empty stats, direct object validations, and empty/nullish string handling.

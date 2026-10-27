@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { soundEngine } from '../lib/soundEngine';
+import { soundEngine, SoundEngine } from '../lib/soundEngine';
 import { soundEngine as audioSoundEngine } from '../lib/audio';
 
 describe('SoundEngine', () => {
@@ -164,6 +164,39 @@ describe('SoundEngine', () => {
 
       const playAttempt = soundEngine.toggleBgm(true);
       expect(playAttempt).toBe(false);
+    });
+  });
+
+  describe('Getters & State Toggles', () => {
+    it('returns muted state and allows toggleMute', () => {
+      soundEngine.setMuted(false);
+      expect(soundEngine.getIsMuted()).toBe(false);
+
+      const isNowMuted = soundEngine.toggleMute();
+      expect(isNowMuted).toBe(true);
+      expect(soundEngine.getIsMuted()).toBe(true);
+
+      const isUnmuted = soundEngine.toggleMute();
+      expect(isUnmuted).toBe(false);
+      expect(soundEngine.getIsMuted()).toBe(false);
+    });
+
+    it('returns volume and clamps out-of-bounds inputs', () => {
+      soundEngine.setVolume(0.75);
+      expect(soundEngine.getVolume()).toBe(0.75);
+
+      soundEngine.setVolume(-1.5);
+      expect(soundEngine.getVolume()).toBe(0);
+
+      soundEngine.setVolume(2.5);
+      expect(soundEngine.getVolume()).toBe(1);
+    });
+
+    it('instantiates new isolated SoundEngine instances with correct defaults', () => {
+      const customEngine = new SoundEngine();
+      expect(customEngine.getIsMuted()).toBe(false);
+      expect(customEngine.getVolume()).toBe(0.3);
+      expect(customEngine.isAudioContextReady()).toBe(false);
     });
   });
 });

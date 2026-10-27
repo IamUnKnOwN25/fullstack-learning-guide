@@ -1,6 +1,6 @@
 // Client-side Web Audio API Sound Synthesizer (Zero asset dependencies)
 
-class SoundEngine {
+export class SoundEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
   private volume: number = 0.3;
@@ -26,8 +26,25 @@ class SoundEngine {
     }
   }
 
+  public getIsMuted(): boolean {
+    return this.isMuted;
+  }
+
+  public toggleMute(): boolean {
+    this.setMuted(!this.isMuted);
+    return this.isMuted;
+  }
+
   public setVolume(vol: number) {
     this.volume = Math.max(0, Math.min(1, vol));
+  }
+
+  public getVolume(): number {
+    return this.volume;
+  }
+
+  public isAudioContextReady(): boolean {
+    return this.ctx !== null && this.ctx.state !== "closed";
   }
 
   public playSfx(
