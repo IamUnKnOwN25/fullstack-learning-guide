@@ -6,6 +6,7 @@ import { QuestCodingWorkspace } from "../components/QuestCodingWorkspace";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 import { QUESTS } from "../data/quests";
+import { REALM_WARMUP_DRILLS, QUEST_DEEP_DIVES } from "../data/questPedagogy";
 
 vi.mock("canvas-confetti", () => ({
   default: vi.fn(),
@@ -90,6 +91,78 @@ describe("QuestCodingWorkspace Component", () => {
       name: /quest solution code editor/i,
     }) as HTMLTextAreaElement;
     expect(editor.value).toContain("  ");
+  });
+
+  it("resets modified code back to starterCode when Reset Code is clicked", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    const editor = screen.getByRole("textbox", {
+      name: /quest solution code editor/i,
+    }) as HTMLTextAreaElement;
+
+    fireEvent.change(editor, { target: { value: "broken code to reset" } });
+    expect(editor.value).toBe("broken code to reset");
+
+    const resetBtn = screen.getByRole("button", { name: /reset code/i });
+    fireEvent.click(resetBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(editor.value).toBe(htmlQuest.starterCode);
+  });
+
+  it("reveals tactical hints sequentially", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    expect(screen.queryByText(/Hint 1:/i)).toBeNull();
+
+    const revealBtn = screen.getByRole("button", { name: /reveal hint/i });
+    fireEvent.click(revealBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Hint 1:/i)).toBeDefined();
+    expect(screen.getByText(htmlQuest.hints[0])).toBeDefined();
+  });
+
+  it("verifies warm-up drill solution snippet", () => {
+    const drill = REALM_WARMUP_DRILLS["html"];
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    // Switch to Warm-Up tab
+    const warmupTab = screen.getByRole("button", { name: /warm-up/i });
+    fireEvent.click(warmupTab);
+
+    // Load solution pattern
+    const loadSolutionBtn = screen.getByRole("button", { name: /load solution pattern/i });
+    fireEvent.click(loadSolutionBtn);
+
+    const warmupEditor = screen.getByRole("textbox", {
+      name: /warm-up drill code editor/i,
+    }) as HTMLTextAreaElement;
+    expect(warmupEditor.value).toBe(drill.solutionSnippet);
+
+    // Verify drill
+    const verifyBtn = screen.getAllByRole("button", { name: /verify warm-up drill/i })[0];
+    fireEvent.click(verifyBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("correct");
+  });
+
+  it("handles Deep Dive concept check quiz and awards XP bonus", () => {
+    const deepDive = QUEST_DEEP_DIVES[htmlQuest.id];
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    // Switch to Deep Dive tab
+    const deepDiveTab = screen.getByRole("button", { name: /deep dive/i });
+    fireEvent.click(deepDiveTab);
+
+    // Click the correct quiz answer option (which submits directly)
+    const correctOptionText = deepDive.quiz.options[deepDive.quiz.correctIndex];
+    const correctBtn = screen.getByText(correctOptionText);
+    fireEvent.click(correctBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("correct");
+    expect(screen.getByText(deepDive.quiz.explanation)).toBeDefined();
+    expect(useGameStore.getState().xp).toBeGreaterThan(0);
   });
 
   it("handles running valid solution and completing the quest", () => {
