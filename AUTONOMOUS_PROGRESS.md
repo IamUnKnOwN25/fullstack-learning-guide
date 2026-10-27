@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-27 09:29] Cycle 153: IDE Terminal Command Aliases, Manuals & Defensive Null Guards (Tests: PASS)**
+  - Enhanced `src/lib/ideTerminalCommands.ts` with `cls` (clear alias), `man` (help alias), `pwd` (prints current virtual workspace), detailed subcommand manuals (`help <cmd>`), and nullish context/file guards.
+  - Expanded unit test suite in `src/__tests__/ideTerminalCommands.test.ts` to 14 tests verifying clear aliases, help manuals, pwd output, non-string command safety, and nullish context resilience.
+  - Verified with `npm run validate` (57 test files, 592 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-27 09:27] Cycle 152: Curriculum Search Edge Cases & Multi-Term Fuzzy Snippet Suite (Tests: PASS)**
   - Enhanced `src/lib/curriculumSearch.ts` with `extractMatchedSnippet` for ellipsis-bounded contextual preview snippets, defensive guards against non-array documents, and empty/whitespace search query token filtering.
   - Expanded unit test suite in `src/__tests__/curriculumSearch.test.ts` to 16 tests covering centered preview extractions, start-of-file matches, non-array inputs, and nullish bookmark toggling.

@@ -113,5 +113,38 @@ describe("ideTerminalCommands", () => {
     expect(executeTerminalCommand("unknowncmd", { files: mockFiles }).handled).toBe(false);
     expect(executeTerminalCommand("", { files: mockFiles }).handled).toBe(false);
     expect(executeTerminalCommand("    ", { files: mockFiles }).handled).toBe(false);
+    expect(executeTerminalCommand(null as any, { files: mockFiles }).handled).toBe(false);
+  });
+
+  it("handles cls alias for clear and man alias for help", () => {
+    const clsRes = executeTerminalCommand("cls", { files: mockFiles });
+    expect(clsRes.handled).toBe(true);
+    expect(clsRes.clear).toBe(true);
+
+    const manRes = executeTerminalCommand("man", { files: mockFiles });
+    expect(manRes.handled).toBe(true);
+    expect(manRes.output?.[0]).toContain("Available matrix-sh commands");
+  });
+
+  it("handles pwd command returning virtual workspace directory", () => {
+    const res = executeTerminalCommand("pwd", { files: mockFiles });
+    expect(res.handled).toBe(true);
+    expect(res.output?.[0]).toBe("/workspace (virtual dev environment)");
+  });
+
+  it("handles help subcommands for individual command documentation", () => {
+    const helpLs = executeTerminalCommand("help ls", { files: mockFiles });
+    expect(helpLs.handled).toBe(true);
+    expect(helpLs.output?.[0]).toContain("ls - List all files in the active workspace");
+
+    const helpCat = executeTerminalCommand("help cat", { files: mockFiles });
+    expect(helpCat.handled).toBe(true);
+    expect(helpCat.output?.[0]).toContain("cat <filename> - Print entire content");
+  });
+
+  it("handles nullish context safely without throwing", () => {
+    const res = executeTerminalCommand("ls", null as any);
+    expect(res.handled).toBe(true);
+    expect(res.output?.[0]).toBe("");
   });
 });
