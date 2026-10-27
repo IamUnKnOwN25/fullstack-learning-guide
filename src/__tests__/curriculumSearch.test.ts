@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   buildSearchIndex,
   searchCurriculum,
+  extractMatchedSnippet,
   toggleBookmark,
   isBookmarked,
   getBookmarks,
@@ -209,6 +210,42 @@ Detailed description of reactive hooks.
       expect(bookmarks[1].id).toBe("f1.md#h1");
 
       vi.useRealTimers();
+    });
+
+    it("handles nullish bookmark input safely without crashing", () => {
+      expect(toggleBookmark(null as any)).toBe(false);
+      expect(toggleBookmark({ filename: "" } as any)).toBe(false);
+    });
+  });
+
+  describe("extractMatchedSnippet", () => {
+    const text = "Full-stack web development requires understanding client-server architecture, database indexing, and browser rendering.";
+
+    it("extracts a snippet centered around the matched term with ellipses", () => {
+      const snippet = extractMatchedSnippet(text, "indexing", 50);
+      expect(snippet).toContain("indexing");
+      expect(snippet.startsWith("...")).toBe(true);
+      expect(snippet.endsWith("...")).toBe(true);
+    });
+
+    it("returns beginning of content if matched at the start", () => {
+      const snippet = extractMatchedSnippet(text, "Full-stack", 40);
+      expect(snippet.startsWith("Full-stack")).toBe(true);
+    });
+
+    it("handles empty content or missing term gracefully", () => {
+      expect(extractMatchedSnippet("", "term")).toBe("");
+      expect(extractMatchedSnippet(text, "")).toBe(text.slice(0, 100).trim() + "...");
+    });
+  });
+
+  describe("Defensive Guard Tests", () => {
+    it("handles non-array and nullish inputs to buildSearchIndex and searchCurriculum", () => {
+      expect(buildSearchIndex(null as any)).toEqual([]);
+      expect(buildSearchIndex([null as any])).toEqual([]);
+      expect(searchCurriculum(null as any, [])).toEqual([]);
+      expect(searchCurriculum("react", null as any)).toEqual([]);
+      expect(searchCurriculum("   ", [])).toEqual([]);
     });
   });
 });

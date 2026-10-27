@@ -20,6 +20,7 @@ export interface Bookmark {
 }
 
 function slugifyHeading(text: string): string {
+  if (!text) return "";
   return text
     .toLowerCase()
     .replace(/[`*_~[\]()]/g, "")
@@ -29,20 +30,22 @@ function slugifyHeading(text: string): string {
 }
 
 export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
+  if (!Array.isArray(docs)) return [];
   const index: SearchIndexEntry[] = [];
 
   for (const doc of docs) {
+    if (!doc || typeof doc.content !== "string") continue;
     // Basic markdown heading parser
     const lines = doc.content.split("\n");
     let currentHeadingId = "";
-    let currentHeadingTitle = doc.title;
+    let currentHeadingTitle = doc.title || "";
     let currentContent: string[] = [];
 
     const flushSection = () => {
       const snippet = currentContent.join("\n").trim();
       if (snippet || currentHeadingTitle) {
         index.push({
-          filename: doc.filename,
+          filename: doc.filename || "",
           headingId: currentHeadingId,
           headingTitle: currentHeadingTitle,
           contentSnippet: snippet,
@@ -68,16 +71,19 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
 }
 
 export function searchCurriculum(query: string, index: SearchIndexEntry[]): SearchResult[] {
+  if (typeof query !== "string" || !Array.isArray(index)) return [];
   const q = query.toLowerCase().trim();
   if (!q) return [];
 
   const results: SearchResult[] = [];
-  const terms = q.split(/\s+/);
+  const terms = q.split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [];
 
   for (const entry of index) {
+    if (!entry) continue;
     let score = 0;
-    const headingLower = entry.headingTitle.toLowerCase();
-    const contentLower = entry.contentSnippet.toLowerCase();
+    const headingLower = (entry.headingTitle || "").toLowerCase();
+    const contentLower = (entry.contentSnippet || "").toLowerCase();
 
     for (const term of terms) {
       if (headingLower.includes(term)) {
@@ -100,11 +106,38 @@ export function searchCurriculum(query: string, index: SearchIndexEntry[]): Sear
   return results.sort((a, b) => b.score - a.score);
 }
 
+/**
+ * Safely extracts a preview snippet surrounding the matched term with an ellipsis.
+ */
+export function extractMatchedSnippet(
+  content: string,
+  matchedTerm: string,
+  maxLength: number = 100
+): string {
+  if (!content) return "";
+  if (!matchedTerm || !matchedTerm.trim()) {
+    return content.length > maxLength ? content.slice(0, maxLength).trim() + "..." : content.trim();
+  }
+  const termLower = matchedTerm.toLowerCase().trim();
+  const contentLower = content.toLowerCase();
+  const idx = contentLower.indexOf(termLower);
+  if (idx === -1) {
+    return content.length > maxLength ? content.slice(0, maxLength).trim() + "..." : content.trim();
+  }
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(content.length, start + maxLength);
+  let snippet = content.slice(start, end).trim();
+  if (start > 0) snippet = "..." + snippet;
+  if (end < content.length) snippet = snippet + "...";
+  return snippet;
+}
+
 // In-memory bookmark store for simple requirements (or localStorage if needed)
 let bookmarks: Bookmark[] = [];
 
 export function toggleBookmark(bookmark: Omit<Bookmark, "id" | "createdAt">): boolean {
-  const id = `${bookmark.filename}#${bookmark.headingId}`;
+  if (!bookmark || !bookmark.filename) return false;
+  const id = `${bookmark.filename}#${bookmark.headingId || ""}`;
   const existingIdx = bookmarks.findIndex((b) => b.id === id);
 
   if (existingIdx !== -1) {
