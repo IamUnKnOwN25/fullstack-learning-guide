@@ -4,11 +4,18 @@
  * never falsely mark objectives as completed.
  */
 
-function stripComments(code: string): string {
+export function stripComments(code?: string | null): string {
+  if (!code || typeof code !== "string") {
+    return "";
+  }
+
   return code
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/.*$/gm, "")
+    .replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1|(?<!:)\/\/.*$/gm, (match, quote) => {
+      if (quote) return match;
+      return "";
+    })
     .replace(/^\s*--.*$/gm, "")
     .replace(/^\s*#.*$/gm, "");
 }
@@ -164,9 +171,22 @@ const QUEST_TASK_RULES: Record<string, Array<(cleanCode: string, rawCode: string
   ],
 };
 
-export function evaluateQuestTasks(questId: string, tasks: string[], code: string): boolean[] {
-  const cleanCode = stripComments(code);
-  const rules = QUEST_TASK_RULES[questId];
+export function getRegisteredQuestIds(): string[] {
+  return Object.keys(QUEST_TASK_RULES);
+}
+
+export function evaluateQuestTasks(
+  questId?: string | null,
+  tasks?: string[] | null,
+  code?: string | null
+): boolean[] {
+  if (!tasks || !Array.isArray(tasks)) {
+    return [];
+  }
+
+  const safeCode = typeof code === "string" ? code : "";
+  const cleanCode = stripComments(safeCode);
+  const rules = questId ? QUEST_TASK_RULES[questId] : undefined;
 
   if (!rules) {
     return tasks.map(() => false);
@@ -174,7 +194,7 @@ export function evaluateQuestTasks(questId: string, tasks: string[], code: strin
 
   return tasks.map((_, idx) => {
     const rule = rules[idx];
-    return rule ? rule(cleanCode, code) : false;
+    return rule ? rule(cleanCode, safeCode) : false;
   });
 }
 
@@ -185,14 +205,18 @@ export interface TaskDiagnostic {
 }
 
 export function getQuestTaskDiagnostics(
-  questId: string,
-  tasks: string[],
-  code: string
+  questId?: string | null,
+  tasks?: string[] | null,
+  code?: string | null
 ): TaskDiagnostic[] {
+  if (!tasks || !Array.isArray(tasks)) {
+    return [];
+  }
+
   const results = evaluateQuestTasks(questId, tasks, code);
   return tasks.map((task, index) => ({
     index,
-    task,
+    task: task ?? "",
     passed: Boolean(results[index]),
   }));
 }

@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { QUESTS } from "../data/quests";
-import { evaluateQuestTasks, getQuestTaskDiagnostics } from "../lib/questTaskEvaluator";
+import {
+  evaluateQuestTasks,
+  getQuestTaskDiagnostics,
+  stripComments,
+  getRegisteredQuestIds,
+} from "../lib/questTaskEvaluator";
 
 const CANONICAL_SOLUTIONS: Record<string, string> = {
   html_1_skeleton: `<!DOCTYPE html>
@@ -253,5 +258,62 @@ describe("questTaskEvaluator", () => {
     expect(diags[1]).toEqual({ index: 1, task: tasks[1], passed: false });
     expect(diags[2]).toEqual({ index: 2, task: tasks[2], passed: true });
     expect(diags[3]).toEqual({ index: 3, task: tasks[3], passed: false });
+  });
+
+  it("preserves URLs with // during comment stripping while stripping real comments", () => {
+    const codeWithUrls = `
+      // Setup API endpoint
+      const httpsUrl = "https://api.devquest.matrix/v1/quests";
+      const httpUrl = "http://localhost:3000/health"; // Local fallback
+      /* Multi-line url comment
+         https://ignored.com */
+      const rawUrl = https://matrix.network/stream;
+    `;
+    const stripped = stripComments(codeWithUrls);
+
+    // Comments should be gone
+    expect(stripped).not.toContain("Setup API endpoint");
+    expect(stripped).not.toContain("Local fallback");
+    expect(stripped).not.toContain("Multi-line url comment");
+    expect(stripped).not.toContain("https://ignored.com");
+
+    // URLs should be intact
+    expect(stripped).toContain("https://api.devquest.matrix/v1/quests");
+    expect(stripped).toContain("http://localhost:3000/health");
+    expect(stripped).toContain("https://matrix.network/stream");
+  });
+
+  it("handles null, undefined, and non-string inputs safely without throwing", () => {
+    expect(stripComments(null)).toBe("");
+    expect(stripComments(undefined)).toBe("");
+    expect(stripComments("" as unknown as string)).toBe("");
+    // @ts-expect-error Testing invalid runtime input
+    expect(stripComments(12345)).toBe("");
+
+    expect(evaluateQuestTasks(null as unknown as string, ["task1"], "code")).toEqual([false]);
+    expect(evaluateQuestTasks(undefined as unknown as string, ["task1"], "code")).toEqual([false]);
+    expect(evaluateQuestTasks("html_1_skeleton", null as unknown as string[], "code")).toEqual([]);
+    expect(evaluateQuestTasks("html_1_skeleton", undefined as unknown as string[], "code")).toEqual([]);
+    expect(evaluateQuestTasks("html_1_skeleton", ["task1"], null as unknown as string)).toEqual([false]);
+    expect(evaluateQuestTasks("html_1_skeleton", ["task1"], undefined as unknown as string)).toEqual([false]);
+
+    expect(getQuestTaskDiagnostics(null as unknown as string, null as unknown as string[], null as unknown as string)).toEqual([]);
+    expect(getQuestTaskDiagnostics("html_1_skeleton", ["t1"], null as unknown as string)).toEqual([
+      { index: 0, task: "t1", passed: false },
+    ]);
+  });
+
+  it("exposes getRegisteredQuestIds returning all supported quest identifiers", () => {
+    const questIds = getRegisteredQuestIds();
+    expect(Array.isArray(questIds)).toBe(true);
+    expect(questIds.length).toBe(24);
+    expect(questIds).toContain("html_1_skeleton");
+    expect(questIds).toContain("react_1_hooks");
+    expect(questIds).toContain("capstone_2_health_probe");
+
+    for (const id of questIds) {
+      const res = evaluateQuestTasks(id, ["dummy"], "");
+      expect(res).toHaveLength(1);
+    }
   });
 });
