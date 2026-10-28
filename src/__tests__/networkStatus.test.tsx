@@ -119,4 +119,85 @@ describe("NetworkStatusIndicator", () => {
       expect(container.firstChild).toBeNull();
     }
   });
+
+  it("notifies onStatusChange callback on mount, offline event, and online event", () => {
+    const onStatusChangeMock = vi.fn();
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator onStatusChange={onStatusChangeMock} />);
+    expect(onStatusChangeMock).toHaveBeenCalledWith(true);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    expect(onStatusChangeMock).toHaveBeenCalledWith(false);
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    expect(onStatusChangeMock).toHaveBeenCalledWith(true);
+  });
+
+  it("allows dismissing offline alert and resets dismissal upon subsequent offline events", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: false,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator />);
+    expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+
+    const dismissBtn = screen.getByLabelText("Dismiss offline notification");
+    act(() => {
+      dismissBtn.click();
+    });
+
+    expect(screen.queryByTestId("network-status-indicator")).toBeNull();
+
+    // Triggering offline event again resets dismissal state
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+  });
+
+  it("handles manual retry click to refresh connection status", () => {
+    const onStatusChangeMock = vi.fn();
+    Object.defineProperty(window.navigator, "onLine", {
+      value: false,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator onStatusChange={onStatusChangeMock} />);
+    expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+
+    // Simulate link restored before clicking retry
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const retryBtn = screen.getByLabelText("Check connection");
+    act(() => {
+      retryBtn.click();
+    });
+
+    // Connection now re-evaluated as online
+    expect(screen.queryByTestId("network-status-indicator")).toBeNull();
+    expect(onStatusChangeMock).toHaveBeenCalledWith(true);
+  });
+
+  it("hides manual retry button when enableManualRetry is false", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: false,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator enableManualRetry={false} />);
+    expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+    expect(screen.queryByLabelText("Check connection")).toBeNull();
+  });
 });
