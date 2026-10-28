@@ -251,4 +251,45 @@ describe("LevelUpModal Component", () => {
     expect(mockOpenLevelJourney).toHaveBeenCalledTimes(1);
     expect(useGameStore.getState().pendingLevelUp).toBeNull();
   });
+
+  it("caps streak bonus display at +30% Bonus XP for ultra-long streaks", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 19,
+        newLevel: 20,
+        newRankTitle: "React Architect",
+        isNewRank: true,
+        unlockedSkillPoints: 1,
+        maxHp: 290,
+        maxMana: 145,
+      },
+      streak: 30, // 30-day streak
+    });
+
+    render(<LevelUpModal />);
+
+    expect(screen.getByText("30-Day Study Streak Active")).toBeDefined();
+    expect(screen.getByText("+30% Bonus XP")).toBeDefined();
+  });
+
+  it("gracefully catches and tolerates confetti throwing an exception", () => {
+    vi.mocked(confetti).mockImplementationOnce(() => {
+      throw new Error("Canvas context unavailable in headless environment");
+    });
+
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 1,
+        newLevel: 2,
+        newRankTitle: "Novice Byte",
+        isNewRank: false,
+        unlockedSkillPoints: 1,
+        maxHp: 110,
+        maxMana: 55,
+      },
+    });
+
+    expect(() => render(<LevelUpModal />)).not.toThrow();
+    expect(screen.getByText("Level Up!")).toBeDefined();
+  });
 });
