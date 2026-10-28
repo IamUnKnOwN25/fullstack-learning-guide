@@ -177,6 +177,27 @@ describe("OnlineMatrixIde Component", () => {
     fireEvent.click(desktopBtn);
   });
 
+  it("renders file tab container with role='tablist' and accessible close buttons", () => {
+    render(<OnlineMatrixIde />);
+
+    const tablist = screen.getByRole("tablist", {
+      name: /open editor files/i,
+    });
+    expect(tablist).toBeDefined();
+
+    const closeStylesBtn = screen.getByRole("button", {
+      name: "Close styles.css",
+    });
+    expect(closeStylesBtn).toBeDefined();
+    expect(closeStylesBtn.getAttribute("aria-label")).toBe("Close styles.css");
+
+    const closeIndexBtn = screen.getByRole("button", {
+      name: "Close index.html",
+    });
+    expect(closeIndexBtn).toBeDefined();
+    expect(closeIndexBtn.getAttribute("aria-label")).toBe("Close index.html");
+  });
+
   it("resets modified files when clicking Reset Project Code", () => {
     render(<OnlineMatrixIde />);
 

@@ -1590,7 +1590,11 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               }`}
             >
               {/* Open File Tabs Bar */}
-              <div className="bg-matrix-dark border-b border-matrix-border flex items-center overflow-x-auto">
+              <div
+                role="tablist"
+                aria-label="Open editor files"
+                className="bg-matrix-dark border-b border-matrix-border flex items-center overflow-x-auto"
+              >
                 {openTabs.map((tabName) => {
                   const tabFile = files.find((f) => f.name === tabName);
                   if (!tabFile) return null;
@@ -1619,6 +1623,7 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                       {openTabs.length > 1 && (
                         <button
                           type="button"
+                          aria-label={`Close ${tabName}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             const remaining = openTabs.filter((t) => t !== tabName);
