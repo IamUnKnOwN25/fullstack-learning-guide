@@ -40,6 +40,7 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
     let currentHeadingId = "";
     let currentHeadingTitle = doc.title || "";
     let currentContent: string[] = [];
+    let inCodeBlock = false;
 
     const flushSection = () => {
       const snippet = currentContent.join("\n").trim();
@@ -54,15 +55,25 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
     };
 
     for (const line of lines) {
-      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-      if (headingMatch) {
-        flushSection();
-        currentHeadingTitle = headingMatch[2].replace(/[`*_~]/g, ""); // clean basic markdown inline
-        currentHeadingId = slugifyHeading(headingMatch[2]);
-        currentContent = [];
-      } else {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+        inCodeBlock = !inCodeBlock;
         currentContent.push(line);
+        continue;
       }
+
+      if (!inCodeBlock) {
+        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+          flushSection();
+          currentHeadingTitle = headingMatch[2].replace(/[`*_~]/g, ""); // clean basic markdown inline
+          currentHeadingId = slugifyHeading(headingMatch[2]);
+          currentContent = [];
+          continue;
+        }
+      }
+
+      currentContent.push(line);
     }
     flushSection();
   }
@@ -114,7 +125,9 @@ export function extractMatchedSnippet(
   matchedTerm: string,
   maxLength: number = 100
 ): string {
-  if (!content) return "";
+  if (!content || typeof maxLength !== "number" || maxLength <= 0 || Number.isNaN(maxLength)) {
+    return "";
+  }
   if (!matchedTerm || !matchedTerm.trim()) {
     return content.length > maxLength ? content.slice(0, maxLength).trim() + "..." : content.trim();
   }
@@ -164,4 +177,69 @@ export function getBookmarks(): Bookmark[] {
 
 export function clearBookmarksForTesting(): void {
   bookmarks = [];
+}
+
+/**
+ * Serializes bookmarks into a JSON string for persistence.
+ * If no list is passed, serializes current in-memory bookmarks.
+ */
+export function serializeBookmarks(customBookmarks?: Bookmark[]): string {
+  if (customBookmarks === undefined) {
+    return JSON.stringify(getBookmarks());
+  }
+  if (!Array.isArray(customBookmarks)) {
+    return "[]";
+  }
+  return JSON.stringify(customBookmarks);
+}
+
+/**
+ * Deserializes bookmarks from a JSON string.
+ * Returns an array of valid Bookmark objects.
+ * Optionally synchronizes the restored bookmarks into the in-memory store.
+ */
+export function deserializeBookmarks(raw: string, syncToStore: boolean = false): Bookmark[] {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    const results: Bookmark[] = [];
+    for (const item of parsed) {
+      if (
+        item &&
+        typeof item === "object" &&
+        typeof item.filename === "string" &&
+        item.filename.trim().length > 0
+      ) {
+        const headingId = typeof item.headingId === "string" ? item.headingId : "";
+        const headingTitle = typeof item.headingTitle === "string" ? item.headingTitle : "";
+        const id =
+          typeof item.id === "string" && item.id.length > 0
+            ? item.id
+            : `${item.filename}#${headingId}`;
+        const createdAt =
+          typeof item.createdAt === "number" && Number.isFinite(item.createdAt)
+            ? item.createdAt
+            : Date.now();
+
+        results.push({
+          id,
+          filename: item.filename,
+          headingId,
+          headingTitle,
+          createdAt,
+        });
+      }
+    }
+    if (syncToStore) {
+      bookmarks = [...results];
+    }
+    return results;
+  } catch {
+    return [];
+  }
 }

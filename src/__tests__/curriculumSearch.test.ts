@@ -7,6 +7,9 @@ import {
   isBookmarked,
   getBookmarks,
   clearBookmarksForTesting,
+  serializeBookmarks,
+  deserializeBookmarks,
+  Bookmark,
 } from "../lib/curriculumSearch";
 import { DocFile } from "../components/CurriculumViewer";
 
@@ -102,6 +105,58 @@ Detailed description of reactive hooks.
       expect(index.length).toBe(1);
       expect(index[0].filename).toBe("empty.md");
       expect(index[0].contentSnippet).toBe("");
+    });
+
+    it("ignores '#' characters inside fenced code blocks (backticks and tildes)", () => {
+      const codeBlockDocs: DocFile[] = [
+        {
+          filename: "code-blocks.md",
+          title: "Code Blocks Guide",
+          content: `# Valid Heading 1
+Some introductory text.
+
+\`\`\`python
+# This is a python comment
+def hello():
+    # Another comment inside
+    return "matrix"
+\`\`\`
+
+## Valid Subheading
+Explanation follows.
+
+~~~bash
+# Bash comment
+export PORT=3000
+~~~
+
+### Valid Nested Heading
+Final remarks.
+`,
+        },
+      ];
+
+      const index = buildSearchIndex(codeBlockDocs);
+      const headingTitles = index.map(entry => entry.headingTitle);
+
+      // Must contain real markdown headings
+      expect(headingTitles).toContain("Valid Heading 1");
+      expect(headingTitles).toContain("Valid Subheading");
+      expect(headingTitles).toContain("Valid Nested Heading");
+
+      // Must NOT index code comments as section headings
+      expect(headingTitles).not.toContain("This is a python comment");
+      expect(headingTitles).not.toContain("Another comment inside");
+      expect(headingTitles).not.toContain("Bash comment");
+
+      // The code block content should remain inside the corresponding section snippet
+      const heading1Entry = index.find(e => e.headingTitle === "Valid Heading 1");
+      expect(heading1Entry?.contentSnippet).toContain("# This is a python comment");
+      expect(heading1Entry?.contentSnippet).toContain("def hello():");
+
+      const subheadingEntry = index.find(e => e.headingTitle === "Valid Subheading");
+      expect(subheadingEntry?.contentSnippet).toContain("# Bash comment");
+      expect(subheadingEntry?.contentSnippet).toContain("export PORT=3000");
     });
   });
 
@@ -218,6 +273,102 @@ Detailed description of reactive hooks.
     });
   });
 
+  describe("Bookmark Serialization", () => {
+    it("serializes and deserializes bookmarks with round-trip fidelity", () => {
+      const mockBookmarks: Bookmark[] = [
+        {
+          id: "intro.md#overview",
+          filename: "intro.md",
+          headingId: "overview",
+          headingTitle: "Overview Guide",
+          createdAt: 1700000000000,
+        },
+        {
+          id: "react.md#state-hooks",
+          filename: "react.md",
+          headingId: "state-hooks",
+          headingTitle: "State & Hooks",
+          createdAt: 1700000010000,
+        },
+      ];
+
+      const serialized = serializeBookmarks(mockBookmarks);
+      expect(typeof serialized).toBe("string");
+
+      const restored = deserializeBookmarks(serialized);
+      expect(restored).toEqual(mockBookmarks);
+    });
+
+    it("serializes in-memory store when no argument is provided to serializeBookmarks", () => {
+      toggleBookmark({
+        filename: "vue.md",
+        headingId: "reactivity",
+        headingTitle: "Reactivity",
+      });
+
+      const serialized = serializeBookmarks();
+      const restored = deserializeBookmarks(serialized);
+
+      expect(restored.length).toBe(1);
+      expect(restored[0].filename).toBe("vue.md");
+      expect(restored[0].headingId).toBe("reactivity");
+      expect(restored[0].headingTitle).toBe("Reactivity");
+    });
+
+    it("synchronizes restored bookmarks into in-memory store when syncToStore is true", () => {
+      const externalJson = JSON.stringify([
+        {
+          id: "db.md#sql-indexes",
+          filename: "db.md",
+          headingId: "sql-indexes",
+          headingTitle: "SQL Indexes",
+          createdAt: 1700000050000,
+        },
+      ]);
+
+      expect(getBookmarks().length).toBe(0);
+      const restored = deserializeBookmarks(externalJson, true);
+
+      expect(restored.length).toBe(1);
+      expect(getBookmarks().length).toBe(1);
+      expect(isBookmarked("db.md", "sql-indexes")).toBe(true);
+    });
+
+    it("handles invalid, corrupted, or non-array inputs to serialize and deserialize safely", () => {
+      expect(serializeBookmarks(null as any)).toBe("[]");
+      expect(serializeBookmarks("not-an-array" as any)).toBe("[]");
+
+      expect(deserializeBookmarks("")).toEqual([]);
+      expect(deserializeBookmarks("   ")).toEqual([]);
+      expect(deserializeBookmarks(null as any)).toEqual([]);
+      expect(deserializeBookmarks(undefined as any)).toEqual([]);
+      expect(deserializeBookmarks("invalid json {")).toEqual([]);
+      expect(deserializeBookmarks("null")).toEqual([]);
+      expect(deserializeBookmarks("12345")).toEqual([]);
+      expect(deserializeBookmarks('"a string"')).toEqual([]);
+      expect(deserializeBookmarks("{}")).toEqual([]);
+      expect(deserializeBookmarks("[1, 2, 3]")).toEqual([]);
+      expect(deserializeBookmarks('[{"headingId": "orphan-heading"}]')).toEqual([]);
+    });
+
+    it("supplies missing id and createdAt defaults for partially structured bookmarks", () => {
+      const partialJson = JSON.stringify([
+        {
+          filename: "partial.md",
+          headingId: "section-a",
+          headingTitle: "Section A",
+        },
+      ]);
+
+      const restored = deserializeBookmarks(partialJson);
+      expect(restored.length).toBe(1);
+      expect(restored[0].id).toBe("partial.md#section-a");
+      expect(restored[0].filename).toBe("partial.md");
+      expect(typeof restored[0].createdAt).toBe("number");
+      expect(restored[0].createdAt).toBeGreaterThan(0);
+    });
+  });
+
   describe("extractMatchedSnippet", () => {
     const text = "Full-stack web development requires understanding client-server architecture, database indexing, and browser rendering.";
 
@@ -236,6 +387,17 @@ Detailed description of reactive hooks.
     it("handles empty content or missing term gracefully", () => {
       expect(extractMatchedSnippet("", "term")).toBe("");
       expect(extractMatchedSnippet(text, "")).toBe(text.slice(0, 100).trim() + "...");
+    });
+
+    it("safely handles non-positive or zero maxLength by returning empty string", () => {
+      expect(extractMatchedSnippet(text, "indexing", 0)).toBe("");
+      expect(extractMatchedSnippet(text, "indexing", -1)).toBe("");
+      expect(extractMatchedSnippet(text, "indexing", -50)).toBe("");
+      expect(extractMatchedSnippet(text, "indexing", NaN)).toBe("");
+      expect(extractMatchedSnippet(text, "", 0)).toBe("");
+      expect(extractMatchedSnippet(text, "", -10)).toBe("");
+      expect(extractMatchedSnippet(text, "not-found", 0)).toBe("");
+      expect(extractMatchedSnippet(text, "not-found", -5)).toBe("");
     });
   });
 
