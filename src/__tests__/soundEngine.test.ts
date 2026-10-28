@@ -190,12 +190,62 @@ describe('SoundEngine', () => {
 
       soundEngine.setVolume(2.5);
       expect(soundEngine.getVolume()).toBe(1);
+
+      // Defensively handles NaN and non-finite inputs
+      soundEngine.setVolume(NaN);
+      expect(soundEngine.getVolume()).toBe(0);
+
+      soundEngine.setVolume(Infinity);
+      expect(soundEngine.getVolume()).toBe(0);
+
+      soundEngine.setVolume(-Infinity);
+      expect(soundEngine.getVolume()).toBe(0);
     });
 
     it('instantiates new isolated SoundEngine instances with correct defaults', () => {
       const customEngine = new SoundEngine();
       expect(customEngine.getIsMuted()).toBe(false);
       expect(customEngine.getVolume()).toBe(0.3);
+      expect(customEngine.isAudioContextReady()).toBe(false);
+    });
+
+    it('falls back to webkitAudioContext when standard AudioContext is absent', () => {
+      const mockWebkitCtx = {
+        state: 'running',
+        resume: vi.fn(),
+        currentTime: 0,
+        createOscillator: vi.fn(() => mockOscillator),
+        createGain: vi.fn(() => mockGain),
+        destination: {},
+      };
+      (global as any).window = {
+        webkitAudioContext: vi.fn().mockImplementation(function() { return mockWebkitCtx; }),
+      };
+
+      const customEngine = new SoundEngine();
+      customEngine.playSfx('click');
+      expect((global as any).window.webkitAudioContext).toHaveBeenCalled();
+      expect(customEngine.isAudioContextReady()).toBe(true);
+    });
+
+    it('handles disposal cleanly by stopping BGM and closing AudioContext', () => {
+      const mockClose = vi.fn();
+      const mockCtxWithClose = {
+        ...mockAudioContext,
+        state: 'running',
+        close: mockClose,
+      };
+      (global as any).window = {
+        AudioContext: vi.fn().mockImplementation(function() { return mockCtxWithClose; }),
+        clearInterval: vi.fn(),
+      };
+
+      const customEngine = new SoundEngine();
+      customEngine.playSfx('click');
+      expect(customEngine.isAudioContextReady()).toBe(true);
+
+      customEngine.dispose();
+      expect(mockClose).toHaveBeenCalled();
       expect(customEngine.isAudioContextReady()).toBe(false);
     });
   });

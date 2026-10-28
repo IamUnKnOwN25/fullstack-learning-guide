@@ -12,6 +12,11 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-28 10:20] Cycle 182: Sound Engine Volume Calibration, Fallback Recovery & Clean Disposal (Tests: PASS)**
+  - Enhanced `src/lib/soundEngine.ts` with defensive non-finite number protection in `setVolume` (`NaN` / `Infinity` / `-Infinity` sanitization) to prevent Web Audio API parameter poisoning, and added `dispose()` for closing audio context and clearing active BGM timers.
+  - Expanded unit test suite in `src/__tests__/soundEngine.test.ts` to 22 tests verifying volume boundary clamping, non-finite value resilience, `webkitAudioContext` legacy vendor fallback, and clean `dispose()` audio lifecycle management.
+  - Verified with `npm run validate` (57 test files, 687 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-10-28 10:16] Cycle 181: Online Matrix IDE Execution, Viewport Switcher & Project Reset (Tests: PASS)**
   - Enhanced unit test suite for `src/components/OnlineMatrixIde.tsx` covering project execution triggering with SFX audio feedback, responsive live preview viewport switching across desktop (100%), tablet (768px), and mobile (375px), and template state reset restoration.
   - Expanded `src/__tests__/onlineMatrixIdeComponent.test.tsx` to 10 comprehensive tests.

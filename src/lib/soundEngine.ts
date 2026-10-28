@@ -36,6 +36,10 @@ export class SoundEngine {
   }
 
   public setVolume(vol: number) {
+    if (typeof vol !== "number" || Number.isNaN(vol) || !Number.isFinite(vol)) {
+      this.volume = 0;
+      return;
+    }
     this.volume = Math.max(0, Math.min(1, vol));
   }
 
@@ -292,6 +296,18 @@ export class SoundEngine {
       this.bgmInterval = null;
     }
     this.isBgmPlaying = false;
+  }
+
+  public dispose() {
+    this.stopBgm();
+    if (this.ctx && typeof this.ctx.close === "function" && this.ctx.state !== "closed") {
+      try {
+        this.ctx.close();
+      } catch {
+        // Safe no-op if context close fails
+      }
+    }
+    this.ctx = null;
   }
 }
 
