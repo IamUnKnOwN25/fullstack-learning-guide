@@ -283,4 +283,78 @@ describe("BossBattleArena Component", () => {
     expect(log.getAttribute("aria-live")).toBe("polite");
     expect(within(log).getByText(/\[SYNTAX COUNTER\]/i)).toBeDefined();
   });
+
+  it("renders accessible progressbars with ARIA attributes for Boss HP, Player HP, and Player MP", () => {
+    const htmlBoss = BOSSES["html"];
+    useGameStore.setState({
+      hp: 80,
+      maxHp: 100,
+      mana: 40,
+      maxMana: 50,
+    });
+
+    render(<BossBattleArena realmId="html" />);
+
+    // Boss HP progressbar
+    const bossProgressBar = screen.getByRole("progressbar", { name: new RegExp(`${htmlBoss.name}`, "i") });
+    expect(bossProgressBar).toBeDefined();
+    expect(bossProgressBar.getAttribute("aria-label")).toContain("Boss HP");
+    expect(bossProgressBar.getAttribute("aria-valuenow")).toBe(String(htmlBoss.maxHp));
+    expect(bossProgressBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(bossProgressBar.getAttribute("aria-valuemax")).toBe(String(htmlBoss.maxHp));
+
+    // Player HP progressbar
+    const playerHpBar = screen.getByRole("progressbar", { name: /player hp/i });
+    expect(playerHpBar).toBeDefined();
+    expect(playerHpBar.getAttribute("aria-valuenow")).toBe("80");
+    expect(playerHpBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(playerHpBar.getAttribute("aria-valuemax")).toBe("100");
+
+    // Player MP progressbar
+    const playerMpBar = screen.getByRole("progressbar", { name: /player mp/i });
+    expect(playerMpBar).toBeDefined();
+    expect(playerMpBar.getAttribute("aria-valuenow")).toBe("40");
+    expect(playerMpBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(playerMpBar.getAttribute("aria-valuemax")).toBe("50");
+  });
+
+  it("clamps progressbar percentage widths between 0% and 100% for negative and overflow values", () => {
+    // Test negative health and mana values
+    useGameStore.setState({
+      hp: -30,
+      maxHp: 100,
+      mana: -15,
+      maxMana: 50,
+    });
+
+    const { rerender } = render(<BossBattleArena realmId="html" />);
+
+    const playerHpBar = screen.getByRole("progressbar", { name: /player hp/i });
+    const playerHpFill = playerHpBar.firstElementChild as HTMLElement;
+    expect(playerHpFill.style.width).toBe("0%");
+    expect(playerHpBar.getAttribute("aria-valuenow")).toBe("0");
+
+    const playerMpBar = screen.getByRole("progressbar", { name: /player mp/i });
+    const playerMpFill = playerMpBar.firstElementChild as HTMLElement;
+    expect(playerMpFill.style.width).toBe("0%");
+    expect(playerMpBar.getAttribute("aria-valuenow")).toBe("0");
+
+    // Test overflow health and mana values exceeding maximum
+    act(() => {
+      useGameStore.setState({
+        hp: 150,
+        maxHp: 100,
+        mana: 90,
+        maxMana: 50,
+      });
+    });
+
+    rerender(<BossBattleArena realmId="html" />);
+
+    const overflowHpFill = playerHpBar.firstElementChild as HTMLElement;
+    expect(overflowHpFill.style.width).toBe("100%");
+
+    const overflowMpFill = playerMpBar.firstElementChild as HTMLElement;
+    expect(overflowMpFill.style.width).toBe("100%");
+  });
 });

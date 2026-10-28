@@ -5,6 +5,7 @@ import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
+import { calculateHpPercentage } from "@/lib/battleEffects";
 import {
   Swords,
   Heart,
@@ -48,8 +49,17 @@ const PROGRAMMER_SYMBOLS = [
 
 export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const boss = initialBoss || BOSSES[realmId];
-  const { hp, maxHp, takeDamage, defeatBoss, completedBosses, completedQuests, unlockedSkills } =
-    useGameStore();
+  const {
+    hp,
+    maxHp,
+    mana,
+    maxMana,
+    takeDamage,
+    defeatBoss,
+    completedBosses,
+    completedQuests,
+    unlockedSkills,
+  } = useGameStore();
   const realm = REALMS.find((r) => r.id === realmId);
   const realmIndex = REALMS.findIndex((r) => r.id === realmId);
   const nextRealm =
@@ -72,6 +82,12 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
   const [postMortemOpen, setPostMortemOpen] = useState(true);
   const gutterRef = React.useRef<HTMLDivElement | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+
+  const playerMana = mana ?? 50;
+  const playerMaxMana = maxMana ?? 50;
+  const bossHpPercent = calculateHpPercentage(bossHp, boss?.maxHp || 100);
+  const playerHpPercent = calculateHpPercentage(hp, maxHp);
+  const playerMpPercent = calculateHpPercentage(playerMana, playerMaxMana);
 
   const insertSymbolAtCursor = (symbol: string) => {
     soundEngine.playSfx("click");
@@ -298,7 +314,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
             <BossMonsterSprite
               realmId={boss.realmId}
               isHit={isHit}
-              bossHpPercent={(bossHp / boss.maxHp) * 100}
+              bossHpPercent={bossHpPercent}
             />
 
             <div>
@@ -317,10 +333,17 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                   {bossHp}/{boss.maxHp}
                 </span>
               </div>
-              <div className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-red-900/80 shadow-inner">
+              <div
+                role="progressbar"
+                aria-label={`${boss.name} Boss HP`}
+                aria-valuenow={Math.max(0, bossHp)}
+                aria-valuemin={0}
+                aria-valuemax={boss.maxHp}
+                className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-red-900/80 shadow-inner"
+              >
                 <div
                   className="h-full bg-gradient-to-r from-orange-600 to-matrix-neonRed transition-all duration-300 rounded-full"
-                  style={{ width: `${(bossHp / boss.maxHp) * 100}%` }}
+                  style={{ width: `${bossHpPercent}%` }}
                 />
               </div>
             </div>
@@ -335,10 +358,17 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                   {hp}/{maxHp}
                 </span>
               </div>
-              <div className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-emerald-900/80 shadow-inner">
+              <div
+                role="progressbar"
+                aria-label="Player HP"
+                aria-valuenow={Math.max(0, hp)}
+                aria-valuemin={0}
+                aria-valuemax={maxHp}
+                className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-emerald-900/80 shadow-inner"
+              >
                 <div
                   className="h-full bg-gradient-to-r from-matrix-accentDark to-matrix-accent transition-all duration-300 rounded-full"
-                  style={{ width: `${(hp / maxHp) * 100}%` }}
+                  style={{ width: `${playerHpPercent}%` }}
                 />
               </div>
 
@@ -354,6 +384,31 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                   <span>Lint Barrier: {!shieldUsed ? "Charged (1 Absorption Ready)" : "Discharged"}</span>
                 </div>
               )}
+            </div>
+
+            {/* Player MP */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-mono font-bold tabular-nums">
+                <span className="text-matrix-neonCyan flex items-center gap-1">
+                  <Zap className="w-3.5 h-3.5 fill-matrix-neonCyan" /> Player Mana
+                </span>
+                <span className="text-gray-200">
+                  {playerMana}/{playerMaxMana}
+                </span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="Player MP"
+                aria-valuenow={Math.max(0, playerMana)}
+                aria-valuemin={0}
+                aria-valuemax={playerMaxMana}
+                className="w-full h-3.5 rounded-full bg-matrix-border overflow-hidden p-0.5 border border-cyan-900/80 shadow-inner"
+              >
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-600 to-matrix-neonCyan transition-all duration-300 rounded-full"
+                  style={{ width: `${playerMpPercent}%` }}
+                />
+              </div>
             </div>
 
             {/* Boss Dialogue Speech Bubble */}
