@@ -4,6 +4,7 @@ import {
   bundleIdeProject,
   analyzeWorkspaceDiagnostics,
   IDE_PROJECT_TEMPLATES,
+  stripTypeScriptForBrowser,
 } from "../lib/ideBundler";
 
 describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
@@ -184,6 +185,127 @@ console.log('Score:', score);`,
     expect(cssDoc).toContain("CSS Preview (theme.css)");
     expect(cssDoc).toContain(".card { background: red; }");
     expect(cssDoc).toContain("Active stylesheet applied.");
+  });
+
+  it("strips custom return types cleanly without syntax errors across functions and arrow functions", () => {
+    const tsCode = `
+export function searchMatrix(query: string): CustomResult {
+  return { found: true, query };
+}
+
+export function listCadets(): UserData[] {
+  return [{ id: "c1" }];
+}
+
+export async function fetchCadetAsync(): Promise<UserData[]> {
+  return [{ id: "c2" }];
+}
+
+export const getProfile = (): CustomResult => {
+  return { found: true, query: "profile" };
+};
+
+export const getInlineProfile = (): CustomResult => ({ found: false });
+
+export const getCadetList = (): UserData[] => [{ id: "c3" }];
+
+export function maybeUser(): CustomResult | null {
+  return null;
+}
+
+export class Engine {
+  execute(): CustomResult {
+    return { found: true };
+  }
+}
+`;
+    const stripped = stripTypeScriptForBrowser(tsCode);
+
+    expect(stripped).not.toContain(": CustomResult");
+    expect(stripped).not.toContain(": UserData[]");
+    expect(stripped).not.toContain(": Promise<UserData[]>");
+    expect(stripped).not.toContain(": CustomResult | null");
+
+    expect(stripped).toContain("function searchMatrix(query)");
+    expect(stripped).toContain("function listCadets()");
+    expect(stripped).toContain("async function fetchCadetAsync()");
+    expect(stripped).toContain("const getProfile = () => {");
+    expect(stripped).toContain("const getInlineProfile = () => ({ found: false });");
+    expect(stripped).toContain("const getCadetList = () => [{ id: \"c3\" }];");
+    expect(stripped).toContain("function maybeUser()");
+    expect(stripped).toContain("execute()");
+
+    expect(() => new Function(stripped)).not.toThrow();
+  });
+
+  it("strips multi-line and indented interface declarations cleanly without producing invalid JavaScript syntax", () => {
+    const tsCode = `
+  interface SearchResult {
+    found: boolean;
+    index: number;
+    comparisons: number;
+  }
+
+export interface UserData {
+  id: string;
+  meta: {
+    nested: {
+      active: boolean;
+    };
+  };
+}
+
+interface ApiResponse<T> extends BaseResponse {
+  payload: T;
+}
+
+  interface IndentedSingleLine { key: string; }
+
+interface WithSemicolon {
+  status: string;
+};
+
+const sentinel = "active_syntax";
+`;
+    const stripped = stripTypeScriptForBrowser(tsCode);
+
+    expect(stripped).not.toContain("interface SearchResult");
+    expect(stripped).not.toContain("interface UserData");
+    expect(stripped).not.toContain("interface ApiResponse");
+    expect(stripped).not.toContain("interface IndentedSingleLine");
+    expect(stripped).not.toContain("interface WithSemicolon");
+    expect(stripped).toContain('const sentinel = "active_syntax";');
+
+    expect(() => new Function(stripped)).not.toThrow();
+  });
+
+  it("bundles multi-file TypeScript projects with custom return types and interfaces into runnable preview without errors", () => {
+    const doc = bundleIdeProject([
+      { name: "index.html", language: "html", content: "<div id='app'>Matrix</div>" },
+      {
+        name: "service.ts",
+        language: "typescript",
+        content: `
+interface ServiceResult {
+  status: string;
+  data: number[];
+}
+
+export function executeService(code: string): ServiceResult {
+  return { status: "OK", data: [1, 2, 3] };
+}
+
+const getList = (): ServiceResult[] => [executeService("init")];
+console.log("Service loaded", getList());
+`,
+      },
+    ]);
+
+    expect(doc).toContain("<div id='app'>Matrix</div>");
+    expect(doc).toContain("function executeService(code)");
+    expect(doc).toContain("const getList = () => [executeService(\"init\")];");
+    expect(doc).not.toContain("interface ServiceResult");
+    expect(doc).not.toContain(": ServiceResult");
   });
 
   it("ensures postMessage communication bridge is injected into bundled preview", () => {

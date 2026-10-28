@@ -39,6 +39,130 @@ export function detectFileLanguage(
  * Bundles multiple IDE files (HTML, CSS, JS/TS, SQL) into a single executable iframe srcDoc
  * that forwards console logs and runtime errors back to the parent IDE window via postMessage.
  */
+/**
+ * Strips interface declarations (including indented, multi-line, and nested bodies) cleanly.
+ */
+function stripInterfaceDeclarations(code: string): string {
+  const interfaceRegex = /\b(?:export\s+)?interface\s+[A-Za-z0-9_$]+[^{]*\{/g;
+  let match: RegExpExecArray | null;
+  let result = code;
+
+  while ((match = interfaceRegex.exec(result)) !== null) {
+    let startIndex = match.index;
+    while (startIndex > 0 && (result[startIndex - 1] === " " || result[startIndex - 1] === "\t")) {
+      startIndex--;
+    }
+    const openBrace = result.indexOf("{", match.index);
+    if (openBrace === -1) continue;
+
+    let depth = 1;
+    let endIndex = -1;
+    let inString: string | null = null;
+    let inComment = false;
+    let inBlockComment = false;
+
+    for (let i = openBrace + 1; i < result.length; i++) {
+      const ch = result[i];
+      const prev = result[i - 1];
+
+      if (inString) {
+        if (ch === inString && prev !== "\\") {
+          inString = null;
+        }
+        continue;
+      }
+      if (inComment) {
+        if (ch === "\n") {
+          inComment = false;
+        }
+        continue;
+      }
+      if (inBlockComment) {
+        if (prev === "*" && ch === "/") {
+          inBlockComment = false;
+        }
+        continue;
+      }
+
+      if (ch === '"' || ch === "'" || ch === "`") {
+        inString = ch;
+      } else if (ch === "/" && result[i + 1] === "/") {
+        inComment = true;
+        i++;
+      } else if (ch === "/" && result[i + 1] === "*") {
+        inBlockComment = true;
+        i++;
+      } else if (ch === "{") {
+        depth++;
+      } else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          endIndex = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (endIndex !== -1) {
+      while (
+        endIndex < result.length &&
+        (result[endIndex] === " " || result[endIndex] === "\t" || result[endIndex] === ";")
+      ) {
+        endIndex++;
+      }
+      if (endIndex < result.length && result[endIndex] === "\r") endIndex++;
+      if (endIndex < result.length && result[endIndex] === "\n") endIndex++;
+
+      result = result.slice(0, startIndex) + result.slice(endIndex);
+      interfaceRegex.lastIndex = startIndex;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Strips TypeScript annotations minimally so browser JS engine can execute TS files in multi-file mode.
+ * Supports custom return type identifiers (e.g., ': CustomResult', ': UserData[]'),
+ * indented or multi-line interface declarations, generics, and variable types.
+ */
+export function stripTypeScriptForBrowser(raw: string): string {
+  let code = raw;
+
+  // 1. Remove import statements
+  code = code.replace(/^\s*import\s+[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, "");
+  code = code.replace(/^\s*import\s+['"][^'"]+['"];?\s*$/gm, "");
+
+  // 2. Remove export modifiers
+  code = code.replace(/^\s*export\s+default\s+/gm, "");
+  code = code.replace(/^\s*export\s+(?=(const|let|var|function|class|async)\b)/gm, "");
+
+  // 3. Remove interface declarations (supports indented, multi-line, nested braces)
+  code = stripInterfaceDeclarations(code);
+
+  // 4. Remove type alias declarations
+  code = code.replace(/^\s*(?:export\s+)?type\s+[A-Za-z0-9_$]+(?:\s*<[^>]+>)?\s*=[\s\S]*?;/gm, "");
+
+  // 5. Remove return type annotations (supports custom identifiers, arrays, generics, unions)
+  // e.g., '): CustomResult {', '): UserData[] {', '): Promise<CustomResult> =>'
+  const typePart =
+    "(?:(?:[A-Za-z0-9_$]+(?:\\s*<(?:[^<>]|<[^<>]*>)*>)?(?:\\s*\\[\\])*)|(?:\\{[^{}]*\\}))";
+  const fullType = typePart + "(?:\\s*[|&]\\s*" + typePart + ")*";
+  const returnTypeRegex = new RegExp("(\\))\\s*:\\s*" + fullType + "\\s*(?=\\{|=>)", "g");
+  code = code.replace(returnTypeRegex, "$1 ");
+
+  // 6. Remove primitive/built-in type annotations in parameters, variables, etc.
+  code = code.replace(/:\s*(string|number|boolean|any|unknown|void|never)(\[\])?(?=[,)=;\s])/g, "");
+
+  // 7. Remove variable type annotations for custom types (e.g. const cadet: MatrixOperator = ...)
+  code = code.replace(/\b(const|let|var)\s+(\w+)\s*:\s*[^=]+=/g, "$1 $2 =");
+
+  // 8. Remove `as Type` assertions
+  code = code.replace(/\s+as\s+[A-Za-z0-9_<>\[\]|&]+/g, "");
+
+  return code;
+}
+
 export function bundleIdeProject(files: IdeFile[], activeFileName?: string): string {
   const activeFile = files.find((f) => f.name === activeFileName) || files[0];
   const allHtmlFiles = files.filter((f) => f.language === "html");
@@ -80,16 +204,17 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
 
   const combinedCss = cssFiles.map((f) => `/* ${f.name} */\n${f.content}`).join("\n\n");
 
-  // Strip TypeScript annotations minimally so browser JS engine can execute TS files in multi-file mode
-  const stripTypeScriptForBrowser = (raw: string): string => {
-    return raw
-      .replace(/^\s*import\s+[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, "")
-      .replace(/^\s*export\s+default\s+/gm, "")
-      .replace(/^\s*export\s+(?=(const|let|var|function|class|async)\b)/gm, "")
-      .replace(/^\s*(export\s+)?interface\s+\w+[\s\S]*?^\}/gm, "")
-      .replace(/^\s*(export\s+)?type\s+\w+\s*=[^;]+;/gm, "")
-      .replace(/:\s*(string|number|boolean|any|unknown|void|never)(\[\])?(?=[,)=;\s])/g, "");
-  };
+
+
+
+
+
+
+
+
+
+
+
 
   const combinedJs = jsTsFiles
     .map((f) => {
@@ -127,6 +252,7 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
           window.parent.postMessage({ source: 'devquest-ide-preview', level, text }, '*');
         } catch (err) {}
       };
+    
 
       const origLog = console.log;
       const origWarn = console.warn;
