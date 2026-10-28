@@ -286,7 +286,6 @@ describe("DevQuest Game Store", () => {
     expect(useGameStore.getState().audioMuted).toBe(false);
 
     store.toggleBgm();
-    // bgmActive might be true or false depending on soundEngine, but we expect toggle
     expect(useGameStore.getState().bgmActive).toBeDefined(); 
   });
 
@@ -312,5 +311,43 @@ describe("DevQuest Game Store", () => {
     });
     expect(validImport).toBe(true);
     expect(useGameStore.getState().xp).toBe(250);
+  });
+
+  it("sanitizes non-finite, negative, and NaN inputs in mutators", () => {
+    const store = useGameStore.getState();
+
+    // takeDamage non-finite inputs
+    const initialHp = store.hp;
+    expect(store.takeDamage(NaN)).toBe(initialHp);
+    expect(store.takeDamage(-20)).toBe(initialHp);
+    expect(store.takeDamage(Infinity)).toBe(initialHp);
+
+    // healPlayer non-finite inputs
+    store.takeDamage(50);
+    expect(useGameStore.getState().hp).toBe(50);
+    store.healPlayer(NaN);
+    expect(useGameStore.getState().hp).toBe(50);
+    store.healPlayer(-10);
+    expect(useGameStore.getState().hp).toBe(50);
+    store.healPlayer(Infinity);
+    expect(useGameStore.getState().hp).toBe(50);
+
+    // addXp non-finite inputs
+    const xpBefore = useGameStore.getState().xp;
+    const addNanResult = store.addXp(NaN);
+    expect(addNanResult.leveledUp).toBe(false);
+    expect(useGameStore.getState().xp).toBe(xpBefore);
+
+    const addInfResult = store.addXp(Infinity);
+    expect(addInfResult.leveledUp).toBe(false);
+    expect(useGameStore.getState().xp).toBe(xpBefore);
+
+    // removeXp non-finite inputs
+    store.removeXp(NaN);
+    expect(useGameStore.getState().xp).toBe(xpBefore);
+    store.removeXp(-50);
+    expect(useGameStore.getState().xp).toBe(xpBefore);
+    store.removeXp(Infinity);
+    expect(useGameStore.getState().xp).toBe(xpBefore);
   });
 });

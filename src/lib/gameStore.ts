@@ -95,6 +95,9 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
       ...INITIAL_STATE,
 
       addXp: (amount: number, source: string = "Quest Activity") => {
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return { leveledUp: false, newLevel: get().level };
+        }
         const state = get();
         const { multiplier, bonusPercent } = calculateStreakBonus(state.streak);
         const finalAmount = Math.max(1, Math.round(amount * multiplier));
@@ -149,7 +152,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
       removeXp: (amount: number, source: string = "Task Deduction") => {
         const state = get();
-        const safeAmount = Math.max(0, amount);
+        const safeAmount = Number.isFinite(amount) && amount > 0 ? Math.floor(amount) : 0;
         const newXp = Math.max(0, state.xp - safeAmount);
         const newLevel = calculateLevel(newXp);
         const newRank = calculateRank(newLevel);
@@ -369,7 +372,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
             return false;
         }
 
-        const safeXp = typeof validatedData.xp === "number" && validatedData.xp >= 0 ? validatedData.xp : 0;
+        const safeXp = typeof validatedData.xp === "number" && validatedData.xp >= 0 && Number.isFinite(validatedData.xp) ? validatedData.xp : 0;
         const safeLevel = calculateLevel(safeXp);
         const safeRank = calculateRank(safeLevel);
         const safeMaxHp = calculateHpForLevel(safeLevel);
@@ -406,7 +409,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           claimedAchievements: Array.isArray(validatedData.claimedAchievements) ? validatedData.claimedAchievements : [],
           audioMuted: typeof validatedData.audioMuted === "boolean" ? validatedData.audioMuted : false,
           bgmActive: typeof validatedData.bgmActive === "boolean" ? validatedData.bgmActive : false,
-          streak: typeof validatedData.streak === "number" && validatedData.streak > 0 ? validatedData.streak : 1,
+          streak: typeof validatedData.streak === "number" && validatedData.streak > 0 && Number.isFinite(validatedData.streak) ? validatedData.streak : 1,
         });
         soundEngine.playSfx("level-up");
         return true;
@@ -414,7 +417,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
       takeDamage: (amount: number) => {
         const state = get();
-        const newHp = Math.max(0, state.hp - amount);
+        const safeDamage = Number.isFinite(amount) && amount > 0 ? Math.floor(amount) : 0;
+        const newHp = Math.max(0, state.hp - safeDamage);
         set({ hp: newHp });
         soundEngine.playSfx("error");
         return newHp;
@@ -422,7 +426,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
       healPlayer: (amount: number) => {
         const state = get();
-        set({ hp: Math.min(state.maxHp, state.hp + amount) });
+        const safeHeal = Number.isFinite(amount) && amount > 0 ? Math.floor(amount) : 0;
+        set({ hp: Math.min(state.maxHp, state.hp + safeHeal) });
         soundEngine.playSfx("heal");
       },
 
@@ -453,8 +458,12 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
       storage: {
         getItem: (name) => {
           if (typeof window === "undefined" || !window.localStorage) return null;
-          const str = window.localStorage.getItem(name);
-          return str ? JSON.parse(str) : null;
+          try {
+            const str = window.localStorage.getItem(name);
+            return str ? JSON.parse(str) : null;
+          } catch {
+            return null;
+          }
         },
         setItem: (name, value) => {
           if (typeof window === "undefined" || !window.localStorage) return;
