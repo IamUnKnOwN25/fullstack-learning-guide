@@ -199,4 +199,44 @@ describe("NavigationHud Component", () => {
 
     expect(screen.getByText("Full-Stack Archmage")).toBeDefined();
   });
+
+  it("handles window Ctrl+K keyboard shortcut to open Quick Jump search and Escape to dismiss", () => {
+    render(<NavigationHud />);
+
+    expect(screen.queryByPlaceholderText(/Search 12 realms/i)).toBeNull();
+
+    // Trigger Ctrl+K
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByPlaceholderText(/Search 12 realms/i)).toBeDefined();
+
+    // Trigger Escape
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByPlaceholderText(/Search 12 realms/i)).toBeNull();
+  });
+
+  it("filters search results in Quick Jump palette based on query input", () => {
+    render(<NavigationHud />);
+
+    // Open palette
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const searchInput = screen.getByPlaceholderText(/Search 12 realms/i);
+
+    fireEvent.change(searchInput, { target: { value: "CSS" } });
+    expect(screen.getByText(/CSS, Flexbox & Grid/i)).toBeDefined();
+    // JavaScript should not match
+    expect(screen.queryByText(/Modern JavaScript/i)).toBeNull();
+  });
+
+  it("displays SIGN IN state when user is not authenticated", () => {
+    useAuthStore.setState({
+      currentUser: undefined,
+      isAuthenticated: false,
+    });
+
+    render(<NavigationHud />);
+
+    expect(screen.getByText("SIGN IN")).toBeDefined();
+    expect(screen.getByText("Cadet")).toBeDefined();
+  });
 });

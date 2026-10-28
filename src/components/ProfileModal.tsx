@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
+import { useAuthStore, AVATAR_OPTIONS, DEFAULT_GUEST_USER } from "@/lib/authStore";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
 import { serializeSaveData } from "@/lib/saveManager";
@@ -42,6 +42,7 @@ export function ProfileModal({
   onOpenLeaderboard,
 }: Props) {
   const { currentUser, updateProfile, logout, isAuthenticated } = useAuthStore();
+  const activeUser = currentUser || DEFAULT_GUEST_USER;
   const {
     xp,
     level,
@@ -59,9 +60,9 @@ export function ProfileModal({
   } = useGameStore();
 
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [bioText, setBioText] = useState(currentUser.customBio || "");
-  const [selectedAvatar, setSelectedAvatar] = useState(currentUser.avatarId || "neon-hacker");
-  const [selectedBadge, setSelectedBadge] = useState(currentUser.showcaseBadgeId || "");
+  const [bioText, setBioText] = useState(activeUser.customBio || "");
+  const [selectedAvatar, setSelectedAvatar] = useState(activeUser.avatarId || "neon-hacker");
+  const [selectedBadge, setSelectedBadge] = useState(activeUser.showcaseBadgeId || "");
   const [copiedSave, setCopiedSave] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
@@ -85,7 +86,7 @@ export function ProfileModal({
   if (!isOpen) return null;
 
   const avatar =
-    AVATAR_OPTIONS.find((a) => a.id === currentUser.avatarId) || AVATAR_OPTIONS[0];
+    AVATAR_OPTIONS.find((a) => a.id === activeUser.avatarId) || AVATAR_OPTIONS[0];
 
   const totalStars = Object.values(stars || {}).reduce((sum, s) => sum + s, 0);
 
@@ -138,7 +139,7 @@ export function ProfileModal({
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `devquest-save-${currentUser.username || "player"}.json`;
+      a.download = `devquest-save-${activeUser.username || "player"}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -189,8 +190,8 @@ export function ProfileModal({
     }
   };
 
-  const showcaseTitle = currentUser.showcaseBadgeId
-    ? getAchievementById(currentUser.showcaseBadgeId)?.name || currentUser.showcaseBadgeId
+  const showcaseTitle = activeUser.showcaseBadgeId
+    ? getAchievementById(activeUser.showcaseBadgeId)?.name || activeUser.showcaseBadgeId
     : undefined;
 
   return (
@@ -220,8 +221,8 @@ export function ProfileModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
-                <span>{currentUser.displayName}</span>
-                {currentUser.isGuest ? (
+                <span>{activeUser.displayName}</span>
+                {activeUser.isGuest ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-matrix-card border border-matrix-border text-gray-400">
                     Guest Mode
                   </span>
@@ -231,12 +232,12 @@ export function ProfileModal({
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-gray-400">@{currentUser.username}</p>
+              <p className="text-xs text-gray-400">@{activeUser.username}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {currentUser.isGuest ? (
+            {activeUser.isGuest ? (
               <button
                 type="button"
                 onClick={() => {
@@ -303,7 +304,7 @@ export function ProfileModal({
                 )}
                 <div className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Joined {new Date(currentUser.joinedAt).toLocaleDateString()}</span>
+                  <span>Joined {new Date(activeUser.joinedAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -409,15 +410,15 @@ export function ProfileModal({
             ) : (
               <div className="flex items-center justify-between gap-3 pt-2 border-t border-matrix-border/50">
                 <p className="text-xs text-gray-300 italic">
-                  &ldquo;{currentUser.customBio}&rdquo;
+                  &ldquo;{activeUser.customBio}&rdquo;
                 </p>
                 <button
                   type="button"
                   onClick={() => {
                     setIsEditingBio(true);
-                    setBioText(currentUser.customBio || "");
-                    setSelectedAvatar(currentUser.avatarId || "neon-hacker");
-                    setSelectedBadge(currentUser.showcaseBadgeId || "");
+                    setBioText(activeUser.customBio || "");
+                    setSelectedAvatar(activeUser.avatarId || "neon-hacker");
+                    setSelectedBadge(activeUser.showcaseBadgeId || "");
                   }}
                   className="p-1 text-gray-400 hover:text-matrix-neonCyan transition-colors shrink-0 cursor-pointer"
                   title="Edit Profile"
