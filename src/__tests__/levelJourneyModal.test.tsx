@@ -175,4 +175,37 @@ describe("LevelJourneyModal Component", () => {
     expect(screen.getAllByText("Full-Stack Grandmaster").length).toBeGreaterThan(0);
     expect(screen.getByText("50")).toBeDefined();
   });
+
+  it("renders Max HP, Max MP, and Streak XP bonus indicators", () => {
+    useGameStore.setState({
+      level: 6,
+      streak: 4,
+    });
+
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    expect(screen.getByText(/Max HP/i)).toBeDefined();
+    expect(screen.getByText(/Max MP/i)).toBeDefined();
+    expect(screen.getByText(/4d Streak/i)).toBeDefined();
+    expect(screen.getByText(/XP remaining/i)).toBeDefined();
+  });
+
+  it("renders How to Earn XP guide cards for all game modes", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    expect(screen.getByText("Quest Trials")).toBeDefined();
+    expect(screen.getByText("Boss Guardians")).toBeDefined();
+    expect(screen.getByText("Curriculum Checkpoints")).toBeDefined();
+    expect(screen.getByText("Matrix IDE & Drills")).toBeDefined();
+  });
 });
