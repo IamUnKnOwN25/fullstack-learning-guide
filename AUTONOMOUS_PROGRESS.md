@@ -12,6 +12,11 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-28 10:08] Cycle 178: Curriculum Viewer Chapter Switching, Snippet Copy & Task Checklist Invariants (Tests: PASS)**
+  - Enhanced `src/components/CurriculumViewer.tsx` with explicit code snippet copy accessibility attributes (`aria-label="Copy snippet"`).
+  - Expanded unit test suite in `src/__tests__/curriculumViewerComponent.test.tsx` verifying document chapter switching in sidebar, heading hierarchy, interactive checklist toggling, chapter mastery accreditation, and clipboard copy action with visual confirmation.
+  - Verified with `npm run validate` (57 test files, 678 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-10-28 10:05] Cycle 177: Quest Filter Bar Clear Filters & Category Synergy Invariants (Tests: PASS)**
   - Enhanced `src/components/QuestFilterBar.tsx` with an inline search text clear button (`X`), an active filters detection state (`hasActiveFilters`), and an accessible Reset Filters action button with audio SFX feedback.
   - Expanded unit test suite in `src/__tests__/questFilterBarComponent.test.tsx` verifying inline clear action, multi-filter reset defaults, and custom `onResetFilters` handler invocation.

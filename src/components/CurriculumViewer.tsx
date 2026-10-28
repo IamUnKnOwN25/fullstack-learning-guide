@@ -129,6 +129,7 @@ function RichMarkdownViewer({
 
               <button
                 type="button"
+                aria-label="Copy snippet"
                 onClick={() => {
                   if (typeof navigator !== "undefined" && navigator.clipboard) {
                     navigator.clipboard.writeText(snippetText);

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { CurriculumViewer, DocFile } from "../components/CurriculumViewer";
 import { useGameStore } from "../lib/gameStore";
 import { useAuthStore } from "../lib/authStore";
@@ -68,6 +68,13 @@ describe("CurriculumViewer Component", () => {
         showcaseBadgeId: "first_quest",
       },
     });
+
+    // Mock clipboard
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
   });
 
   it("renders classified gate when user is not authenticated", () => {
@@ -118,6 +125,17 @@ describe("CurriculumViewer Component", () => {
     ).toBeNull();
   });
 
+  it("switches active document when clicking another chapter in sidebar", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const cssChapterBtn = screen.getByRole("button", { name: "02. CSS & Layout Systems" });
+    fireEvent.click(cssChapterBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByRole("heading", { name: "CSS Layout Systems", level: 1 })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Flexbox Layouts", level: 2 })).toBeDefined();
+  });
+
   it("handles toggling interactive task checkboxes", () => {
     render(<CurriculumViewer docs={mockDocs} />);
 
@@ -143,6 +161,23 @@ describe("CurriculumViewer Component", () => {
       "01-html-and-semantics.md"
     );
     expect(screen.getByText("Chapter Mastered ✓")).toBeDefined();
+  });
+
+  it("copies code snippet to clipboard with visual feedback", async () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const copyBtn = screen.getByRole("button", { name: /copy/i });
+    expect(copyBtn).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining("<main>")
+    );
+    expect(screen.getByText("Copied")).toBeDefined();
   });
 
   it("toggles maximize reader mode", () => {
