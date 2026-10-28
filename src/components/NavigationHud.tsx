@@ -569,19 +569,6 @@ export function NavigationHud() {
                 </div>
               ) : (
                 filteredRealms.map((r) => {
-                  /*
-                const q = commandQuery.trim().toLowerCase();
-                if (!q) return true;
-                const quests = QUESTS[r.id] || [];
-                const boss = BOSSES[r.id];
-                return (
-                  r.title.toLowerCase().includes(q) ||
-                  r.realmName.toLowerCase().includes(q) ||
-                  r.id.toLowerCase().includes(q) ||
-                  quests.some((item) => item.title.toLowerCase().includes(q)) ||
-                  (boss && boss.name.toLowerCase().includes(q))
-                );
-                  */
                 const quests = QUESTS[r.id] || [];
                 const boss = BOSSES[r.id];
                 return (
