@@ -332,4 +332,80 @@ describe("ProfileModal Component", () => {
     expect(screen.getByText("Cloud save backup requires login")).toBeDefined();
     expect(screen.queryByTitle("Download Save File JSON")).toBeNull();
   });
+
+  it("allows cancelling bio edit mode without altering authStore state", () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    const editBtn = screen.getByTitle("Edit Profile");
+    fireEvent.click(editBtn);
+
+    const bioInput = screen.getByLabelText("Cadet Bio / Motto");
+    fireEvent.change(bioInput, { target: { value: "Discarded text" } });
+
+    const cancelBtn = screen.getByText("Cancel");
+    fireEvent.click(cancelBtn);
+
+    expect(useAuthStore.getState().currentUser.customBio).toBe("Exploring the grid.");
+    expect(screen.queryByLabelText("Cadet Bio / Motto")).toBeNull();
+  });
+
+  it("handles copy save JSON to clipboard with feedback", () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    const copyBtn = screen.getByTitle("Copy Save Backup JSON to Clipboard");
+    fireEvent.click(copyBtn);
+
+    expect(writeTextMock).toHaveBeenCalled();
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText("Copied!")).toBeDefined();
+  });
+
+  it("triggers onOpenAuthModal and onClose from guest classified banner CTA", () => {
+    useAuthStore.setState({
+      isAuthenticated: false,
+      currentUser: {
+        id: "guest-cadet",
+        username: "cadet_guest",
+        displayName: "Cadet Recruit",
+        avatarId: "neon-hacker",
+        customBio: "Operator plugged into DevQuest.",
+        title: "Matrix Initiate",
+        joinedAt: new Date().toISOString(),
+        isGuest: true,
+        showcaseBadgeId: "welcome_initiate",
+      },
+    });
+
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    const enlistBtn = screen.getByText("Sign In / Enlist");
+    fireEvent.click(enlistBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(mockOnOpenAuthModal).toHaveBeenCalledTimes(1);
+  });
 });
