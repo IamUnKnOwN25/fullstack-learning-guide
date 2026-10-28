@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   useThemeStore,
   Theme,
@@ -8,6 +8,8 @@ import {
   getThemeMeta,
   getNextTheme,
   applyThemeToDocument,
+  getSystemPreferredTheme,
+  resolveTheme,
 } from "../lib/themeStore";
 
 describe("Theme Store", () => {
@@ -82,10 +84,13 @@ describe("Theme Store", () => {
       expect(isValidTheme("matrix-emerald")).toBe(true);
       expect(isValidTheme("cyber-neon")).toBe(true);
       expect(isValidTheme("obsidian-high-contrast")).toBe(true);
+      expect(isValidTheme("matrix-dark")).toBe(false);
       expect(isValidTheme("invalid-theme")).toBe(false);
+      expect(isValidTheme("")).toBe(false);
       expect(isValidTheme(null)).toBe(false);
       expect(isValidTheme(undefined)).toBe(false);
       expect(isValidTheme(123)).toBe(false);
+      expect(isValidTheme({})).toBe(false);
     });
 
     it("retrieves theme metadata for each theme", () => {
@@ -105,7 +110,21 @@ describe("Theme Store", () => {
       useThemeStore.getState().setTheme("cyber-neon");
       expect(useThemeStore.getState().theme).toBe("cyber-neon");
 
-      useThemeStore.getState().setTheme("invalid-custom-theme" as any);
+      useThemeStore.getState().setTheme("invalid-custom-theme");
+      expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
+
+      // Explicitly verify unrecognized 'matrix-dark' falls back to default
+      useThemeStore.getState().setTheme("cyber-neon");
+      useThemeStore.getState().setTheme("matrix-dark");
+      expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
+
+      // Non-string or nullish fallback
+      useThemeStore.getState().setTheme("cyber-neon");
+      useThemeStore.getState().setTheme(null as any);
+      expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
+
+      useThemeStore.getState().setTheme("cyber-neon");
+      useThemeStore.getState().setTheme("" as any);
       expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
     });
 
@@ -140,6 +159,107 @@ describe("Theme Store", () => {
       applyThemeToDocument("obsidian-high-contrast");
       expect(root.getAttribute("data-theme")).toBe("obsidian-high-contrast");
       expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FFFF00");
+    });
+  });
+
+  describe("System Preference Fallback and Theme Resolution", () => {
+    const originalMatchMedia = window.matchMedia;
+
+    afterEach(() => {
+      window.matchMedia = originalMatchMedia;
+    });
+
+    it("detects high-contrast preference from prefers-contrast media query", () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-contrast: more)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      expect(getSystemPreferredTheme()).toBe("obsidian-high-contrast");
+    });
+
+    it("detects high-contrast preference from forced-colors media query", () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(forced-colors: active)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      expect(getSystemPreferredTheme()).toBe("obsidian-high-contrast");
+    });
+
+    it("falls back to DEFAULT_THEME on dark mode or unmatched system preference", () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-color-scheme: dark)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      expect(getSystemPreferredTheme()).toBe(DEFAULT_THEME);
+    });
+
+    it("falls back to DEFAULT_THEME when matchMedia throws or is missing", () => {
+      window.matchMedia = vi.fn().mockImplementation(() => {
+        throw new Error("matchMedia failure");
+      });
+      expect(getSystemPreferredTheme()).toBe(DEFAULT_THEME);
+
+      // @ts-expect-error testing missing matchMedia runtime safety
+      window.matchMedia = undefined;
+      expect(getSystemPreferredTheme()).toBe(DEFAULT_THEME);
+    });
+
+    it("resolves theme with resolveTheme helper using fallback hierarchy", () => {
+      expect(resolveTheme("cyber-neon")).toBe("cyber-neon");
+      expect(resolveTheme("invalid-theme", "obsidian-high-contrast")).toBe("obsidian-high-contrast");
+      expect(resolveTheme("invalid-theme", "not-a-theme" as any)).toBe(DEFAULT_THEME);
+      expect(resolveTheme("matrix-dark")).toBe(DEFAULT_THEME);
+      expect(resolveTheme(null)).toBe(DEFAULT_THEME);
+    });
+
+    it("applies system preference theme using applySystemTheme action", () => {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-contrast: more)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+
+      useThemeStore.setState({ theme: "matrix-emerald" });
+      const applied = useThemeStore.getState().applySystemTheme();
+      expect(applied).toBe("obsidian-high-contrast");
+      expect(useThemeStore.getState().theme).toBe("obsidian-high-contrast");
+    });
+
+    it("sanitizes persisted invalid theme upon store merge/rehydration", () => {
+      const persistOptions = (useThemeStore as any).persist;
+      const mergeFn = persistOptions.getOptions().merge;
+
+      const mergedInvalid = mergeFn({ theme: "matrix-dark" }, useThemeStore.getState());
+      expect(mergedInvalid.theme).toBe(DEFAULT_THEME);
+
+      const mergedValid = mergeFn({ theme: "cyber-neon" }, useThemeStore.getState());
+      expect(mergedValid.theme).toBe("cyber-neon");
     });
   });
 });
