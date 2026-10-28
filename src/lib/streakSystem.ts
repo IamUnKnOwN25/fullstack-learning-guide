@@ -3,6 +3,26 @@ export interface StreakState {
   lastLoginDate: string | null; // Format: YYYY-MM-DD
 }
 
+function parseDateUtc(dateStr: string | null | undefined): number | null {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  const parts = dateStr.trim().split("-");
+  if (parts.length !== 3) return null;
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return null;
+  }
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+  const timestamp = Date.UTC(year, month - 1, day);
+  if (!Number.isFinite(timestamp)) {
+    return null;
+  }
+  return timestamp;
+}
+
 export function calculateStreakBonus(streakDays: number): {
   multiplier: number;
   bonusPercent: number;
@@ -46,14 +66,11 @@ export function getStreakMilestone(streakDays: number): StreakMilestone {
  * Determines if the player's streak is at risk of breaking (1 day since last login, hasn't checked in today).
  */
 export function isStreakAtRisk(lastLoginDate: string | null, todayDateStr: string): boolean {
-  if (!lastLoginDate || !todayDateStr) return false;
-  const lastDateParts = lastLoginDate.split("-");
-  const todayParts = todayDateStr.split("-");
-  if (lastDateParts.length !== 3 || todayParts.length !== 3) return false;
+  const lastTime = parseDateUtc(lastLoginDate);
+  const todayTime = parseDateUtc(todayDateStr);
+  if (lastTime === null || todayTime === null) return false;
 
-  const lastDate = new Date(Date.UTC(+lastDateParts[0], +lastDateParts[1] - 1, +lastDateParts[2]));
-  const todayDate = new Date(Date.UTC(+todayParts[0], +todayParts[1] - 1, +todayParts[2]));
-  const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((todayTime - lastTime) / (1000 * 60 * 60 * 24));
   return diffDays === 1;
 }
 
@@ -61,6 +78,11 @@ export function updateStreak(currentStreak: StreakState, todayDateStr: string): 
   streak: StreakState;
   streakReset: boolean;
 } {
+  const safeStreakDays =
+    currentStreak && Number.isFinite(currentStreak.streakDays) && currentStreak.streakDays > 0
+      ? Math.floor(currentStreak.streakDays)
+      : 1;
+
   if (!currentStreak || !currentStreak.lastLoginDate) {
     return {
       streak: { streakDays: 1, lastLoginDate: todayDateStr },
@@ -68,27 +90,37 @@ export function updateStreak(currentStreak: StreakState, todayDateStr: string): 
     };
   }
 
-  const lastDateParts = currentStreak.lastLoginDate.split('-');
-  const todayParts = (todayDateStr || "").split('-');
-  
-  if (lastDateParts.length !== 3 || todayParts.length !== 3) {
+  const lastTime = parseDateUtc(currentStreak.lastLoginDate);
+  const todayTime = parseDateUtc(todayDateStr);
+
+  if (lastTime === null || todayTime === null) {
     return {
       streak: { streakDays: 1, lastLoginDate: todayDateStr },
       streakReset: true,
     };
   }
 
-  const lastDate = new Date(Date.UTC(+lastDateParts[0], +lastDateParts[1] - 1, +lastDateParts[2]));
-  const todayDate = new Date(Date.UTC(+todayParts[0], +todayParts[1] - 1, +todayParts[2]));
-
-  const diffMs = todayDate.getTime() - lastDate.getTime();
+  const diffMs = todayTime - lastTime;
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
+  if (!Number.isFinite(diffDays)) {
+    return {
+      streak: { streakDays: 1, lastLoginDate: todayDateStr },
+      streakReset: true,
+    };
+  }
+
   if (diffDays === 0) {
-    return { streak: currentStreak, streakReset: false };
+    return {
+      streak: {
+        streakDays: safeStreakDays,
+        lastLoginDate: currentStreak.lastLoginDate,
+      },
+      streakReset: false,
+    };
   } else if (diffDays === 1) {
     return {
-      streak: { streakDays: currentStreak.streakDays + 1, lastLoginDate: todayDateStr },
+      streak: { streakDays: safeStreakDays + 1, lastLoginDate: todayDateStr },
       streakReset: false,
     };
   } else if (diffDays > 1) {
@@ -98,7 +130,13 @@ export function updateStreak(currentStreak: StreakState, todayDateStr: string): 
     };
   } else {
     // Time traveling to the past, ignore
-    return { streak: currentStreak, streakReset: false };
+    return {
+      streak: {
+        streakDays: safeStreakDays,
+        lastLoginDate: currentStreak.lastLoginDate,
+      },
+      streakReset: false,
+    };
   }
 }
 
@@ -122,6 +160,11 @@ export function updateStreakWithFreeze(
     ? Math.max(0, Math.floor(freezesAvailable))
     : 0;
 
+  const safeStreakDays =
+    currentStreak && Number.isFinite(currentStreak.streakDays) && currentStreak.streakDays > 0
+      ? Math.floor(currentStreak.streakDays)
+      : 1;
+
   if (!currentStreak || !currentStreak.lastLoginDate) {
     return {
       streak: { streakDays: 1, lastLoginDate: todayDateStr },
@@ -131,10 +174,10 @@ export function updateStreakWithFreeze(
     };
   }
 
-  const lastDateParts = currentStreak.lastLoginDate.split("-");
-  const todayParts = (todayDateStr || "").split("-");
+  const lastTime = parseDateUtc(currentStreak.lastLoginDate);
+  const todayTime = parseDateUtc(todayDateStr);
 
-  if (lastDateParts.length !== 3 || todayParts.length !== 3) {
+  if (lastTime === null || todayTime === null) {
     return {
       streak: { streakDays: 1, lastLoginDate: todayDateStr },
       streakReset: true,
@@ -143,15 +186,24 @@ export function updateStreakWithFreeze(
     };
   }
 
-  const lastDate = new Date(Date.UTC(+lastDateParts[0], +lastDateParts[1] - 1, +lastDateParts[2]));
-  const todayDate = new Date(Date.UTC(+todayParts[0], +todayParts[1] - 1, +todayParts[2]));
-
-  const diffMs = todayDate.getTime() - lastDate.getTime();
+  const diffMs = todayTime - lastTime;
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (!Number.isFinite(diffDays)) {
+    return {
+      streak: { streakDays: 1, lastLoginDate: todayDateStr },
+      streakReset: true,
+      freezesRemaining: safeFreezes,
+      freezeConsumed: false,
+    };
+  }
 
   if (diffDays <= 0) {
     return {
-      streak: currentStreak,
+      streak: {
+        streakDays: safeStreakDays,
+        lastLoginDate: currentStreak.lastLoginDate,
+      },
       streakReset: false,
       freezesRemaining: safeFreezes,
       freezeConsumed: false,
@@ -160,7 +212,7 @@ export function updateStreakWithFreeze(
 
   if (diffDays === 1) {
     return {
-      streak: { streakDays: currentStreak.streakDays + 1, lastLoginDate: todayDateStr },
+      streak: { streakDays: safeStreakDays + 1, lastLoginDate: todayDateStr },
       streakReset: false,
       freezesRemaining: safeFreezes,
       freezeConsumed: false,
@@ -172,7 +224,7 @@ export function updateStreakWithFreeze(
   if (safeFreezes >= missedDays) {
     // Preserved via freeze shield
     return {
-      streak: { streakDays: currentStreak.streakDays + 1, lastLoginDate: todayDateStr },
+      streak: { streakDays: safeStreakDays + 1, lastLoginDate: todayDateStr },
       streakReset: false,
       freezesRemaining: safeFreezes - missedDays,
       freezeConsumed: true,

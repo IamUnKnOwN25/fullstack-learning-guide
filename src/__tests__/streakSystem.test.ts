@@ -103,6 +103,22 @@ describe("streakSystem", () => {
       expect(res.streak).toEqual({ streakDays: 1, lastLoginDate: "malformed" });
       expect(res.streakReset).toBe(true);
     });
+
+    it("should reset streak on 3-part malformed date strings like 'abc-def-ghi'", () => {
+      const currentStreak: StreakState = { streakDays: 5, lastLoginDate: "abc-def-ghi" };
+      const { streak, streakReset } = updateStreak(currentStreak, "2024-01-01");
+      expect(streak).toEqual({ streakDays: 1, lastLoginDate: "2024-01-01" });
+      expect(streakReset).toBe(true);
+    });
+
+    it("should sanitize non-finite or corrupted streak days", () => {
+      const corruptedStreak: StreakState = { streakDays: NaN, lastLoginDate: "2024-01-01" };
+      const resSameDay = updateStreak(corruptedStreak, "2024-01-01");
+      expect(resSameDay.streak.streakDays).toBe(1);
+
+      const resNextDay = updateStreak({ streakDays: -5, lastLoginDate: "2024-01-01" }, "2024-01-02");
+      expect(resNextDay.streak.streakDays).toBe(2);
+    });
     
     it("should gracefully handle past dates without resetting", () => {
       const currentStreak: StreakState = { streakDays: 3, lastLoginDate: "2023-10-02" };
@@ -134,6 +150,7 @@ describe("streakSystem", () => {
       // Missing or malformed
       expect(isStreakAtRisk(null, "2024-03-02")).toBe(false);
       expect(isStreakAtRisk("invalid", "2024-03-02")).toBe(false);
+      expect(isStreakAtRisk("abc-def-ghi", "2024-03-02")).toBe(false);
     });
   });
 
@@ -191,6 +208,18 @@ describe("streakSystem", () => {
       const resNaN = updateStreakWithFreeze(currentStreak, "2024-03-03", NaN);
       expect(resNaN.freezesRemaining).toBe(0);
       expect(resNaN.streakReset).toBe(true);
+    });
+
+    it("resets streak when date strings are malformed in freeze protection", () => {
+      const currentStreak: StreakState = { streakDays: 7, lastLoginDate: "invalid-date-part" };
+      const res = updateStreakWithFreeze(currentStreak, "2024-03-03", 2);
+      expect(res.streakReset).toBe(true);
+      expect(res.streak.streakDays).toBe(1);
+      expect(res.freezeConsumed).toBe(false);
+
+      const res2 = updateStreakWithFreeze({ streakDays: 7, lastLoginDate: "2024-03-01" }, "bad-today-date", 2);
+      expect(res2.streakReset).toBe(true);
+      expect(res2.streak.streakDays).toBe(1);
     });
 
     it("generates comprehensive streak summary object", () => {
