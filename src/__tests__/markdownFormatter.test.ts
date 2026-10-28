@@ -1,6 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
-import { formatInlineText, slugifyHeading } from "../lib/markdownFormatter";
+import {
+  formatInlineText,
+  slugifyHeading,
+  isExternalLink,
+  getLinkAttributes,
+  extractHeadings,
+  extractSectionHeadings,
+} from "../lib/markdownFormatter";
 import { soundEngine } from "../lib/soundEngine";
 
 describe("markdownFormatter", () => {
@@ -30,12 +37,30 @@ describe("markdownFormatter", () => {
     it("strips emojis and special symbols gracefully", () => {
       expect(slugifyHeading("12. 🚀 Roadmap & Capstone 🎯")).toBe("12-roadmap-capstone");
     });
+
+    it("safely handles null, undefined, and non-string inputs", () => {
+      expect(slugifyHeading(null)).toBe("");
+      expect(slugifyHeading(undefined)).toBe("");
+      expect(slugifyHeading()).toBe("");
+      expect(slugifyHeading(12345 as unknown as string)).toBe("");
+      expect(slugifyHeading({} as unknown as string)).toBe("");
+      expect(slugifyHeading([] as unknown as string)).toBe("");
+    });
   });
 
   describe("formatInlineText", () => {
     it("returns plain text as is", () => {
       const nodes = formatInlineText("Just plain text");
       expect(nodes).toEqual(["Just plain text"]);
+    });
+
+    it("safely handles null, undefined, and non-string inputs", () => {
+      expect(formatInlineText(null)).toEqual([]);
+      expect(formatInlineText(undefined)).toEqual([]);
+      expect(formatInlineText()).toEqual([]);
+      expect(formatInlineText(12345 as unknown as string)).toEqual([]);
+      expect(formatInlineText({} as unknown as string)).toEqual([]);
+      expect(formatInlineText(null, vi.fn())).toEqual([]);
     });
 
     it("formats inline code properly", () => {
@@ -131,36 +156,45 @@ describe("markdownFormatter", () => {
       const nodes = formatInlineText(input);
 
       const aNode = nodes.find(
-        (n): n is React.ReactElement<{ href?: string; target?: string }> => React.isValidElement(n) && n.type === "a"
+        (n): n is React.ReactElement<{ href?: string; target?: string; rel?: string }> => React.isValidElement(n) && n.type === "a"
       );
       expect(aNode).toBeDefined();
       expect(aNode?.props.href).toBe("guide.md");
       expect(aNode?.props.target).toBe("_blank");
+      expect(aNode?.props.rel).toBe("noopener noreferrer");
     });
 
-    it("formats hash links properly", () => {
+    it("formats hash links properly without target or rel", () => {
       const input = "Jump to [section 1](#section-1)";
       const nodes = formatInlineText(input);
 
       const aNode = nodes.find(
-        (n): n is React.ReactElement<{ href?: string; children?: React.ReactNode }> => React.isValidElement(n) && n.type === "a"
+        (n): n is React.ReactElement<{ href?: string; children?: React.ReactNode; target?: string; rel?: string }> =>
+          React.isValidElement(n) && n.type === "a"
       );
       expect(aNode).toBeDefined();
       expect(aNode?.props.href).toBe("#section-1");
       expect(aNode?.props.children).toEqual("section 1");
+      expect(aNode?.props.target).toBeUndefined();
+      expect(aNode?.props.rel).toBeUndefined();
     });
 
-    it("formats external links properly", () => {
-      const input = "Visit [Google](https://google.com)";
+    it("formats external links properly with rel='noopener noreferrer' and target='_blank'", () => {
+      const input = "Visit [Google](https://google.com) and [MDN](http://developer.mozilla.org)";
       const nodes = formatInlineText(input);
 
-      const aNode = nodes.find(
+      const aNodes = nodes.filter(
         (n): n is React.ReactElement<{ href?: string; target?: string; rel?: string }> => React.isValidElement(n) && n.type === "a"
       );
-      expect(aNode).toBeDefined();
-      expect(aNode?.props.href).toBe("https://google.com");
-      expect(aNode?.props.target).toBe("_blank");
-      expect(aNode?.props.rel).toBe("noopener noreferrer");
+      expect(aNodes.length).toBe(2);
+
+      expect(aNodes[0].props.href).toBe("https://google.com");
+      expect(aNodes[0].props.target).toBe("_blank");
+      expect(aNodes[0].props.rel).toBe("noopener noreferrer");
+
+      expect(aNodes[1].props.href).toBe("http://developer.mozilla.org");
+      expect(aNodes[1].props.target).toBe("_blank");
+      expect(aNodes[1].props.rel).toBe("noopener noreferrer");
     });
 
     it("formats complex nested markdown within links", () => {
@@ -210,6 +244,155 @@ describe("markdownFormatter", () => {
       expect(btnNode).toBeDefined();
       btnNode?.props.onClick();
       expect(mockOnSelect).toHaveBeenCalledWith("../02-css/css_1_flexbox.md");
+    });
+
+    it("neutralizes dangerous javascript: URLs in markdown links", () => {
+      const input = "Click [Malicious](javascript:alert('pwned'))";
+      const nodes = formatInlineText(input);
+
+      const aNode = nodes.find(
+        (n): n is React.ReactElement<{ href?: string }> => React.isValidElement(n) && n.type === "a"
+      );
+      expect(aNode).toBeDefined();
+      expect(aNode?.props.href).toBe("#");
+    });
+  });
+
+  describe("isExternalLink", () => {
+    it("identifies external URLs correctly", () => {
+      expect(isExternalLink("https://nextjs.org")).toBe(true);
+      expect(isExternalLink("http://example.com")).toBe(true);
+      expect(isExternalLink("//cdn.jsdelivr.net")).toBe(true);
+      expect(isExternalLink("mailto:support@matrix.dev")).toBe(true);
+      expect(isExternalLink("tel:+1234567890")).toBe(true);
+    });
+
+    it("identifies non-external or invalid links correctly", () => {
+      expect(isExternalLink("#section-1")).toBe(false);
+      expect(isExternalLink("guide.md")).toBe(false);
+      expect(isExternalLink("/world-map")).toBe(false);
+      expect(isExternalLink("")).toBe(false);
+      expect(isExternalLink(null)).toBe(false);
+      expect(isExternalLink(undefined)).toBe(false);
+      expect(isExternalLink(123 as unknown as string)).toBe(false);
+    });
+  });
+
+  describe("getLinkAttributes", () => {
+    it("returns external link attributes with security rel and target", () => {
+      const attrs = getLinkAttributes("https://react.dev");
+      expect(attrs).toEqual({
+        href: "https://react.dev",
+        target: "_blank",
+        rel: "noopener noreferrer",
+      });
+    });
+
+    it("returns in-page anchor attributes without target or rel", () => {
+      const attrs = getLinkAttributes("#quick-start");
+      expect(attrs).toEqual({
+        href: "#quick-start",
+      });
+    });
+
+    it("neutralizes malicious javascript / data URLs", () => {
+      expect(getLinkAttributes("javascript:alert(1)")).toEqual({ href: "#" });
+      expect(getLinkAttributes("vbscript:msgbox(1)")).toEqual({ href: "#" });
+      expect(getLinkAttributes("data:text/html,<script>alert(1)</script>")).toEqual({ href: "#" });
+    });
+
+    it("handles null, undefined, or empty URLs safely", () => {
+      expect(getLinkAttributes(null)).toEqual({ href: "#" });
+      expect(getLinkAttributes(undefined)).toEqual({ href: "#" });
+      expect(getLinkAttributes("")).toEqual({ href: "#" });
+      expect(getLinkAttributes(123 as unknown as string)).toEqual({ href: "#" });
+    });
+  });
+
+  describe("extractHeadings & extractSectionHeadings", () => {
+    it("safely handles null, undefined, and non-string inputs", () => {
+      expect(extractHeadings(null)).toEqual([]);
+      expect(extractHeadings(undefined)).toEqual([]);
+      expect(extractHeadings()).toEqual([]);
+      expect(extractHeadings("")).toEqual([]);
+      expect(extractHeadings(123 as unknown as string)).toEqual([]);
+      expect(extractSectionHeadings(null)).toEqual([]);
+    });
+
+    it("extracts headings from markdown with title, slugified id, and level", () => {
+      const markdown = `
+# Matrix Gateway
+Welcome to the training matrix.
+
+## Core Landmarks
+Here are the landmarks.
+
+### Landmark Details
+Specific detail section.
+
+#### Deep Landmark Details
+Fourth level.
+
+##### Minor Note
+Fifth level.
+
+###### Micro Reference
+Sixth level.
+      `;
+
+      const headings = extractHeadings(markdown);
+      expect(headings).toHaveLength(6);
+      expect(headings[0]).toEqual({
+        title: "Matrix Gateway",
+        id: "matrix-gateway",
+        level: 1,
+      });
+      expect(headings[1]).toEqual({
+        title: "Core Landmarks",
+        id: "core-landmarks",
+        level: 2,
+      });
+      expect(headings[2]).toEqual({
+        title: "Landmark Details",
+        id: "landmark-details",
+        level: 3,
+      });
+      expect(headings[5]).toEqual({
+        title: "Micro Reference",
+        id: "micro-reference",
+        level: 6,
+      });
+    });
+
+    it("ignores heading syntax inside fenced code blocks", () => {
+      const markdown = `
+# Real Header
+
+\`\`\`typescript
+# This is a comment inside code
+## Not a header either
+\`\`\`
+
+## Another Real Header
+      `;
+
+      const headings = extractHeadings(markdown);
+      expect(headings).toHaveLength(2);
+      expect(headings[0].title).toBe("Real Header");
+      expect(headings[1].title).toBe("Another Real Header");
+    });
+
+    it("supports level filtering options", () => {
+      const markdown = `
+# Title
+## Section 1
+### Subsection 1.1
+## Section 2
+      `;
+
+      const onlyH2 = extractHeadings(markdown, { minLevel: 2, maxLevel: 2 });
+      expect(onlyH2).toHaveLength(2);
+      expect(onlyH2.map((h) => h.title)).toEqual(["Section 1", "Section 2"]);
     });
   });
 });
