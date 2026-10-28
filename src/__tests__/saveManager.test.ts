@@ -178,6 +178,18 @@ describe("saveManager", () => {
       expect(isValidStatsObject("string")).toBe(false);
       expect(isValidStatsObject(null)).toBe(false);
     });
+
+    it("should reject Infinity and -Infinity in numeric fields", () => {
+      expect(isValidStatsObject({ xp: Infinity })).toBe(false);
+      expect(isValidStatsObject({ xp: -Infinity })).toBe(false);
+      expect(isValidStatsObject({ level: Infinity })).toBe(false);
+      expect(isValidStatsObject({ hp: Infinity })).toBe(false);
+      expect(isValidStatsObject({ maxHp: Infinity })).toBe(false);
+      expect(isValidStatsObject({ mana: Infinity })).toBe(false);
+      expect(isValidStatsObject({ maxMana: Infinity })).toBe(false);
+      expect(isValidStatsObject({ streak: Infinity })).toBe(false);
+      expect(deserializeSaveData(JSON.stringify({ xp: Infinity }))).toBeNull();
+    });
   });
 
   describe("Base64 Compression & Version Migration Suite", () => {
@@ -227,6 +239,38 @@ describe("saveManager", () => {
       const migrated = migrateSaveData(corrupted as any);
       expect(migrated.data.level).toBe(1);
       expect(migrated.data.xp).toBe(0);
+    });
+
+    it("sanitizes Infinity and populates complete finite defaults during migration", () => {
+      const corrupted = {
+        data: {
+          xp: Infinity,
+          level: -Infinity,
+          hp: Infinity,
+          maxHp: NaN,
+          mana: Infinity,
+          maxMana: -5,
+          streak: -20,
+        },
+      };
+      const migrated = migrateSaveData(corrupted as any);
+      expect(migrated.data.xp).toBe(0);
+      expect(migrated.data.level).toBe(1);
+      expect(migrated.data.hp).toBe(100);
+      expect(migrated.data.maxHp).toBe(100);
+      expect(migrated.data.mana).toBe(50);
+      expect(migrated.data.maxMana).toBe(50);
+      expect(migrated.data.streak).toBe(0);
+    });
+
+    it("handles UTF-8 strings in base64 encoding without deprecated escape/unescape", () => {
+      const statsWithEmoji = {
+        ...mockStats,
+        rankTitle: "Matrix 🚀 Dev 💻",
+      };
+      const b64 = encodeSaveToBase64(statsWithEmoji);
+      const decoded = decodeSaveFromBase64(b64);
+      expect(decoded?.rankTitle).toBe("Matrix 🚀 Dev 💻");
     });
   });
 });

@@ -23,13 +23,13 @@ export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
 
   const o = obj as Record<string, unknown>;
 
-  if ("xp" in o && (typeof o.xp !== "number" || o.xp < 0 || isNaN(o.xp))) return false;
-  if ("level" in o && (typeof o.level !== "number" || o.level < 1 || isNaN(o.level))) return false;
-  if ("hp" in o && (typeof o.hp !== "number" || isNaN(o.hp))) return false;
-  if ("maxHp" in o && (typeof o.maxHp !== "number" || isNaN(o.maxHp))) return false;
-  if ("mana" in o && (typeof o.mana !== "number" || isNaN(o.mana))) return false;
-  if ("maxMana" in o && (typeof o.maxMana !== "number" || isNaN(o.maxMana))) return false;
-  if ("streak" in o && (typeof o.streak !== "number" || isNaN(o.streak))) return false;
+  if ("xp" in o && (typeof o.xp !== "number" || o.xp < 0 || !Number.isFinite(o.xp))) return false;
+  if ("level" in o && (typeof o.level !== "number" || o.level < 1 || !Number.isFinite(o.level))) return false;
+  if ("hp" in o && (typeof o.hp !== "number" || !Number.isFinite(o.hp))) return false;
+  if ("maxHp" in o && (typeof o.maxHp !== "number" || !Number.isFinite(o.maxHp))) return false;
+  if ("mana" in o && (typeof o.mana !== "number" || !Number.isFinite(o.mana))) return false;
+  if ("maxMana" in o && (typeof o.maxMana !== "number" || !Number.isFinite(o.maxMana))) return false;
+  if ("streak" in o && (typeof o.streak !== "number" || !Number.isFinite(o.streak))) return false;
   if ("rankTitle" in o && typeof o.rankTitle !== "string") return false;
 
   const arrayFields = [
@@ -101,20 +101,29 @@ export function serializeSaveData(stats: Partial<PlayerStats>): string {
 
 export function encodeSaveToBase64(stats: Partial<PlayerStats>): string {
   const json = serializeSaveData(stats);
-  if (typeof btoa === "function") {
-    return btoa(unescape(encodeURIComponent(json)));
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(json, "utf-8").toString("base64");
   }
-  return Buffer.from(json, "utf-8").toString("base64");
+  if (typeof btoa === "function") {
+    const bytes = new TextEncoder().encode(json);
+    const bin = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+    return btoa(bin);
+  }
+  return "";
 }
 
 export function decodeSaveFromBase64(base64Str: string): Partial<PlayerStats> | null {
   if (typeof base64Str !== "string" || !base64Str.trim()) return null;
   try {
     let json: string;
-    if (typeof atob === "function") {
-      json = decodeURIComponent(escape(atob(base64Str.trim())));
-    } else {
+    if (typeof Buffer !== "undefined") {
       json = Buffer.from(base64Str.trim(), "base64").toString("utf-8");
+    } else if (typeof atob === "function") {
+      const bin = atob(base64Str.trim());
+      const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+      json = new TextDecoder().decode(bytes);
+    } else {
+      return null;
     }
     return deserializeSaveDataDirect(json);
   } catch {
@@ -129,8 +138,13 @@ export function migrateSaveData(save: Partial<SaveFile>): SaveFile {
   if (!Array.isArray(rawData.unlockedRealms)) rawData.unlockedRealms = ["html"];
   if (!Array.isArray(rawData.unlockedSkills)) rawData.unlockedSkills = [];
   if (!Array.isArray(rawData.badges)) rawData.badges = [];
-  if (typeof rawData.level !== "number" || rawData.level < 1 || isNaN(rawData.level)) rawData.level = 1;
-  if (typeof rawData.xp !== "number" || rawData.xp < 0 || isNaN(rawData.xp)) rawData.xp = 0;
+  if (typeof rawData.level !== "number" || rawData.level < 1 || !Number.isFinite(rawData.level)) rawData.level = 1;
+  if (typeof rawData.xp !== "number" || rawData.xp < 0 || !Number.isFinite(rawData.xp)) rawData.xp = 0;
+  if (typeof rawData.hp !== "number" || !Number.isFinite(rawData.hp) || rawData.hp < 0) rawData.hp = 100;
+  if (typeof rawData.maxHp !== "number" || !Number.isFinite(rawData.maxHp) || rawData.maxHp <= 0) rawData.maxHp = 100;
+  if (typeof rawData.mana !== "number" || !Number.isFinite(rawData.mana) || rawData.mana < 0) rawData.mana = 50;
+  if (typeof rawData.maxMana !== "number" || !Number.isFinite(rawData.maxMana) || rawData.maxMana <= 0) rawData.maxMana = 50;
+  if (typeof rawData.streak !== "number" || !Number.isFinite(rawData.streak) || rawData.streak < 0) rawData.streak = 0;
 
   return {
     version: SAVE_FORMAT_VERSION,
