@@ -101,3 +101,111 @@ export function updateStreak(currentStreak: StreakState, todayDateStr: string): 
     return { streak: currentStreak, streakReset: false };
   }
 }
+
+export interface StreakFreezeResult {
+  streak: StreakState;
+  streakReset: boolean;
+  freezesRemaining: number;
+  freezeConsumed: boolean;
+}
+
+/**
+ * Updates streak with freeze protection. If days are missed and sufficient freezes exist,
+ * freezes are consumed to preserve the current streak.
+ */
+export function updateStreakWithFreeze(
+  currentStreak: StreakState,
+  todayDateStr: string,
+  freezesAvailable: number
+): StreakFreezeResult {
+  const safeFreezes = Number.isFinite(freezesAvailable)
+    ? Math.max(0, Math.floor(freezesAvailable))
+    : 0;
+
+  if (!currentStreak || !currentStreak.lastLoginDate) {
+    return {
+      streak: { streakDays: 1, lastLoginDate: todayDateStr },
+      streakReset: false,
+      freezesRemaining: safeFreezes,
+      freezeConsumed: false,
+    };
+  }
+
+  const lastDateParts = currentStreak.lastLoginDate.split("-");
+  const todayParts = (todayDateStr || "").split("-");
+
+  if (lastDateParts.length !== 3 || todayParts.length !== 3) {
+    return {
+      streak: { streakDays: 1, lastLoginDate: todayDateStr },
+      streakReset: true,
+      freezesRemaining: safeFreezes,
+      freezeConsumed: false,
+    };
+  }
+
+  const lastDate = new Date(Date.UTC(+lastDateParts[0], +lastDateParts[1] - 1, +lastDateParts[2]));
+  const todayDate = new Date(Date.UTC(+todayParts[0], +todayParts[1] - 1, +todayParts[2]));
+
+  const diffMs = todayDate.getTime() - lastDate.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays <= 0) {
+    return {
+      streak: currentStreak,
+      streakReset: false,
+      freezesRemaining: safeFreezes,
+      freezeConsumed: false,
+    };
+  }
+
+  if (diffDays === 1) {
+    return {
+      streak: { streakDays: currentStreak.streakDays + 1, lastLoginDate: todayDateStr },
+      streakReset: false,
+      freezesRemaining: safeFreezes,
+      freezeConsumed: false,
+    };
+  }
+
+  // diffDays > 1 (missed at least one day)
+  const missedDays = diffDays - 1;
+  if (safeFreezes >= missedDays) {
+    // Preserved via freeze shield
+    return {
+      streak: { streakDays: currentStreak.streakDays + 1, lastLoginDate: todayDateStr },
+      streakReset: false,
+      freezesRemaining: safeFreezes - missedDays,
+      freezeConsumed: true,
+    };
+  }
+
+  // Not enough freezes, streak resets
+  return {
+    streak: { streakDays: 1, lastLoginDate: todayDateStr },
+    streakReset: true,
+    freezesRemaining: safeFreezes,
+    freezeConsumed: false,
+  };
+}
+
+export function getStreakSummary(
+  streakDays: number,
+  lastLoginDate: string | null,
+  todayDateStr: string,
+  freezesAvailable: number = 0
+) {
+  const safeDays = Number.isFinite(streakDays) ? Math.max(1, Math.floor(streakDays)) : 1;
+  const bonus = calculateStreakBonus(safeDays);
+  const milestone = getStreakMilestone(safeDays);
+  const atRisk = isStreakAtRisk(lastLoginDate, todayDateStr);
+
+  return {
+    streakDays: safeDays,
+    lastLoginDate,
+    multiplier: bonus.multiplier,
+    bonusPercent: bonus.bonusPercent,
+    milestone,
+    isAtRisk: atRisk,
+    freezesAvailable: Math.max(0, Math.floor(freezesAvailable || 0)),
+  };
+}
