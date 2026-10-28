@@ -4,6 +4,9 @@ import {
   deserializeSaveData,
   generateSaveSummary,
   isValidStatsObject,
+  encodeSaveToBase64,
+  decodeSaveFromBase64,
+  migrateSaveData,
   SAVE_FORMAT_VERSION,
 } from "../lib/saveManager";
 import type { PlayerStats } from "../lib/gameStore";
@@ -174,6 +177,56 @@ describe("saveManager", () => {
       expect(isValidStatsObject({ xp: -1 })).toBe(false);
       expect(isValidStatsObject("string")).toBe(false);
       expect(isValidStatsObject(null)).toBe(false);
+    });
+  });
+
+  describe("Base64 Compression & Version Migration Suite", () => {
+    it("encodes stats to base64 and decodes back identically", () => {
+      const b64 = encodeSaveToBase64(mockStats);
+      expect(typeof b64).toBe("string");
+      expect(b64.length).toBeGreaterThan(20);
+
+      const restored = decodeSaveFromBase64(b64);
+      expect(restored).toEqual(mockStats);
+    });
+
+    it("allows deserializeSaveData to accept raw base64 save strings directly", () => {
+      const b64 = encodeSaveToBase64(mockStats);
+      const restored = deserializeSaveData(b64);
+      expect(restored).toEqual(mockStats);
+    });
+
+    it("handles invalid or corrupted base64 gracefully", () => {
+      expect(decodeSaveFromBase64("")).toBeNull();
+      expect(decodeSaveFromBase64("not!valid@base64###")).toBeNull();
+      expect(decodeSaveFromBase64("YWJj")).toBeNull(); // decodes to 'abc' which is not valid JSON
+    });
+
+    it("migrates partial save payload guaranteeing standard fields and versioning", () => {
+      const partialSave = {
+        version: "0.9.0",
+        data: { xp: 500, level: 3 },
+      };
+
+      const migrated = migrateSaveData(partialSave as any);
+      expect(migrated.version).toBe(SAVE_FORMAT_VERSION);
+      expect(typeof migrated.timestamp).toBe("number");
+      expect(migrated.data.xp).toBe(500);
+      expect(migrated.data.level).toBe(3);
+      expect(migrated.data.completedQuests).toEqual([]);
+      expect(migrated.data.completedBosses).toEqual([]);
+      expect(migrated.data.unlockedRealms).toEqual(["html"]);
+      expect(migrated.data.unlockedSkills).toEqual([]);
+      expect(migrated.data.badges).toEqual([]);
+    });
+
+    it("sanitizes invalid numbers during migration", () => {
+      const corrupted = {
+        data: { xp: -50, level: 0 },
+      };
+      const migrated = migrateSaveData(corrupted as any);
+      expect(migrated.data.level).toBe(1);
+      expect(migrated.data.xp).toBe(0);
     });
   });
 });

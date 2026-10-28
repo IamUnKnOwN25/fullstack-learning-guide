@@ -99,7 +99,47 @@ export function serializeSaveData(stats: Partial<PlayerStats>): string {
   return JSON.stringify(savePayload, null, 2);
 }
 
-export function deserializeSaveData(
+export function encodeSaveToBase64(stats: Partial<PlayerStats>): string {
+  const json = serializeSaveData(stats);
+  if (typeof btoa === "function") {
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+  return Buffer.from(json, "utf-8").toString("base64");
+}
+
+export function decodeSaveFromBase64(base64Str: string): Partial<PlayerStats> | null {
+  if (typeof base64Str !== "string" || !base64Str.trim()) return null;
+  try {
+    let json: string;
+    if (typeof atob === "function") {
+      json = decodeURIComponent(escape(atob(base64Str.trim())));
+    } else {
+      json = Buffer.from(base64Str.trim(), "base64").toString("utf-8");
+    }
+    return deserializeSaveDataDirect(json);
+  } catch {
+    return null;
+  }
+}
+
+export function migrateSaveData(save: Partial<SaveFile>): SaveFile {
+  const rawData = (save && typeof save.data === "object" && save.data !== null) ? { ...save.data } : {};
+  if (!Array.isArray(rawData.completedQuests)) rawData.completedQuests = [];
+  if (!Array.isArray(rawData.completedBosses)) rawData.completedBosses = [];
+  if (!Array.isArray(rawData.unlockedRealms)) rawData.unlockedRealms = ["html"];
+  if (!Array.isArray(rawData.unlockedSkills)) rawData.unlockedSkills = [];
+  if (!Array.isArray(rawData.badges)) rawData.badges = [];
+  if (typeof rawData.level !== "number" || rawData.level < 1 || isNaN(rawData.level)) rawData.level = 1;
+  if (typeof rawData.xp !== "number" || rawData.xp < 0 || isNaN(rawData.xp)) rawData.xp = 0;
+
+  return {
+    version: SAVE_FORMAT_VERSION,
+    timestamp: Date.now(),
+    data: rawData,
+  };
+}
+
+function deserializeSaveDataDirect(
   jsonString: string
 ): Partial<PlayerStats> | null {
   if (typeof jsonString !== "string" || !jsonString.trim()) {
@@ -133,4 +173,18 @@ export function deserializeSaveData(
   } catch {
     return null;
   }
+}
+
+export function deserializeSaveData(
+  jsonString: string
+): Partial<PlayerStats> | null {
+  if (typeof jsonString !== "string" || !jsonString.trim()) {
+    return null;
+  }
+
+  const directResult = deserializeSaveDataDirect(jsonString);
+  if (directResult) return directResult;
+
+  // Attempt base64 decode fallback
+  return decodeSaveFromBase64(jsonString);
 }
