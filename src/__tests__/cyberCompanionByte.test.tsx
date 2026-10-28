@@ -39,16 +39,34 @@ describe("CyberCompanionByte Component", () => {
     expect(screen.getByText("(◕‿◕)")).toBeDefined();
   });
 
-  it("opens dialogue drawer when orb is clicked", () => {
+  it("opens dialogue drawer when orb is clicked with dialog accessibility attributes", () => {
     render(<CyberCompanionByte />);
 
     const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
     fireEvent.click(orbBtn);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("skill-unlock");
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-label")).toBe("BYTE Cybernetic Familiar Intel");
+    expect(dialog.getAttribute("aria-modal")).toBe("false");
+
     expect(screen.getByText(/BYTE • AI Cybernetic Familiar/)).toBeDefined();
     expect(screen.getByText("Tactical Intel")).toBeDefined();
     expect(screen.getByText(/Quick Quiz/)).toBeDefined();
+  });
+
+  it("closes dialogue drawer when Escape key is pressed", () => {
+    render(<CyberCompanionByte />);
+
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+    expect(screen.getByRole("dialog")).toBeDefined();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("cycles tips when Next Tip is clicked and rotates eye expression", () => {
@@ -61,6 +79,7 @@ describe("CyberCompanionByte Component", () => {
     fireEvent.click(nextTipBtn);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText("(^_-)")).toBeDefined();
   });
 
   it("switches to Quick Quiz mode and handles answering questions correctly", () => {
@@ -112,7 +131,7 @@ describe("CyberCompanionByte Component", () => {
     expect(screen.getByText("(o_O)")).toBeDefined();
   });
 
-  it("renders Emergency Heal button only when player HP is below maxHp", () => {
+  it("renders Emergency Heal button only when player HP is below maxHp and triggers cool mood", () => {
     useGameStore.setState({
       hp: 40,
       maxHp: 100,
@@ -131,6 +150,7 @@ describe("CyberCompanionByte Component", () => {
     });
     expect(soundEngine.playSfx).toHaveBeenCalledWith("heal");
     expect(useGameStore.getState().hp).toBe(65); // heals +25 HP
+    expect(screen.getByText("(⌐■_■)")).toBeDefined(); // cool expression
 
     // Set HP to 100 (full)
     act(() => {

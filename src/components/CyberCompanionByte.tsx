@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { soundEngine } from "@/lib/soundEngine";
@@ -145,6 +145,20 @@ export function CyberCompanionByte() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [mood, setMood] = useState<"happy" | "thinking" | "wink" | "cool">("happy");
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   // Detect active route context
   const pathParts = pathname.split("/").filter(Boolean);
   const activeRealmId =
@@ -163,7 +177,7 @@ export function CyberCompanionByte() {
   const cycleTip = () => {
     soundEngine.playSfx("click");
     setTipIndex((prev) => (prev + 1) % COMPANION_TIPS.length);
-    setMood((prev) => (prev === "happy" ? "wink" : prev === "wink" ? "thinking" : "happy"));
+    setMood((prev) => (prev === "happy" ? "wink" : prev === "wink" ? "thinking" : prev === "thinking" ? "cool" : "wink"));
   };
 
   const getEyeExpression = () => {
@@ -186,7 +200,12 @@ export function CyberCompanionByte() {
     <div className="fixed bottom-16 sm:bottom-5 right-4 sm:right-5 z-40 font-mono select-none flex flex-col items-end">
       {/* Speech Bubble / Mini Dialog Drawer */}
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-3 w-[calc(100vw-2rem)] max-w-sm sm:w-96 p-4 rounded-2xl bg-matrix-card/95 backdrop-blur-md border border-matrix-accent/50 shadow-2xl shadow-black/80 space-y-3 animate-fadeIn">
+        <div
+          role="dialog"
+          aria-modal="false"
+          aria-label="BYTE Cybernetic Familiar Intel"
+          className="absolute bottom-full right-0 mb-3 w-[calc(100vw-2rem)] max-w-sm sm:w-96 p-4 rounded-2xl bg-matrix-card/95 backdrop-blur-md border border-matrix-accent/50 shadow-2xl shadow-black/80 space-y-3 animate-fadeIn"
+        >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-matrix-border pb-2.5">
             <div className="flex items-center gap-2">
@@ -202,7 +221,8 @@ export function CyberCompanionByte() {
                 soundEngine.playSfx("click");
                 setIsOpen(false);
               }}
-              aria-label="Close Byte dialog" className="text-gray-400 hover:text-white p-0.5 rounded"
+              aria-label="Close Byte dialog"
+              className="text-gray-400 hover:text-white p-0.5 rounded cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
