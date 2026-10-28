@@ -12,6 +12,11 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-28 09:59] Cycle 175: Auth Modal Escape Key Trapping, Backdrop Dismissal & Saved Account Switching (Tests: PASS)**
+  - Enhanced `src/components/AuthModal.tsx` by adding a window `Escape` key event listener with audio SFX feedback, backdrop click dismissal handling (`e.target === e.currentTarget`), and standard dialog accessibility attributes (`role="dialog"`, `aria-modal="true"`, `aria-label="Matrix Terminal Access"`).
+  - Expanded unit test suite in `src/__tests__/authModal.test.tsx` to 10 tests verifying dialog accessibility, window Escape key trapping, backdrop click dismissal, content-click containment, mode switching, input validation, and saved account identity switching with victory SFX.
+  - Verified with `npm run validate` (57 test files, 673 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-10-28 09:56] Cycle 174: Leaderboard Modal Escape Listener, Backdrop Dismissal & Tab Navigation (Tests: PASS)**
   - Enhanced `src/components/LeaderboardModal.tsx` by adding a window `Escape` key event listener with audio SFX feedback, backdrop click dismissal handling (`e.target === e.currentTarget`), dialog accessibility attributes (`role="dialog"`, `aria-modal="true"`, `aria-label="Matrix Global Leaderboards"`), and explicit footer Close button.
   - Expanded unit test suite in `src/__tests__/leaderboardModal.test.tsx` to 11 tests verifying dialog attributes, window Escape key trapping, backdrop click dismissal, content-click containment, footer close action, and guest unranked auth modal triggering.

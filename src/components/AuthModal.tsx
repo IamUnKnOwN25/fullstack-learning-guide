@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 import { soundEngine } from "@/lib/soundEngine";
 import {
@@ -33,6 +33,20 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
   const [selectedAvatarId, setSelectedAvatarId] = useState("neon-hacker");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -67,7 +81,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Matrix Terminal Access"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-lg bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         {/* Glow ambient background element */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-matrix-neonCyan/10 rounded-full blur-3xl pointer-events-none" />
@@ -93,8 +118,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
-            type="button" aria-label="Close authentication modal" title="Close (Esc)"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
+            type="button"
+            aria-label="Close authentication modal"
+            title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
