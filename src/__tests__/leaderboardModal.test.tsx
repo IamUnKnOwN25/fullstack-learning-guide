@@ -177,6 +177,43 @@ describe("LeaderboardModal Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 
+  it("provides tablist semantics and aria-selected states for category filter tabs", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const tablist = screen.getByRole("tablist", { name: "Leaderboard categories" });
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(4);
+
+    const xpTab = screen.getByRole("tab", { name: /Global Power \(XP\)/i });
+    const starsTab = screen.getByRole("tab", { name: /Quest Stars/i });
+    const bossesTab = screen.getByRole("tab", { name: /Boss Rush/i });
+    const curriculumTab = screen.getByRole("tab", { name: /Curriculum/i });
+
+    expect(xpTab.getAttribute("aria-selected")).toBe("true");
+    expect(starsTab.getAttribute("aria-selected")).toBe("false");
+    expect(bossesTab.getAttribute("aria-selected")).toBe("false");
+    expect(curriculumTab.getAttribute("aria-selected")).toBe("false");
+
+    fireEvent.click(starsTab);
+    expect(xpTab.getAttribute("aria-selected")).toBe("false");
+    expect(starsTab.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.click(bossesTab);
+    expect(starsTab.getAttribute("aria-selected")).toBe("false");
+    expect(bossesTab.getAttribute("aria-selected")).toBe("true");
+
+    fireEvent.click(curriculumTab);
+    expect(bossesTab.getAttribute("aria-selected")).toBe("false");
+    expect(curriculumTab.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("filters operatives using the search input", () => {
     render(
       <LeaderboardModal
@@ -189,6 +226,23 @@ describe("LeaderboardModal Component", () => {
     fireEvent.change(searchInput, { target: { value: "Cyber Sentinel" } });
 
     expect(screen.getAllByText("Cyber Sentinel").length).toBeGreaterThan(0);
+  });
+
+  it("displays explicit empty state message when search query yields 0 results", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const searchInput = screen.getByLabelText("Search operative");
+    fireEvent.change(searchInput, { target: { value: "UnknownGhostOperative_9999" } });
+
+    expect(screen.getByText("No operatives found")).toBeDefined();
+    expect(
+      screen.getByText(/No operatives found matching "UnknownGhostOperative_9999"/i)
+    ).toBeDefined();
   });
 
   it("navigates to user profile when profile button is clicked", () => {

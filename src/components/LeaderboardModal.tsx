@@ -183,9 +183,15 @@ export function LeaderboardModal({
 
         {/* Tab Controls & Search Bar */}
         <div className="p-3 sm:p-4 border-b border-matrix-border bg-matrix-dark/60 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div
+            role="tablist"
+            aria-label="Leaderboard categories"
+            className="flex flex-wrap items-center gap-1.5"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "xp"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveTab("xp");
@@ -202,6 +208,8 @@ export function LeaderboardModal({
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "stars"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveTab("stars");
@@ -218,6 +226,8 @@ export function LeaderboardModal({
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "bosses"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveTab("bosses");
@@ -234,6 +244,8 @@ export function LeaderboardModal({
 
             <button
               type="button"
+              role="tab"
+              aria-selected={activeTab === "curriculum"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveTab("curriculum");
@@ -296,128 +308,148 @@ export function LeaderboardModal({
         )}
 
         {/* Leaderboard Table */}
-        <div className="p-3 sm:p-5 overflow-y-auto space-y-2 flex-1">
-          {filteredEntries.map((entry) => {
-            const isTop1 = entry.rank === 1;
-            const isTop2 = entry.rank === 2;
-            const isTop3 = entry.rank === 3;
-            const isYou = entry.isCurrentUser;
-            const isClassified = !isAuthenticated && !isYou && entry.rank > 3;
-
-            return (
-              <div
-                key={entry.id}
-                className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                  isYou
-                    ? "bg-matrix-accent/10 border-matrix-accent shadow-md shadow-matrix-accent/15 ring-1 ring-matrix-accent/50"
-                    : isTop1
-                    ? "bg-matrix-neonGold/10 border-matrix-neonGold shadow-md shadow-matrix-neonGold/10"
-                    : isTop2
-                    ? "bg-slate-300/10 border-slate-300/60"
-                    : isTop3
-                    ? "bg-amber-600/10 border-amber-600/50"
-                    : "bg-matrix-dark/70 border-matrix-border/80 hover:border-gray-500"
-                }`}
-              >
-                {/* Rank Insignia & Operative Info */}
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className={`w-8 h-8 rounded-xl font-mono text-xs font-bold flex items-center justify-center shrink-0 ${
-                      isTop1
-                        ? "bg-matrix-neonGold text-matrix-dark shadow-sm shadow-matrix-neonGold"
-                        : isTop2
-                        ? "bg-slate-300 text-matrix-dark"
-                        : isTop3
-                        ? "bg-amber-600 text-white"
-                        : isYou
-                        ? "bg-matrix-accent text-matrix-dark font-extrabold"
-                        : "bg-matrix-card border border-matrix-border text-gray-400"
-                    }`}
-                  >
-                    {isTop1 ? "1" : isTop2 ? "2" : isTop3 ? "3" : `#${entry.rank}`}
-                  </div>
-
-                  <div
-                    className={`w-9 h-9 rounded-xl border flex items-center justify-center text-lg shrink-0 ${entry.avatarBorder} bg-gradient-to-br ${entry.avatarBg}`}
-                  >
-                    {isClassified ? "👤" : entry.avatarEmoji}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold truncate ${
-                          isYou
-                            ? "text-matrix-accent font-extrabold"
-                            : isClassified
-                            ? "text-gray-400"
-                            : "text-white"
-                        }`}
-                      >
-                        {isClassified ? "Classified Operative" : entry.displayName}
-                      </span>
-                      {isYou && (
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-matrix-accent text-matrix-dark font-bold">
-                          YOU
-                        </span>
-                      )}
-                      <span className="text-[10px] text-gray-400 hidden sm:inline truncate">
-                        {isClassified ? "@restricted" : `@${entry.username}`}
-                      </span>
-                    </div>
-
-                    <div className="text-[10px] text-gray-400 flex items-center gap-2 truncate">
-                      <span className="text-matrix-neonGold">
-                        {isClassified ? "Classified Rank" : entry.title}
-                      </span>
-                      <span>•</span>
-                      <span>{isClassified ? "Level **" : `Level ${entry.level}`}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Score Column */}
-                <div className="shrink-0 text-right font-mono">
-                  {isClassified ? (
-                    <div className="text-xs font-bold text-gray-500 flex items-center justify-end gap-1">
-                      <Lock className="w-3 h-3 text-matrix-neonGold" />
-                      <span>CLASSIFIED</span>
-                    </div>
-                  ) : activeTab === "xp" ? (
-                    <div>
-                      <div className="text-xs font-bold text-matrix-neonCyan">
-                        {entry.xp.toLocaleString()} XP
-                      </div>
-                      <div className="text-[10px] text-gray-400">Level {entry.level}</div>
-                    </div>
-                  ) : activeTab === "stars" ? (
-                    <div>
-                      <div className="text-xs font-bold text-yellow-400 flex items-center justify-end gap-1">
-                        <Star className="w-3.5 h-3.5 fill-yellow-400" />
-                        <span>{entry.stars} ★</span>
-                      </div>
-                      <div className="text-[10px] text-gray-400">Perfect Clears</div>
-                    </div>
-                  ) : activeTab === "bosses" ? (
-                    <div>
-                      <div className="text-xs font-bold text-matrix-accent flex items-center justify-end gap-1">
-                        <Sword className="w-3.5 h-3.5" />
-                        <span>{entry.bossesSlain} / 12</span>
-                      </div>
-                      <div className="text-[10px] text-gray-400">Boss Trophies</div>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="text-xs font-bold text-matrix-neonCyan">
-                        {entry.curriculumCompleted} Tasks
-                      </div>
-                      <div className="text-[10px] text-gray-400">Vault Checked</div>
-                    </div>
-                  )}
-                </div>
+        <div
+          role="tabpanel"
+          aria-label="Leaderboard standings"
+          className="p-3 sm:p-5 overflow-y-auto space-y-2 flex-1"
+        >
+          {filteredEntries.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-matrix-card border border-matrix-border flex items-center justify-center text-gray-500">
+                <Search className="w-6 h-6 text-gray-400" />
               </div>
-            );
-          })}
+              <div className="text-sm font-bold text-gray-300">
+                No operatives found
+              </div>
+              <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                {searchQuery
+                  ? `No operatives found matching "${searchQuery}". Check the callsign or try another query.`
+                  : "No operatives found."}
+              </p>
+            </div>
+          ) : (
+            filteredEntries.map((entry) => {
+              const isTop1 = entry.rank === 1;
+              const isTop2 = entry.rank === 2;
+              const isTop3 = entry.rank === 3;
+              const isYou = entry.isCurrentUser;
+              const isClassified = !isAuthenticated && !isYou && entry.rank > 3;
+
+              return (
+                <div
+                  key={entry.id}
+                  className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
+                    isYou
+                      ? "bg-matrix-accent/10 border-matrix-accent shadow-md shadow-matrix-accent/15 ring-1 ring-matrix-accent/50"
+                      : isTop1
+                      ? "bg-matrix-neonGold/10 border-matrix-neonGold shadow-md shadow-matrix-neonGold/10"
+                      : isTop2
+                      ? "bg-slate-300/10 border-slate-300/60"
+                      : isTop3
+                      ? "bg-amber-600/10 border-amber-600/50"
+                      : "bg-matrix-dark/70 border-matrix-border/80 hover:border-gray-500"
+                  }`}
+                >
+                  {/* Rank Insignia & Operative Info */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-8 h-8 rounded-xl font-mono text-xs font-bold flex items-center justify-center shrink-0 ${
+                        isTop1
+                          ? "bg-matrix-neonGold text-matrix-dark shadow-sm shadow-matrix-neonGold"
+                          : isTop2
+                          ? "bg-slate-300 text-matrix-dark"
+                          : isTop3
+                          ? "bg-amber-600 text-white"
+                          : isYou
+                          ? "bg-matrix-accent text-matrix-dark font-extrabold"
+                          : "bg-matrix-card border border-matrix-border text-gray-400"
+                      }`}
+                    >
+                      {isTop1 ? "1" : isTop2 ? "2" : isTop3 ? "3" : `#${entry.rank}`}
+                    </div>
+
+                    <div
+                      className={`w-9 h-9 rounded-xl border flex items-center justify-center text-lg shrink-0 ${entry.avatarBorder} bg-gradient-to-br ${entry.avatarBg}`}
+                    >
+                      {isClassified ? "👤" : entry.avatarEmoji}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold truncate ${
+                            isYou
+                              ? "text-matrix-accent font-extrabold"
+                              : isClassified
+                              ? "text-gray-400"
+                              : "text-white"
+                          }`}
+                        >
+                          {isClassified ? "Classified Operative" : entry.displayName}
+                        </span>
+                        {isYou && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-matrix-accent text-matrix-dark font-bold">
+                            YOU
+                          </span>
+                        )}
+                        <span className="text-[10px] text-gray-400 hidden sm:inline truncate">
+                          {isClassified ? "@restricted" : `@${entry.username}`}
+                        </span>
+                      </div>
+
+                      <div className="text-[10px] text-gray-400 flex items-center gap-2 truncate">
+                        <span className="text-matrix-neonGold">
+                          {isClassified ? "Classified Rank" : entry.title}
+                        </span>
+                        <span>•</span>
+                        <span>{isClassified ? "Level **" : `Level ${entry.level}`}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score Column */}
+                  <div className="shrink-0 text-right font-mono">
+                    {isClassified ? (
+                      <div className="text-xs font-bold text-gray-500 flex items-center justify-end gap-1">
+                        <Lock className="w-3 h-3 text-matrix-neonGold" />
+                        <span>CLASSIFIED</span>
+                      </div>
+                    ) : activeTab === "xp" ? (
+                      <div>
+                        <div className="text-xs font-bold text-matrix-neonCyan">
+                          {entry.xp.toLocaleString()} XP
+                        </div>
+                        <div className="text-[10px] text-gray-400">Level {entry.level}</div>
+                      </div>
+                    ) : activeTab === "stars" ? (
+                      <div>
+                        <div className="text-xs font-bold text-yellow-400 flex items-center justify-end gap-1">
+                          <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                          <span>{entry.stars} ★</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400">Perfect Clears</div>
+                      </div>
+                    ) : activeTab === "bosses" ? (
+                      <div>
+                        <div className="text-xs font-bold text-matrix-accent flex items-center justify-end gap-1">
+                          <Sword className="w-3.5 h-3.5" />
+                          <span>{entry.bossesSlain} / 12</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400">Boss Trophies</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-xs font-bold text-matrix-neonCyan">
+                          {entry.curriculumCompleted} Tasks
+                        </div>
+                        <div className="text-[10px] text-gray-400">Vault Checked</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Sticky Player Placement Bar */}
