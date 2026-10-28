@@ -12,6 +12,13 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-28 09:48] Cycle 172: Skill Tree Modal Escape Key Trapping, Backdrop Dismissal & Dialog Accessibility (Tests: PASS)**
+  - Enhanced `src/components/SkillTreeModal.tsx` by adding window `Escape` key event listener, backdrop click dismissal handling (`e.target === e.currentTarget`), and standard dialog accessibility attributes (`role="dialog"`, `aria-modal="true"`, `aria-label="Cybernetic Skill Tree"`).
+  - Expanded unit test suite in `src/__tests__/skillTreeModal.test.tsx` to 10 tests verifying dialog attributes, window Escape key trapping, backdrop click dismissal, content-click containment, and guest sign-in modal triggering.
+  - Verified with `npm run validate` (57 test files, 660 tests passing, 0 TypeScript errors, 100% clean Next.js production build).
+
+
+
 - **[2026-10-27 10:21] Cycle 171: 20-Cycle Milestone (Cycles 152–171) Full Platform Invariant Audit (Tests: PASS)**
   - Successfully executed all 20 autonomous self-improving cycles (Cycles 152 through 171) under the Continuous Dev Loop Protocol.
   - Hardened and validated:

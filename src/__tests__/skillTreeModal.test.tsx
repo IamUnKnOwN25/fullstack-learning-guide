@@ -50,7 +50,7 @@ describe("SkillTreeModal Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders skill tree title and available skill points", () => {
+  it("renders skill tree title and available skill points with dialog accessibility", () => {
     render(
       <SkillTreeModal
         isOpen={true}
@@ -58,6 +58,11 @@ describe("SkillTreeModal Component", () => {
         onOpenAuthModal={mockOpenAuthModal}
       />
     );
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-label")).toBe("Cybernetic Skill Tree");
 
     expect(screen.getByText("Cybernetic Skill Tree")).toBeDefined();
     expect(screen.getByText(/Skill Points Available/)).toBeDefined();
@@ -78,6 +83,39 @@ describe("SkillTreeModal Component", () => {
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when Escape key is pressed", () => {
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
+
+  it("closes when clicking backdrop but not modal content", () => {
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    const header = screen.getByText("Cybernetic Skill Tree");
+    fireEvent.click(header);
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(dialog);
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 
   it("calls onClose when Done button is clicked", () => {
@@ -156,5 +194,27 @@ describe("SkillTreeModal Component", () => {
     fireEvent.click(confirmBtn);
 
     expect(useGameStore.getState().unlockedSkills.length).toBe(0);
+  });
+
+  it("prompts guest users to sign in and invokes onOpenAuthModal", () => {
+    useAuthStore.setState({
+      isAuthenticated: false,
+    });
+
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    expect(screen.getByText("Cybernetic Passives Restricted")).toBeDefined();
+    const signInBtn = screen.getByText("Sign In to Unlock");
+    fireEvent.click(signInBtn);
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(mockOpenAuthModal).toHaveBeenCalledTimes(1);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
 });

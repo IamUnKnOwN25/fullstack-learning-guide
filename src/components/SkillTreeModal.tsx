@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
 import { useAuthStore } from "@/lib/authStore";
@@ -60,6 +60,20 @@ export function SkillTreeModal({
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | "all">("all");
   const [confirmRespec, setConfirmRespec] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const availableSkillPoints = calculateAvailableSkillPoints(level, unlockedSkills);
@@ -84,7 +98,18 @@ export function SkillTreeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Cybernetic Skill Tree"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         {/* Glow ambient background element */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-matrix-neonPurple/10 rounded-full blur-3xl pointer-events-none" />
@@ -117,8 +142,10 @@ export function SkillTreeModal({
                 soundEngine.playSfx("click");
                 onClose();
               }}
-              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
-              type="button" aria-label="Close skill tree modal" title="Close (Esc)"
+              className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
+              type="button"
+              aria-label="Close skill tree modal"
+              title="Close (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -196,7 +223,7 @@ export function SkillTreeModal({
                 <button
                   type="button"
                   onClick={() => setConfirmRespec(false)}
-                  className="px-2.5 py-1 rounded-lg bg-matrix-card border border-matrix-border text-gray-300 text-xs"
+                  className="px-2.5 py-1 rounded-lg bg-matrix-card border border-matrix-border text-gray-300 text-xs cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -206,7 +233,7 @@ export function SkillTreeModal({
                     respecSkills();
                     setConfirmRespec(false);
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-matrix-neonRed text-white font-bold text-xs"
+                  className="px-2.5 py-1 rounded-lg bg-matrix-neonRed text-white font-bold text-xs cursor-pointer"
                 >
                   Confirm Reset
                 </button>
@@ -412,7 +439,7 @@ export function SkillTreeModal({
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="px-4 py-1.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity"
+            className="px-4 py-1.5 rounded-xl bg-matrix-neonCyan text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity cursor-pointer"
           >
             Done
           </button>
