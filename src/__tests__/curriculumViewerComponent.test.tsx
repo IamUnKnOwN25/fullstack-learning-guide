@@ -189,4 +189,65 @@ describe("CurriculumViewer Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.getByRole("button", { name: /chapters/i })).toBeDefined();
   });
+
+  it("marks the active chapter button with aria-current='page' and updates on selection", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const htmlChapterBtn = screen.getByRole("button", { name: "01. HTML5 & Web Semantics" });
+    const cssChapterBtn = screen.getByRole("button", { name: "02. CSS & Layout Systems" });
+
+    // Initial selected file is the first doc
+    expect(htmlChapterBtn.getAttribute("aria-current")).toBe("page");
+    expect(cssChapterBtn.getAttribute("aria-current")).toBeNull();
+
+    // Select the second chapter
+    fireEvent.click(cssChapterBtn);
+
+    expect(cssChapterBtn.getAttribute("aria-current")).toBe("page");
+    expect(htmlChapterBtn.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("displays empty state feedback when search query has no matching documents", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const filterInput = screen.getByRole("textbox", { name: /filter topics/i });
+    fireEvent.change(filterInput, { target: { value: "nonexistent_query_xyz" } });
+
+    expect(screen.getByText("No matching documents")).toBeDefined();
+    expect(screen.getByText(/no topics match/i)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "01. HTML5 & Web Semantics" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "02. CSS & Layout Systems" })).toBeNull();
+  });
+
+  it("renders clear button when search is non-empty, clears search query, and restores document list on click", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const filterInput = screen.getByRole("textbox", { name: /filter topics/i });
+    // Initially, clear button is not present
+    expect(screen.queryByRole("button", { name: /clear search/i })).toBeNull();
+
+    // Type search query
+    fireEvent.change(filterInput, { target: { value: "CSS" } });
+
+    // Filtered list only has CSS doc
+    expect(screen.getByRole("button", { name: "02. CSS & Layout Systems" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "01. HTML5 & Web Semantics" })).toBeNull();
+
+    // Clear button is now visible
+    const clearBtn = screen.getByRole("button", { name: /clear search/i });
+    expect(clearBtn).toBeDefined();
+
+    // Click clear button
+    fireEvent.click(clearBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect((filterInput as HTMLInputElement).value).toBe("");
+
+    // Both documents are restored
+    expect(screen.getByRole("button", { name: "01. HTML5 & Web Semantics" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "02. CSS & Layout Systems" })).toBeDefined();
+
+    // Clear button is gone
+    expect(screen.queryByRole("button", { name: /clear search/i })).toBeNull();
+  });
 });

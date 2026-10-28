@@ -22,6 +22,7 @@ import {
   Terminal,
   Lock,
   LogIn,
+  X,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/authStore";
 import { AuthModal } from "./AuthModal";
@@ -603,47 +604,70 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
             focusReader ? "hidden" : "hidden md:flex md:col-span-4 lg:col-span-3"
           }`}
         >
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-500" />
+          <div className="relative flex items-center">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             <input
               type="text"
               placeholder="Filter topics..."
               aria-label="Filter topics"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
+              className={`w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 ${searchQuery ? "pr-8" : "pr-3"} py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono`}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setSearchQuery("");
+                }}
+                aria-label="Clear search"
+                className="absolute right-2.5 p-0.5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
-            {filteredDocs.map((doc) => {
-              const isSelected = doc.filename === selectedFile;
-              const isMastered = completedChapters.includes(doc.filename);
+            {filteredDocs.length === 0 ? (
+              <div className="py-8 px-3 text-center text-xs font-mono text-gray-400 space-y-1">
+                <p className="text-gray-300 font-semibold">No matching documents</p>
+                <p className="text-gray-500 text-[11px]">
+                  {searchQuery ? `No topics match "${searchQuery}"` : "No curriculum documents available"}
+                </p>
+              </div>
+            ) : (
+              filteredDocs.map((doc) => {
+                const isSelected = doc.filename === selectedFile;
+                const isMastered = completedChapters.includes(doc.filename);
 
-              return (
-                <button
-                  key={doc.filename}
-                  onClick={() => {
-                    soundEngine.playSfx("click");
-                    setSelectedFile(doc.filename);
-                  }}
-                  className={`w-full text-left p-2.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between ${
-                    isSelected
-                      ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent font-bold"
-                      : "text-gray-300 hover:bg-matrix-dark hover:text-white"
-                  }`}
-                >
-                  <span className="truncate">{doc.title}</span>
-                  {!isAuthenticated ? (
-                    <Lock className="w-3.5 h-3.5 shrink-0 text-gray-500 ml-2" />
-                  ) : isMastered ? (
-                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-matrix-accent ml-2" />
-                  ) : (
-                    <FileText className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={doc.filename}
+                    onClick={() => {
+                      soundEngine.playSfx("click");
+                      setSelectedFile(doc.filename);
+                    }}
+                    aria-current={isSelected ? "page" : undefined}
+                    className={`w-full text-left p-2.5 rounded-lg text-xs font-mono transition-all flex items-center justify-between ${
+                      isSelected
+                        ? "bg-matrix-accent/20 border border-matrix-accent text-matrix-accent font-bold"
+                        : "text-gray-300 hover:bg-matrix-dark hover:text-white"
+                    }`}
+                  >
+                    <span className="truncate">{doc.title}</span>
+                    {!isAuthenticated ? (
+                      <Lock className="w-3.5 h-3.5 shrink-0 text-gray-500 ml-2" />
+                    ) : isMastered ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-matrix-accent ml-2" />
+                    ) : (
+                      <FileText className="w-3.5 h-3.5 shrink-0 opacity-60 ml-2" />
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
