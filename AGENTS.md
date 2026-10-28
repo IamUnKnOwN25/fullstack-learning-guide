@@ -73,3 +73,12 @@ When operating in continuous development mode:
 - `src/lib/` — Game state (`gameStore.ts`), IDE bundling (`ideBundler.ts`), quests & curriculum definitions.
 - `src/__tests__/` — Vitest unit test suites covering state, IDE bundler, UI guards, level systems, and curriculum tasks.
 - `AUTONOMOUS_PROGRESS.md` — Continuous development audit log tracking all autonomous improvement cycles.
+
+
+## Autonomous Self-Learned Gotchas (Persistent Memory)
+
+### [Learned: 2026-10-28] Web Audio Zero-Target Exponential Ramp DOMException
+- **Symptom**: exponentialRampToValueAtTime throws DOMException when ramping to silence
+- **Root Cause**: Web Audio specification mandates float target value must be strictly positive (> 0)
+- **Mandatory Pattern**: `Guard AudioParam ramps with safeExponentialRamp that floors target value to 0.0001 or gracefully falls back to linearRampToValueAtTime for silence`
+- **Anti-Pattern**: `Calling exponentialRampToValueAtTime(0, time) or unvalidated volume targets without positive clamping`
