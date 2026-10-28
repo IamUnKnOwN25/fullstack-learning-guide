@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, within } from "@testing-library/react";
 import { BossBattleArena } from "../components/BossBattleArena";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -261,5 +261,26 @@ describe("BossBattleArena Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.queryByText("VICTORY ACHIEVED!")).toBeNull();
     expect(screen.getByRole("button", { name: /cast refactor strike/i })).toBeDefined();
+  });
+
+  it("renders accessible combat activity log with live region on counter-attack", () => {
+    render(<BossBattleArena realmId="html" />);
+
+    expect(screen.queryByRole("log")).toBeNull();
+
+    const editor = screen.getByRole("textbox", {
+      name: /combat code editor/i,
+    });
+    fireEvent.change(editor, { target: { value: "invalid code" } });
+
+    const strikeBtn = screen.getByRole("button", {
+      name: /cast refactor strike/i,
+    });
+    fireEvent.click(strikeBtn);
+
+    const log = screen.getByRole("log", { name: "Combat Activity Log" });
+    expect(log).toBeDefined();
+    expect(log.getAttribute("aria-live")).toBe("polite");
+    expect(within(log).getByText(/\[SYNTAX COUNTER\]/i)).toBeDefined();
   });
 });

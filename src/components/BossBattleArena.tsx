@@ -670,7 +670,12 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
       {/* Combat Activity Log */}
       {combatLog.length > 0 && (
-        <div className="bg-matrix-dark/80 border border-matrix-border rounded-xl p-4 font-mono text-xs space-y-1.5 max-h-36 overflow-y-auto">
+        <div
+          role="log"
+          aria-live="polite"
+          aria-label="Combat Activity Log"
+          className="bg-matrix-dark/80 border border-matrix-border rounded-xl p-4 font-mono text-xs space-y-1.5 max-h-36 overflow-y-auto"
+        >
           <div className="text-gray-400 text-[10px] uppercase font-bold tracking-wider mb-2">
             Combat Log
           </div>
