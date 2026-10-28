@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
 import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
@@ -106,6 +106,20 @@ export function LeaderboardModal({
     }));
   }, [activeTab, playerEntry]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const playerRank = sortedEntries.find((e) => e.isCurrentUser)?.rank || 1;
@@ -118,7 +132,18 @@ export function LeaderboardModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Matrix Global Leaderboards"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-3xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         {/* Glow ambient background element */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 bg-matrix-neonGold/10 rounded-full blur-3xl pointer-events-none" />
@@ -149,7 +174,7 @@ export function LeaderboardModal({
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
             title="Close (Esc)"
           >
             <X className="w-5 h-5" />
@@ -453,6 +478,16 @@ export function LeaderboardModal({
                 <span>View Operator Profile</span>
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSfx("click");
+                onClose();
+              }}
+              className="px-3 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white text-xs transition-colors cursor-pointer"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>

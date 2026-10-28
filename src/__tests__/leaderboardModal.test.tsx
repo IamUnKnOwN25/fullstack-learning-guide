@@ -61,7 +61,7 @@ describe("LeaderboardModal Component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders leaderboard title, user stats, and operative rankings", () => {
+  it("renders leaderboard title, user stats, operative rankings with dialog accessibility attributes", () => {
     render(
       <LeaderboardModal
         isOpen={true}
@@ -71,6 +71,11 @@ describe("LeaderboardModal Component", () => {
       />
     );
 
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-label")).toBe("Matrix Global Leaderboards");
+
     expect(screen.getByText("Matrix Global Leaderboards")).toBeDefined();
     expect(screen.getAllByText("Cyber Sentinel").length).toBeGreaterThan(0);
     expect(screen.getByText("Global Power (XP)")).toBeDefined();
@@ -79,7 +84,49 @@ describe("LeaderboardModal Component", () => {
     expect(screen.getByText("Curriculum")).toBeDefined();
   });
 
-  it("calls onClose when the close button is clicked", () => {
+  it("calls onClose when Escape key is pressed", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when backdrop is clicked directly", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const backdrop = screen.getByRole("dialog");
+    fireEvent.click(backdrop);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call onClose when clicking inside the modal content", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const header = screen.getByText("Matrix Global Leaderboards");
+    fireEvent.click(header);
+
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it("calls onClose when the close icon button is clicked", () => {
     render(
       <LeaderboardModal
         isOpen={true}
@@ -88,6 +135,21 @@ describe("LeaderboardModal Component", () => {
     );
 
     const closeBtn = screen.getByLabelText("Close leaderboard modal");
+    fireEvent.click(closeBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when the footer Close button is clicked", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const closeBtn = screen.getByRole("button", { name: /^Close$/i });
     fireEvent.click(closeBtn);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
@@ -144,5 +206,27 @@ describe("LeaderboardModal Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(mockOpenProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it("displays guest unranked status and triggers auth modal when clicking Sign In to Rank", () => {
+    useAuthStore.setState({ isAuthenticated: false, currentUser: undefined });
+
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    expect(screen.getByText("Guest Operative (Unranked)")).toBeDefined();
+
+    const signInBtns = screen.getAllByRole("button", { name: /Sign In to Rank/i });
+    expect(signInBtns.length).toBeGreaterThan(0);
+    fireEvent.click(signInBtns[0]);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(mockOpenAuthModal).toHaveBeenCalledTimes(1);
   });
 });
