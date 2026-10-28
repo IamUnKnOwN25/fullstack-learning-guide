@@ -12,6 +12,11 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-10-28 09:54] Cycle 173: Achievements Modal Escape Trapping, Backdrop Dismissal & Progressbar ARIA (Tests: PASS)**
+  - Enhanced `src/components/AchievementsModal.tsx` by adding a window `Escape` key event listener with audio SFX feedback, backdrop click dismissal handling (`e.target === e.currentTarget`), dialog accessibility attributes (`role="dialog"`, `aria-modal="true"`, `aria-label="Trophy Room & Achievements"`), and explicit ARIA progressbar attributes (`role="progressbar"`, `aria-label="Odyssey Completion Progress"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`).
+  - Expanded unit test suite in `src/__tests__/achievementsModal.test.tsx` to 10 tests verifying dialog attributes, window Escape key trapping, backdrop click dismissal, content-click containment, progressbar ARIA values, and guest sign-in CTA button triggering.
+  - Verified with `npm run validate` (57 test files, 664 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-10-28 09:48] Cycle 172: Skill Tree Modal Escape Key Trapping, Backdrop Dismissal & Dialog Accessibility (Tests: PASS)**
   - Enhanced `src/components/SkillTreeModal.tsx` by adding window `Escape` key event listener, backdrop click dismissal handling (`e.target === e.currentTarget`), and standard dialog accessibility attributes (`role="dialog"`, `aria-modal="true"`, `aria-label="Cybernetic Skill Tree"`).
   - Expanded unit test suite in `src/__tests__/skillTreeModal.test.tsx` to 10 tests verifying dialog attributes, window Escape key trapping, backdrop click dismissal, content-click containment, and guest sign-in modal triggering.

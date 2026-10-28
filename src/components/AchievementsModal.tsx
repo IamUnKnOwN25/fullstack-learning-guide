@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { useGameStore } from "@/lib/gameStore";
 import { useAuthStore } from "@/lib/authStore";
@@ -63,6 +63,20 @@ export function AchievementsModal({
 
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | "all">("all");
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        soundEngine.playSfx("click");
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const filteredAchievements = getAchievementsByCategory(activeCategory);
@@ -84,7 +98,18 @@ export function AchievementsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Trophy Room & Achievements"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          soundEngine.playSfx("click");
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+    >
       <div className="relative w-full max-w-2xl bg-matrix-card border border-matrix-border rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] animate-slideUp font-mono">
         {/* Glow ambient background element */}
         <div className="absolute top-0 right-0 w-80 h-80 bg-matrix-neonGold/10 rounded-full blur-3xl pointer-events-none" />
@@ -113,8 +138,10 @@ export function AchievementsModal({
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
-            type="button" aria-label="Close achievements modal" title="Close (Esc)"
+            className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
+            type="button"
+            aria-label="Close achievements modal"
+            title="Close (Esc)"
           >
             <X className="w-5 h-5" />
           </button>
@@ -126,7 +153,14 @@ export function AchievementsModal({
             <span className="text-gray-300 font-bold shrink-0">
               Odyssey Completion:
             </span>
-            <div className="flex-1 max-w-xs h-2.5 rounded-full bg-matrix-dark border border-matrix-border overflow-hidden">
+            <div
+              role="progressbar"
+              aria-label="Odyssey Completion Progress"
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              className="flex-1 max-w-xs h-2.5 rounded-full bg-matrix-dark border border-matrix-border overflow-hidden"
+            >
               <div
                 className="h-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500"
                 style={{ width: `${progressPercent}%` }}
@@ -404,7 +438,7 @@ export function AchievementsModal({
               soundEngine.playSfx("click");
               onClose();
             }}
-            className="px-4 py-1.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-white text-xs transition-colors"
+            className="px-4 py-1.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-white text-xs transition-colors cursor-pointer"
           >
             Close
           </button>
