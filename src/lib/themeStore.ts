@@ -46,23 +46,45 @@ export function getThemeMeta(theme: Theme): ThemeMeta {
   return THEME_METADATA[theme] || THEME_METADATA[DEFAULT_THEME];
 }
 
+export function getNextTheme(currentTheme: Theme): Theme {
+  const currentIndex = THEMES.indexOf(currentTheme);
+  if (currentIndex === -1) return DEFAULT_THEME;
+  return THEMES[(currentIndex + 1) % THEMES.length];
+}
+
+export function applyThemeToDocument(theme: Theme): void {
+  if (typeof document === "undefined" || !document.documentElement) return;
+  const meta = getThemeMeta(theme);
+  const root = document.documentElement;
+  root.style.setProperty("--matrix-primary", meta.primaryColor);
+  root.style.setProperty("--matrix-accent", meta.accentColor);
+  root.style.setProperty("--matrix-bg", meta.darkBg);
+  root.setAttribute("data-theme", meta.id);
+}
+
 export interface ThemeState {
   theme: Theme;
 }
 
 export interface ThemeActions {
   setTheme: (theme: Theme) => void;
+  cycleTheme: () => Theme;
 }
 
 export type ThemeStore = ThemeState & ThemeActions;
 
 export const useThemeStore = create<ThemeStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       theme: DEFAULT_THEME,
       setTheme: (theme) => {
         const safeTheme = isValidTheme(theme) ? theme : DEFAULT_THEME;
         set({ theme: safeTheme });
+      },
+      cycleTheme: () => {
+        const nextTheme = getNextTheme(get().theme);
+        set({ theme: nextTheme });
+        return nextTheme;
       },
     }),
     {

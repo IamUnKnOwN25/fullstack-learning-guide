@@ -6,6 +6,8 @@ import {
   DEFAULT_THEME,
   isValidTheme,
   getThemeMeta,
+  getNextTheme,
+  applyThemeToDocument,
 } from "../lib/themeStore";
 
 describe("Theme Store", () => {
@@ -105,6 +107,39 @@ describe("Theme Store", () => {
 
       useThemeStore.getState().setTheme("invalid-custom-theme" as any);
       expect(useThemeStore.getState().theme).toBe(DEFAULT_THEME);
+    });
+
+    it("cycles themes sequentially with getNextTheme and store cycleTheme action", () => {
+      expect(getNextTheme("matrix-emerald")).toBe("cyber-neon");
+      expect(getNextTheme("cyber-neon")).toBe("obsidian-high-contrast");
+      expect(getNextTheme("obsidian-high-contrast")).toBe("matrix-emerald");
+      expect(getNextTheme("invalid" as any)).toBe(DEFAULT_THEME);
+
+      useThemeStore.setState({ theme: "matrix-emerald" });
+      const next1 = useThemeStore.getState().cycleTheme();
+      expect(next1).toBe("cyber-neon");
+      expect(useThemeStore.getState().theme).toBe("cyber-neon");
+
+      const next2 = useThemeStore.getState().cycleTheme();
+      expect(next2).toBe("obsidian-high-contrast");
+      expect(useThemeStore.getState().theme).toBe("obsidian-high-contrast");
+
+      const next3 = useThemeStore.getState().cycleTheme();
+      expect(next3).toBe("matrix-emerald");
+      expect(useThemeStore.getState().theme).toBe("matrix-emerald");
+    });
+
+    it("applies theme custom properties and data-theme attribute to document element", () => {
+      applyThemeToDocument("cyber-neon");
+      const root = document.documentElement;
+      expect(root.getAttribute("data-theme")).toBe("cyber-neon");
+      expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FF007F");
+      expect(root.style.getPropertyValue("--matrix-accent")).toBe("#7928CA");
+      expect(root.style.getPropertyValue("--matrix-bg")).toBe("#0a0a0f");
+
+      applyThemeToDocument("obsidian-high-contrast");
+      expect(root.getAttribute("data-theme")).toBe("obsidian-high-contrast");
+      expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FFFF00");
     });
   });
 });
