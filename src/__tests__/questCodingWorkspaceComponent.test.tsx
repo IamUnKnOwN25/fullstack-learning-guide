@@ -209,4 +209,60 @@ describe("QuestCodingWorkspace Component", () => {
     // Automatically switches to terminal tab
     expect(screen.getByText(/TEST FAILED/i)).toBeDefined();
   });
+
+  it("toggles mentor architectural guide and reference pattern", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    expect(screen.queryByText(/Mentor Reference Pattern/i)).toBeNull();
+
+    const mentorBtn = screen.getByRole("button", { name: /mentor walkthrough/i });
+    fireEvent.click(mentorBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Mentor Reference Pattern/i)).toBeDefined();
+
+    const hideBtn = screen.getByRole("button", { name: /hide walkthrough/i });
+    fireEvent.click(hideBtn);
+    expect(screen.queryByText(/Mentor Reference Pattern/i)).toBeNull();
+  });
+
+  it("toggles maximize workbench layout", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    const maximizeBtn = screen.getByRole("button", { name: /maximize/i });
+    fireEvent.click(maximizeBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByRole("button", { name: /split view/i })).toBeDefined();
+
+    const splitBtn = screen.getByRole("button", { name: /split view/i });
+    fireEvent.click(splitBtn);
+    expect(screen.getByRole("button", { name: /maximize/i })).toBeDefined();
+  });
+
+  it("copies editor code to clipboard with audio and visual feedback", async () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    const copyBtn = screen.getByRole("button", { name: /copy code/i });
+    fireEvent.click(copyBtn);
+
+    expect(writeTextMock).toHaveBeenCalledWith(htmlQuest.starterCode);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Copied!/i)).toBeDefined();
+  });
+
+  it("allows toggling task checklist items manually", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    const taskText = htmlQuest.tasks[0];
+    const taskButton = screen.getByRole("button", { name: new RegExp(taskText, "i") });
+
+    fireEvent.click(taskButton);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
 });
