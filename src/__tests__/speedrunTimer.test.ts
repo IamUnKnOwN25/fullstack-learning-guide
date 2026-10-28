@@ -218,5 +218,79 @@ describe("speedrunTimer", () => {
       expect(useSpeedrunTimer.getState().records).toEqual({});
       expect(useSpeedrunTimer.getState().activeRuns).toEqual({});
     });
+
+    describe("Pause, Resume & Split Lap Analytics", () => {
+      it("pauses an active run and retains elapsed time without advancing during pause", () => {
+        const store = useSpeedrunTimer.getState();
+        vi.setSystemTime(100000);
+
+        store.startRun("quest-pause");
+        vi.advanceTimersByTime(4000); // 4s elapsed
+        expect(store.getElapsedMs("quest-pause")).toBe(4000);
+
+        const paused = store.pauseRun("quest-pause");
+        expect(paused).toBe(true);
+        expect(store.isPaused("quest-pause")).toBe(true);
+
+        // Advance time during pause - elapsed time should freeze at 4000ms
+        vi.advanceTimersByTime(10000);
+        expect(store.getElapsedMs("quest-pause")).toBe(4000);
+
+        // Resuming unpauses and continues accumulation
+        const resumed = store.resumeRun("quest-pause");
+        expect(resumed).toBe(true);
+        expect(store.isPaused("quest-pause")).toBe(false);
+
+        vi.advanceTimersByTime(3000); // 4s + 3s = 7s
+        expect(store.getElapsedMs("quest-pause")).toBe(7000);
+
+        const finishResult = store.finishRun("quest-pause");
+        expect(finishResult?.timeMs).toBe(7000);
+      });
+
+      it("handles pausing when already paused or unstarted gracefully", () => {
+        const store = useSpeedrunTimer.getState();
+        expect(store.pauseRun("unstarted-quest")).toBe(false);
+        expect(store.resumeRun("unstarted-quest")).toBe(false);
+
+        store.startRun("quest-twice");
+        store.pauseRun("quest-twice");
+        expect(store.pauseRun("quest-twice")).toBe(false);
+      });
+
+      it("records split laps and allows querying them sequentially", () => {
+        const store = useSpeedrunTimer.getState();
+        vi.setSystemTime(100000);
+
+        store.startRun("quest-splits");
+        vi.advanceTimersByTime(2500);
+        const split1 = store.recordSplit("quest-splits", "Warm-Up Drill");
+        expect(split1).toBe(2500);
+
+        vi.advanceTimersByTime(4000);
+        const split2 = store.recordSplit("quest-splits", "Deep Dive Quiz");
+        expect(split2).toBe(6500);
+
+        const splits = store.getSplits("quest-splits");
+        expect(splits).toEqual([
+          { label: "Warm-Up Drill", timeMs: 2500 },
+          { label: "Deep Dive Quiz", timeMs: 6500 },
+        ]);
+      });
+
+      it("cleans up paused runs and splits on cancelRun", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("quest-cleanup");
+        store.pauseRun("quest-cleanup");
+        store.recordSplit("quest-cleanup", "Lap 1");
+
+        expect(store.getSplits("quest-cleanup").length).toBe(1);
+        store.cancelRun("quest-cleanup");
+
+        expect(store.isPaused("quest-cleanup")).toBe(false);
+        expect(store.getSplits("quest-cleanup")).toEqual([]);
+        expect(store.getElapsedMs("quest-cleanup")).toBeNull();
+      });
+    });
   });
 });
