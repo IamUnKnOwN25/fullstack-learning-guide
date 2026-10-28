@@ -92,4 +92,38 @@ describe("KeyboardShortcutsModal", () => {
 
     expect(handleClose).not.toHaveBeenCalled();
   });
+
+  it("filters keyboard shortcuts dynamically via search input", () => {
+    render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+    const searchInput = screen.getByPlaceholderText(/Search hotkeys/i);
+    fireEvent.change(searchInput, { target: { value: "Sidebar" } });
+
+    expect(screen.getByText("Toggle Sidebar (IDE only)")).toBeDefined();
+    expect(screen.queryByText("Command Palette")).toBeNull();
+  });
+
+  it("displays empty state when search finds no matching shortcuts and allows clearing search", () => {
+    render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+    const searchInput = screen.getByPlaceholderText(/Search hotkeys/i);
+    fireEvent.change(searchInput, { target: { value: "nonexistent_shortcut_xyz" } });
+
+    expect(screen.getByText(/No keyboard shortcuts match your search/i)).toBeDefined();
+
+    const clearBtn = screen.getByRole("button", { name: /clear shortcut search/i });
+    fireEvent.click(clearBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect((searchInput as HTMLInputElement).value).toBe("");
+    expect(screen.getByText("Command Palette")).toBeDefined();
+  });
+
+  it("renders Combat & Navigation category items", () => {
+    render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+    expect(screen.getByText("Combat & Navigation")).toBeDefined();
+    expect(screen.getByText("Execute Spell Strike")).toBeDefined();
+    expect(screen.getByText("Advance Familiar Intel")).toBeDefined();
+  });
 });
