@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { useSpeedrunTimer, formatSpeedrunTime, formatSpeedrunTimeWithMs } from "../lib/speedrunTimer";
+import { useSpeedrunTimer, formatSpeedrunTime, formatSpeedrunTimeWithMs, MAX_SPEEDRUN_SPLITS } from "../lib/speedrunTimer";
 
 describe("speedrunTimer", () => {
   beforeEach(() => {
@@ -276,6 +276,107 @@ describe("speedrunTimer", () => {
           { label: "Warm-Up Drill", timeMs: 2500 },
           { label: "Deep Dive Quiz", timeMs: 6500 },
         ]);
+      });
+
+      it("validates split lap names, trims whitespace, and rejects empty or non-string labels", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("quest-val");
+
+        // Rejects empty string
+        expect(store.recordSplit("quest-val", "")).toBeNull();
+
+        // Rejects whitespace-only string
+        expect(store.recordSplit("quest-val", "    \t \n ")).toBeNull();
+
+        // Rejects non-string values
+        expect(store.recordSplit("quest-val", null as any)).toBeNull();
+        expect(store.recordSplit("quest-val", undefined as any)).toBeNull();
+        expect(store.recordSplit("quest-val", 123 as any)).toBeNull();
+
+        // Verifies no splits were saved for invalid entries
+        expect(store.getSplits("quest-val")).toEqual([]);
+
+        // Trims valid lap names
+        const time = store.recordSplit("quest-val", "  Checkpoint Alpha  ");
+        expect(time).toBeGreaterThanOrEqual(0);
+
+        const splits = store.getSplits("quest-val");
+        expect(splits).toHaveLength(1);
+        expect(splits[0].label).toBe("Checkpoint Alpha");
+      });
+
+      it("rejects non-finite and invalid timestamps when recording splits", () => {
+        const store = useSpeedrunTimer.getState();
+
+        // Rejects split recording when quest has not started
+        expect(store.recordSplit("unstarted-quest", "Lap 1")).toBeNull();
+        expect(store.recordSplit("unstarted-quest", "Lap 1", 5000)).toBeNull();
+
+        // Start quest
+        store.startRun("quest-timestamp-val");
+
+        // Rejects NaN, Infinity, -Infinity, negative numbers
+        expect(store.recordSplit("quest-timestamp-val", "Lap 1", NaN)).toBeNull();
+        expect(store.recordSplit("quest-timestamp-val", "Lap 2", Infinity)).toBeNull();
+        expect(store.recordSplit("quest-timestamp-val", "Lap 3", -Infinity)).toBeNull();
+        expect(store.recordSplit("quest-timestamp-val", "Lap 4", -100)).toBeNull();
+        expect(store.recordSplit("quest-timestamp-val", "Lap 5", "not-a-number" as any)).toBeNull();
+
+        expect(store.getSplits("quest-timestamp-val")).toEqual([]);
+
+        // Accepts valid custom timestamps
+        const splitTime = store.recordSplit("quest-timestamp-val", "Valid Lap", 4500.8);
+        expect(splitTime).toBe(4500);
+        expect(store.getSplits("quest-timestamp-val")).toEqual([
+          { label: "Valid Lap", timeMs: 4500 },
+        ]);
+      });
+
+      it("caps split list size to 100 entries to prevent memory leaks", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("quest-cap");
+
+        expect(MAX_SPEEDRUN_SPLITS).toBe(100);
+
+        // Fill up to 100 splits
+        for (let i = 0; i < 100; i++) {
+          const res = store.recordSplit("quest-cap", `Split ${i}`, i * 1000);
+          expect(res).toBe(i * 1000);
+        }
+
+        const splits = store.getSplits("quest-cap");
+        expect(splits).toHaveLength(100);
+        expect(splits[0]).toEqual({ label: "Split 0", timeMs: 0 });
+        expect(splits[99]).toEqual({ label: "Split 99", timeMs: 99000 });
+
+        // Attempting to add 101st split returns null and does not increase list size
+        const overflow = store.recordSplit("quest-cap", "Split 100 (Overflow)", 100000);
+        expect(overflow).toBeNull();
+        expect(store.getSplits("quest-cap")).toHaveLength(100);
+        expect(store.getSplits("quest-cap")[99].label).toBe("Split 99");
+      });
+
+      it("resets split history via clearSplits for specific quest or all quests", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("quest-a");
+        store.startRun("quest-b");
+
+        store.recordSplit("quest-a", "A1", 1000);
+        store.recordSplit("quest-a", "A2", 2000);
+        store.recordSplit("quest-b", "B1", 1500);
+
+        expect(store.getSplits("quest-a")).toHaveLength(2);
+        expect(store.getSplits("quest-b")).toHaveLength(1);
+
+        // Clear specific quest splits
+        store.clearSplits("quest-a");
+        expect(store.getSplits("quest-a")).toEqual([]);
+        expect(store.getSplits("quest-b")).toHaveLength(1);
+
+        // Clear all splits across all quests when called with no arguments
+        store.clearSplits();
+        expect(store.getSplits("quest-b")).toEqual([]);
+        expect(store.splits).toEqual({});
       });
 
       it("cleans up paused runs and splits on cancelRun", () => {

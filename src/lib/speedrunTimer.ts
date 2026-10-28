@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export const MAX_SPEEDRUN_SPLITS = 100;
+
 export interface SpeedrunRecord {
   questId: string;
   bestTimeMs: number;
@@ -25,8 +27,9 @@ export interface SpeedrunActions {
   pauseRun: (questId: string) => boolean;
   resumeRun: (questId: string) => boolean;
   isPaused: (questId: string) => boolean;
-  recordSplit: (questId: string, label: string) => number | null;
+  recordSplit: (questId: string, label: string, customTimeMs?: number) => number | null;
   getSplits: (questId: string) => SpeedrunSplit[];
+  clearSplits: (questId?: string) => void;
   finishRun: (questId: string) => { timeMs: number; isNewRecord: boolean } | null;
   cancelRun: (questId: string) => void;
   getRecord: (questId: string) => SpeedrunRecord | null;
@@ -113,22 +116,54 @@ export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
         return state.activeRuns[questId] === undefined && state.pausedRuns[questId] !== undefined;
       },
 
-      recordSplit: (questId, label) => {
-        const elapsed = get().getElapsedMs(questId);
-        if (elapsed === null) return null;
+      recordSplit: (questId, label, customTimeMs) => {
+        if (!questId || typeof questId !== "string") return null;
+        if (!label || typeof label !== "string") return null;
 
-        const split: SpeedrunSplit = { label, timeMs: elapsed };
-        set((s) => ({
-          splits: {
-            ...s.splits,
-            [questId]: [...(s.splits[questId] || []), split],
-          },
-        }));
-        return elapsed;
+        const trimmedLabel = label.trim();
+        if (!trimmedLabel) return null;
+
+        const state = get();
+        const isRunStarted = state.activeRuns[questId] !== undefined || state.pausedRuns[questId] !== undefined;
+        if (!isRunStarted) return null;
+
+        const currentSplits = state.splits[questId] || [];
+        if (currentSplits.length >= MAX_SPEEDRUN_SPLITS) return null;
+
+        const rawElapsed = customTimeMs !== undefined ? customTimeMs : state.getElapsedMs(questId);
+        if (rawElapsed === null || typeof rawElapsed !== "number" || !Number.isFinite(rawElapsed) || rawElapsed < 0) {
+          return null;
+        }
+
+        const timeMs = Math.floor(rawElapsed);
+        const split: SpeedrunSplit = { label: trimmedLabel, timeMs };
+
+        set((s) => {
+          const list = [...(s.splits[questId] || []), split];
+          return {
+            splits: {
+              ...s.splits,
+              [questId]: list.slice(0, MAX_SPEEDRUN_SPLITS),
+            },
+          };
+        });
+
+        return timeMs;
       },
 
       getSplits: (questId) => {
         return get().splits[questId] || [];
+      },
+
+      clearSplits: (questId?: string) => {
+        set((s) => {
+          if (questId) {
+            const newSplits = { ...s.splits };
+            delete newSplits[questId];
+            return { splits: newSplits };
+          }
+          return { splits: {} };
+        });
       },
 
       finishRun: (questId) => {
@@ -194,7 +229,8 @@ export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
 
         if (!startTime && state.pausedRuns[questId] === undefined) return null;
         const currentSegment = startTime ? Math.max(0, Date.now() - startTime) : 0;
-        return pausedMs + currentSegment;
+        const total = pausedMs + currentSegment;
+        return Number.isFinite(total) && total >= 0 ? total : null;
       },
 
       clearAllRecords: () => {
