@@ -236,4 +236,74 @@ describe("ConstellationWorldMap Component", () => {
     expect(capstoneNode.getAttribute("aria-label")).toContain("Mastered");
     expect(capstoneNode.innerHTML).toContain("animate-bounce");
   });
+
+  it("renders SVG active conduits with pulse animation for unlocked pathways", () => {
+    const onSelectRealm = vi.fn();
+
+    const { container } = render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html", "css"]}
+        completedBosses={["html"]}
+        completedQuests={[]}
+        level={2}
+      />
+    );
+
+    // Active conduit uses url(#activeConduit)
+    const activeLines = container.querySelectorAll('line[stroke="url(#activeConduit)"]');
+    expect(activeLines.length).toBeGreaterThan(0);
+
+    // Pulse animations are rendered on active conduits
+    const pulseCircles = container.querySelectorAll('circle.animate-pulse');
+    expect(pulseCircles.length).toBeGreaterThan(0);
+  });
+
+  it("renders map legend indicators for Mastered, Active Trial, and Sealed states", () => {
+    const onSelectRealm = vi.fn();
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    expect(screen.getByText("Mastered")).toBeDefined();
+    expect(screen.getByText("Active Trial")).toBeDefined();
+    expect(screen.getByText("Sealed")).toBeDefined();
+  });
+
+  it("triggers audio feedback when clicking quick-launch bar links", () => {
+    const onSelectRealm = vi.fn();
+    const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={htmlRealm}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    const trial1Link = screen.getByRole("link", { name: new RegExp(`Launch Trial 1 for ${htmlRealm.realmName}`, "i") });
+    fireEvent.click(trial1Link);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+
+    const bossLink = screen.getByRole("link", { name: new RegExp(`Challenge Boss for ${htmlRealm.realmName}`, "i") });
+    fireEvent.click(bossLink);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("attack");
+
+    const guideLink = screen.getByRole("link", { name: new RegExp(`View Curriculum Guide for ${htmlRealm.realmName}`, "i") });
+    fireEvent.click(guideLink);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
 });
