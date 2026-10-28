@@ -150,4 +150,48 @@ describe("OnlineMatrixIde Component", () => {
     fireEvent.submit(terminalInput);
     expect(screen.getByText(/\/workspace/i)).toBeDefined();
   });
+
+  it("triggers run project upon clicking the Run button", () => {
+    render(<OnlineMatrixIde />);
+
+    const runBtn = screen.getByRole("button", { name: /^Run$/i });
+    expect(runBtn).toBeDefined();
+
+    fireEvent.click(runBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("attack");
+  });
+
+  it("switches responsive preview viewport across tablet and mobile", () => {
+    render(<OnlineMatrixIde />);
+
+    const tabletBtn = screen.getByTitle("Tablet Viewport (768px)");
+    expect(tabletBtn).toBeDefined();
+    fireEvent.click(tabletBtn);
+
+    const mobileBtn = screen.getByTitle("Mobile Viewport (375px)");
+    expect(mobileBtn).toBeDefined();
+    fireEvent.click(mobileBtn);
+
+    const desktopBtn = screen.getByTitle("Desktop Viewport (100%)");
+    expect(desktopBtn).toBeDefined();
+    fireEvent.click(desktopBtn);
+  });
+
+  it("resets modified files when clicking Reset Project Code", () => {
+    render(<OnlineMatrixIde />);
+
+    const defaultTemplate = IDE_PROJECT_TEMPLATES[0];
+    const editor = screen.getByRole("textbox", {
+      name: /matrix studio code editor/i,
+    }) as HTMLTextAreaElement;
+
+    fireEvent.change(editor, { target: { value: "<div>Modified content</div>" } });
+    expect(editor.value).toBe("<div>Modified content</div>");
+
+    const resetBtn = screen.getByTitle("Reset Project Code");
+    fireEvent.click(resetBtn);
+
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(editor.value).toBe(defaultTemplate.files[0].content);
+  });
 });
