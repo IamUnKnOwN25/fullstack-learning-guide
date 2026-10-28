@@ -252,5 +252,26 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(errContent).toContain("REBOOT SUBSYSTEM");
     expect(errContent).toContain("RETURN TO MATRIX NEXUS");
     expect(errContent).toContain("bg-matrix-dark bg-cyber-grid");
+    expect(errContent).toContain('role="alert"');
+    expect(errContent).toContain('aria-live="assertive"');
+    expect(errContent).toContain("handleCopyLog");
+  });
+
+  it("enforces ProfileModal and AuthModal dialog accessibility and backdrop blur invariants", () => {
+    const profPath = path.join(process.cwd(), "src/components/ProfileModal.tsx");
+    const profContent = fs.readFileSync(profPath, "utf-8");
+
+    expect(profContent).toContain('role="dialog"');
+    expect(profContent).toContain('aria-modal="true"');
+    expect(profContent).toContain('aria-label="Agent Profile Dossier"');
+    expect(profContent).toContain("backdrop-blur-md");
+
+    const authPath = path.join(process.cwd(), "src/components/AuthModal.tsx");
+    const authContent = fs.readFileSync(authPath, "utf-8");
+
+    expect(authContent).toContain('role="dialog"');
+    expect(authContent).toContain('aria-modal="true"');
+    expect(authContent).toContain('aria-label="Matrix Terminal Access"');
+    expect(authContent).toContain("backdrop-blur-md");
   });
 });
