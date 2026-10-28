@@ -156,6 +156,64 @@ describe("RealmConceptVisualizer Component", () => {
     expect(screen.getAllByText("Renders: 2")).toHaveLength(2);
   });
 
+  it("switches to Databases lab and toggles parameterized queries and B-Tree indexing", () => {
+    render(<RealmConceptVisualizer realmId="databases" />);
+
+    expect(
+      screen.getByText("PostgreSQL Parameterized Queries & B-Tree Index Planner")
+    ).toBeDefined();
+
+    const paramToggle = screen.getByRole("button", {
+      name: /parameterized \(\$1\)/i,
+    });
+    fireEvent.click(paramToggle);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Raw Concatenation/i)).toBeDefined();
+    expect(screen.getByText(/CRITICAL: Always evaluates TRUE/i)).toBeDefined();
+
+    const btreeToggle = screen.getByRole("button", {
+      name: /b-tree index: on/i,
+    });
+    fireEvent.click(btreeToggle);
+    expect(screen.getByText(/B-Tree Index: OFF/i)).toBeDefined();
+  });
+
+  it("switches to DevOps lab and toggles multi-stage docker image optimization", () => {
+    render(<RealmConceptVisualizer realmId="devops" />);
+
+    expect(
+      screen.getByText("Multi-Stage Docker Image Size & Layer Optimizer")
+    ).toBeDefined();
+
+    const dockerToggle = screen.getByRole("button", {
+      name: /mode: multi-stage alpine/i,
+    });
+    fireEvent.click(dockerToggle);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/Mode: Single-Stage Fat Image/i)).toBeDefined();
+    expect(screen.getByText(/BLOAT: 1,040 MB/i)).toBeDefined();
+  });
+
+  it("switches to Testing lab and transitions between Red, Green, Refactor phases", () => {
+    render(<RealmConceptVisualizer realmId="testing" />);
+
+    expect(
+      screen.getByText("TDD Red-Green-Refactor & Vitest Spy Lab")
+    ).toBeDefined();
+
+    // Default is green
+    expect(screen.getByText(/2\. GREEN Phase/i)).toBeDefined();
+
+    const redBtn = screen.getByRole("button", { name: "red" });
+    fireEvent.click(redBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText(/1\. RED Phase/i)).toBeDefined();
+
+    const refactorBtn = screen.getByRole("button", { name: "refactor" });
+    fireEvent.click(refactorBtn);
+    expect(screen.getByText(/3\. REFACTOR Phase/i)).toBeDefined();
+  });
+
   it("renders generic fallback concept simulator for unknown realm", () => {
     render(<RealmConceptVisualizer realmId="custom-unknown-realm" />);
 
