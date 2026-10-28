@@ -15,7 +15,16 @@ export class SoundEngine {
       }
     }
     if (this.ctx && this.ctx.state === "suspended") {
-      this.ctx.resume();
+      try {
+        const resumePromise = this.ctx.resume();
+        if (resumePromise && typeof resumePromise.catch === "function") {
+          resumePromise.catch(() => {
+            // Safely ignore rejected resume promises (e.g. browser autoplay restrictions)
+          });
+        }
+      } catch {
+        // Safe no-op if resume call throws
+      }
     }
   }
 
@@ -41,6 +50,9 @@ export class SoundEngine {
       return;
     }
     this.volume = Math.max(0, Math.min(1, vol));
+    if (this.volume <= 0 && this.isBgmPlaying) {
+      this.stopBgm();
+    }
   }
 
   public getVolume(): number {
@@ -49,6 +61,23 @@ export class SoundEngine {
 
   public isAudioContextReady(): boolean {
     return this.ctx !== null && this.ctx.state !== "closed";
+  }
+
+  private clampRampValue(val: number): number {
+    return Math.max(0.0001, Number.isFinite(val) ? val : 0.0001);
+  }
+
+  private safeExponentialRamp(param: AudioParam, targetValue: number, endTime: number) {
+    const safeTarget = this.clampRampValue(targetValue);
+    try {
+      param.exponentialRampToValueAtTime(safeTarget, endTime);
+    } catch {
+      try {
+        param.linearRampToValueAtTime(safeTarget, endTime);
+      } catch {
+        // Safe no-op
+      }
+    }
   }
 
   public playSfx(
@@ -64,7 +93,7 @@ export class SoundEngine {
       | "badge-inspect"
       | "heal"
   ) {
-    if (this.isMuted) return;
+    if (this.isMuted || this.volume <= 0) return;
     this.init();
     if (!this.ctx) return;
 
@@ -76,8 +105,8 @@ export class SoundEngine {
         const gain = this.ctx.createGain();
         osc.type = "sine";
         osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(300, now + 0.05);
-        gain.gain.setValueAtTime(this.volume * 0.4, now);
+        this.safeExponentialRamp(osc.frequency, 300, now + 0.05);
+        gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.4), now);
         gain.gain.linearRampToValueAtTime(0, now + 0.05);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -95,8 +124,8 @@ export class SoundEngine {
           const noteTime = now + idx * 0.07;
           osc.type = "triangle";
           osc.frequency.setValueAtTime(freq, noteTime);
-          gain.gain.setValueAtTime(this.volume * 0.6, noteTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.15);
+          gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.6), noteTime);
+          this.safeExponentialRamp(gain.gain, 0.001, noteTime + 0.15);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(noteTime);
@@ -112,7 +141,7 @@ export class SoundEngine {
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(150, now);
         osc.frequency.linearRampToValueAtTime(100, now + 0.18);
-        gain.gain.setValueAtTime(this.volume * 0.7, now);
+        gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.7), now);
         gain.gain.linearRampToValueAtTime(0, now + 0.18);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -127,9 +156,9 @@ export class SoundEngine {
         const gain = this.ctx.createGain();
         osc.type = "square";
         osc.frequency.setValueAtTime(880, now);
-        osc.frequency.exponentialRampToValueAtTime(110, now + 0.12);
-        gain.gain.setValueAtTime(this.volume * 0.5, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        this.safeExponentialRamp(osc.frequency, 110, now + 0.12);
+        gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.5), now);
+        this.safeExponentialRamp(gain.gain, 0.01, now + 0.12);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -143,9 +172,9 @@ export class SoundEngine {
         const gain = this.ctx.createGain();
         osc.type = "sawtooth";
         osc.frequency.setValueAtTime(120, now);
-        osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
-        gain.gain.setValueAtTime(this.volume * 0.9, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        this.safeExponentialRamp(osc.frequency, 40, now + 0.25);
+        gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.9), now);
+        this.safeExponentialRamp(gain.gain, 0.01, now + 0.25);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -163,8 +192,8 @@ export class SoundEngine {
           const noteTime = now + idx * 0.08;
           osc.type = "square";
           osc.frequency.setValueAtTime(freq, noteTime);
-          gain.gain.setValueAtTime(this.volume * 0.5, noteTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, noteTime + 0.2);
+          gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.5), noteTime);
+          this.safeExponentialRamp(gain.gain, 0.01, noteTime + 0.2);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(noteTime);
@@ -181,7 +210,7 @@ export class SoundEngine {
           const gain = this.ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(freq, now);
-          gain.gain.setValueAtTime(this.volume * 0.4, now);
+          gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.4), now);
           gain.gain.linearRampToValueAtTime(0, now + 0.8);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -200,8 +229,8 @@ export class SoundEngine {
           const noteTime = now + idx * 0.06;
           osc.type = "sine";
           osc.frequency.setValueAtTime(freq, noteTime);
-          gain.gain.setValueAtTime(this.volume * 0.45, noteTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, noteTime + 0.18);
+          gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.45), noteTime);
+          this.safeExponentialRamp(gain.gain, 0.01, noteTime + 0.18);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
           osc.start(noteTime);
@@ -216,9 +245,9 @@ export class SoundEngine {
         const gain = this.ctx.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(784, now);
-        osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.1);
-        gain.gain.setValueAtTime(this.volume * 0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        this.safeExponentialRamp(osc.frequency, 1046.5, now + 0.1);
+        gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.35), now);
+        this.safeExponentialRamp(gain.gain, 0.001, now + 0.2);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
         osc.start(now);
@@ -235,7 +264,7 @@ export class SoundEngine {
           const noteTime = now + idx * 0.08;
           osc.type = "sine";
           osc.frequency.setValueAtTime(freq, noteTime);
-          gain.gain.setValueAtTime(this.volume * 0.4, noteTime);
+          gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.4), noteTime);
           gain.gain.linearRampToValueAtTime(0, noteTime + 0.22);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -248,7 +277,7 @@ export class SoundEngine {
   }
 
   public toggleBgm(play?: boolean): boolean {
-    if (this.isMuted) return false;
+    if (this.isMuted || this.volume <= 0) return false;
     this.init();
 
     const shouldPlay = play !== undefined ? play : !this.isBgmPlaying;
@@ -270,14 +299,14 @@ export class SoundEngine {
     let noteIdx = 0;
 
     this.bgmInterval = window.setInterval(() => {
-      if (!this.ctx || this.isMuted) return;
+      if (!this.ctx || this.isMuted || this.volume <= 0) return;
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = "sine";
       osc.frequency.setValueAtTime(notes[noteIdx % notes.length], now);
-      gain.gain.setValueAtTime(this.volume * 0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      gain.gain.setValueAtTime(Math.max(0.0001, this.volume * 0.15), now);
+      this.safeExponentialRamp(gain.gain, 0.001, now + 0.25);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
       osc.start(now);

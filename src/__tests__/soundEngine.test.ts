@@ -68,10 +68,12 @@ describe('SoundEngine', () => {
     soundEngine.playSfx('click');
     expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(1.0 * 0.4, 0);
 
-    // Test volume clamping to min 0.0
+    // Test volume clamping to min 0.0 and silent state handling
+    mockOscillator.start.mockClear();
     soundEngine.setVolume(-0.5);
+    expect(soundEngine.getVolume()).toBe(0);
     soundEngine.playSfx('click');
-    expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.0 * 0.4, 0);
+    expect(mockOscillator.start).not.toHaveBeenCalled();
   });
 
   it('respects muted state and halts execution early', () => {
@@ -247,6 +249,47 @@ describe('SoundEngine', () => {
       customEngine.dispose();
       expect(mockClose).toHaveBeenCalled();
       expect(customEngine.isAudioContextReady()).toBe(false);
+    });
+  });
+
+  describe('Silent states & exponential ramp safety', () => {
+    it('returns early from playSfx when volume is 0 or negative', () => {
+      soundEngine.setVolume(0);
+      soundEngine.playSfx('correct');
+      expect(mockOscillator.start).not.toHaveBeenCalled();
+    });
+
+    it('safely handles resume promise rejections on suspended context', async () => {
+      const rejectingResume = vi.fn().mockRejectedValue(new Error('Autoplay policy'));
+      mockAudioContext.resume = rejectingResume;
+      soundEngine.setVolume(0.5);
+      expect(() => soundEngine.playSfx('click')).not.toThrow();
+    });
+
+    it('clamps exponential ramp target values to >= 0.0001', () => {
+      soundEngine.setVolume(0.5);
+      soundEngine.playSfx('correct');
+      const calls = mockGain.gain.exponentialRampToValueAtTime.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      for (const [targetVal] of calls) {
+        expect(targetVal).toBeGreaterThanOrEqual(0.0001);
+      }
+    });
+
+    it('falls back gracefully to linear ramp if exponential ramp throws', () => {
+      mockGain.gain.exponentialRampToValueAtTime.mockImplementationOnce(() => {
+        throw new Error('IndexSizeError: The float value provided must be greater than 0');
+      });
+      soundEngine.setVolume(0.5);
+      expect(() => soundEngine.playSfx('correct')).not.toThrow();
+      expect(mockGain.gain.linearRampToValueAtTime).toHaveBeenCalled();
+    });
+
+    it('does not start BGM when volume is 0', () => {
+      soundEngine.setVolume(0);
+      const started = soundEngine.toggleBgm(true);
+      expect(started).toBe(false);
+      expect(window.setInterval).not.toHaveBeenCalled();
     });
   });
 });
