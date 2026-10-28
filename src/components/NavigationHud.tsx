@@ -95,6 +95,20 @@ export function NavigationHud() {
   // Level curve: xp needed for current level vs next level
   const progress = getLevelProgress(xp);
 
+  const filteredRealms = REALMS.filter((r) => {
+    const q = commandQuery.trim().toLowerCase();
+    if (!q) return true;
+    const quests = QUESTS[r.id] || [];
+    const boss = BOSSES[r.id];
+    return (
+      r.title.toLowerCase().includes(q) ||
+      r.realmName.toLowerCase().includes(q) ||
+      r.id.toLowerCase().includes(q) ||
+      quests.some((item) => item.title.toLowerCase().includes(q)) ||
+      (boss && boss.name.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-matrix-border bg-matrix-dark/90 backdrop-blur-md px-3 sm:px-5 py-2 transition-colors">
@@ -482,8 +496,22 @@ export function NavigationHud() {
 
       {/* Global Quick-Jump Command Modal (Ctrl+K) */}
       {commandOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden font-mono">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quick Jump Command Palette"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              soundEngine.playSfx("click");
+              setCommandOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden font-mono"
+          >
             <div className="flex items-center gap-3 px-4 py-3 border-b border-matrix-border bg-matrix-dark">
               <Search className="w-4 h-4 text-matrix-neonCyan shrink-0" />
               <input
@@ -496,7 +524,11 @@ export function NavigationHud() {
               />
               <button
                 type="button"
-                onClick={() => setCommandOpen(false)}
+                onClick={() => {
+                  soundEngine.playSfx("click");
+                  setCommandOpen(false);
+                }}
+                aria-label="Close command palette"
                 className="text-gray-400 hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
@@ -528,7 +560,16 @@ export function NavigationHud() {
                   <span>Open Curriculum Vault</span>
                 </Link>
               </div>
-              {REALMS.filter((r) => {
+              {filteredRealms.length === 0 ? (
+                <div className="p-6 text-center text-gray-400 font-mono text-xs">
+                  <p className="font-bold text-gray-300">No matching realms or quests found</p>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    No results match your search &ldquo;{commandQuery}&rdquo;. Try another realm, quest, or boss name.
+                  </p>
+                </div>
+              ) : (
+                filteredRealms.map((r) => {
+                  /*
                 const q = commandQuery.trim().toLowerCase();
                 if (!q) return true;
                 const quests = QUESTS[r.id] || [];
@@ -540,7 +581,7 @@ export function NavigationHud() {
                   quests.some((item) => item.title.toLowerCase().includes(q)) ||
                   (boss && boss.name.toLowerCase().includes(q))
                 );
-              }).map((r) => {
+                  */
                 const quests = QUESTS[r.id] || [];
                 const boss = BOSSES[r.id];
                 return (
@@ -605,7 +646,7 @@ export function NavigationHud() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         </div>

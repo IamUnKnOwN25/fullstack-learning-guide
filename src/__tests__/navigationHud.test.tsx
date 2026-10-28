@@ -239,4 +239,44 @@ describe("NavigationHud Component", () => {
     expect(screen.getByText("SIGN IN")).toBeDefined();
     expect(screen.getByText("Cadet")).toBeDefined();
   });
+
+  it("renders Quick Jump command palette with dialog ARIA accessibility attributes", () => {
+    render(<NavigationHud />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    const dialog = screen.getByRole("dialog", { name: "Quick Jump Command Palette" });
+    expect(dialog).toBeDefined();
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-label")).toBe("Quick Jump Command Palette");
+  });
+
+  it("dismisses Quick Jump command palette when backdrop is clicked, but not when inner content is clicked", () => {
+    render(<NavigationHud />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const dialog = screen.getByRole("dialog", { name: "Quick Jump Command Palette" });
+    expect(dialog).toBeDefined();
+
+    // Clicking inside the inner modal content should not dismiss
+    const searchInput = screen.getByPlaceholderText(/Search 12 realms/i);
+    fireEvent.click(searchInput);
+    expect(screen.getByRole("dialog", { name: "Quick Jump Command Palette" })).toBeDefined();
+
+    // Clicking the backdrop dismisses the dialog
+    fireEvent.click(dialog);
+    expect(screen.queryByRole("dialog", { name: "Quick Jump Command Palette" })).toBeNull();
+  });
+
+  it("displays explicit empty search feedback message when query yields no matches", () => {
+    render(<NavigationHud />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const searchInput = screen.getByPlaceholderText(/Search 12 realms/i);
+
+    fireEvent.change(searchInput, { target: { value: "quantum_nonexistent_realm" } });
+
+    expect(screen.getByText(/No matching realms or quests found/i)).toBeDefined();
+    expect(screen.getByText(/quantum_nonexistent_realm/i)).toBeDefined();
+  });
 });
