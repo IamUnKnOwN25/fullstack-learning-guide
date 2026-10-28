@@ -95,4 +95,94 @@ describe('MatrixErrorBoundary', () => {
     expect(screen.queryByText('SYSTEM FAILURE DETECTED')).toBeNull();
     expect(screen.getByText('Normal Content')).toBeDefined();
   });
+
+  it('triggers onError callback with error and component stack info when child throws', () => {
+    const onErrorMock = vi.fn();
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        { onError: onErrorMock },
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    expect(onErrorMock).toHaveBeenCalledTimes(1);
+    expect(onErrorMock.mock.calls[0][0].message).toBe('Test Matrix Error');
+    expect(onErrorMock.mock.calls[0][1]).toHaveProperty('componentStack');
+  });
+
+  it('triggers onReset callback when reboot button is clicked', () => {
+    const onResetMock = vi.fn();
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        { onReset: onResetMock },
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const rebootButton = screen.getByRole('button', { name: /REBOOT SUBSYSTEM/i });
+    fireEvent.click(rebootButton);
+
+    expect(onResetMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('displays subsystem name in header when subsystemName prop is provided', () => {
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        { subsystemName: 'Quantum Compiler V8' },
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    expect(screen.getByText(/Subsystem: Quantum Compiler V8/i)).toBeDefined();
+  });
+
+  it('copies error diagnostics to clipboard when copy log button is clicked', async () => {
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        { subsystemName: 'Neural Net Pipeline' },
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const copyBtn = screen.getByTitle('Copy Crash Diagnostics');
+    fireEvent.click(copyBtn);
+
+    expect(writeTextMock).toHaveBeenCalledTimes(1);
+    const clipboardPayload = writeTextMock.mock.calls[0][0];
+    expect(clipboardPayload).toContain('[DEVQUEST SYSTEM FAILURE REPORT]');
+    expect(clipboardPayload).toContain('Neural Net Pipeline');
+    expect(clipboardPayload).toContain('Test Matrix Error');
+  });
+
+  it('supports custom fallback render function with error and reset handler', () => {
+    const customFallbackFn = vi.fn((error: Error, reset: () => void) => {
+      return React.createElement(
+        'div',
+        { 'data-testid': 'custom-fallback' },
+        `Fault: ${error.message}`,
+        React.createElement('button', { onClick: reset }, 'Custom Reboot')
+      );
+    });
+
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        { fallback: customFallbackFn },
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    expect(screen.getByTestId('custom-fallback')).toBeDefined();
+    expect(screen.getByText('Fault: Test Matrix Error')).toBeDefined();
+    expect(customFallbackFn).toHaveBeenCalled();
+  });
 });
