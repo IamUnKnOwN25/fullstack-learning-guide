@@ -49,12 +49,58 @@ describe("CyberCompanionByte Component", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeDefined();
-    expect(dialog.getAttribute("aria-label")).toBe("BYTE Cybernetic Familiar Intel");
+    expect(dialog.getAttribute("aria-label")).toBe("Cyber Companion Byte Drawer");
     expect(dialog.getAttribute("aria-modal")).toBe("false");
 
     expect(screen.getByText(/BYTE • AI Cybernetic Familiar/)).toBeDefined();
     expect(screen.getByText("Tactical Intel")).toBeDefined();
     expect(screen.getByText(/Quick Quiz/)).toBeDefined();
+  });
+
+  it("renders tablist with tab roles and proper aria-selected states for Intel Feed vs Matrix Quiz", () => {
+    render(<CyberCompanionByte />);
+
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+
+    const tablist = screen.getByRole("tablist");
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.length).toBe(2);
+
+    const intelTab = tabs.find((t) => t.textContent?.includes("Tactical Intel"));
+    const quizTab = tabs.find((t) => t.textContent?.includes("Quick Quiz"));
+
+    expect(intelTab).toBeDefined();
+    expect(quizTab).toBeDefined();
+
+    // Default mode is intel
+    expect(intelTab?.getAttribute("aria-selected")).toBe("true");
+    expect(quizTab?.getAttribute("aria-selected")).toBe("false");
+
+    // Click quiz tab
+    fireEvent.click(quizTab!);
+    expect(intelTab?.getAttribute("aria-selected")).toBe("false");
+    expect(quizTab?.getAttribute("aria-selected")).toBe("true");
+
+    // Click intel tab back
+    fireEvent.click(intelTab!);
+    expect(intelTab?.getAttribute("aria-selected")).toBe("true");
+    expect(quizTab?.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("renders companion tip text container with aria-live='polite'", () => {
+    render(<CyberCompanionByte />);
+
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+
+    // Tip text container
+    const tipContainer = document.querySelector('[aria-live="polite"]');
+    expect(tipContainer).toBeDefined();
+    expect(tipContainer).not.toBeNull();
+    expect(tipContainer?.textContent).toContain("Tip:");
   });
 
   it("closes dialogue drawer when Escape key is pressed", () => {

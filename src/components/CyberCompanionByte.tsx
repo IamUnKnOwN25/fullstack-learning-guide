@@ -203,7 +203,7 @@ export function CyberCompanionByte() {
         <div
           role="dialog"
           aria-modal="false"
-          aria-label="BYTE Cybernetic Familiar Intel"
+          aria-label="Cyber Companion Byte Drawer"
           className="absolute bottom-full right-0 mb-3 w-[calc(100vw-2rem)] max-w-sm sm:w-96 p-4 rounded-2xl bg-matrix-card/95 backdrop-blur-md border border-matrix-accent/50 shadow-2xl shadow-black/80 space-y-3 animate-fadeIn"
         >
           {/* Header */}
@@ -229,9 +229,15 @@ export function CyberCompanionByte() {
           </div>
 
           {/* Mode Tabs: Tactical Intel vs Flashcard Quiz */}
-          <div className="grid grid-cols-2 gap-1.5 bg-matrix-dark p-1 rounded-lg border border-matrix-border text-[11px]">
+          <div
+            role="tablist"
+            aria-label="Companion modes"
+            className="grid grid-cols-2 gap-1.5 bg-matrix-dark p-1 rounded-lg border border-matrix-border text-[11px]"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === "intel"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMode("intel");
@@ -246,6 +252,8 @@ export function CyberCompanionByte() {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === "quiz"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMode("quiz");
@@ -285,7 +293,10 @@ export function CyberCompanionByte() {
               ) : null}
 
               {/* General Tip Content */}
-              <div className="text-xs text-gray-200 leading-relaxed bg-matrix-dark/80 p-3 rounded-xl border border-matrix-border/60">
+              <div
+                aria-live="polite"
+                className="text-xs text-gray-200 leading-relaxed bg-matrix-dark/80 p-3 rounded-xl border border-matrix-border/60"
+              >
                 {COMPANION_TIPS[tipIndex]}
               </div>
 
