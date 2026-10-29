@@ -71,13 +71,60 @@ describe("AchievementsModal Component", () => {
     expect(screen.getByText(/Cleared/)).toBeDefined();
     expect(screen.getByText("Odyssey Completion:")).toBeDefined();
 
-    const progressBar = screen.getByRole("progressbar", { name: "Odyssey Completion Progress" });
+    const progressBar = screen.getByRole("progressbar", { name: "Achievement completion progress" });
     expect(progressBar).toBeDefined();
     expect(progressBar.getAttribute("aria-valuenow")).toBeDefined();
     expect(progressBar.getAttribute("aria-valuemin")).toBe("0");
     expect(progressBar.getAttribute("aria-valuemax")).toBe("100");
 
     expect(screen.getByText(/All \(\d+\)/)).toBeDefined();
+  });
+
+  it("renders tablist with aria-label and category tabs with correct aria-selected states", () => {
+    render(
+      <AchievementsModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const tablist = screen.getByRole("tablist", { name: "Achievement categories" });
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.length).toBe(5);
+
+    const allTab = screen.getByRole("tab", { name: /All/i });
+    const bossTab = screen.getByRole("tab", { name: /Boss Guardians/i });
+    const questTab = screen.getByRole("tab", { name: /Coding Trials/i });
+    const scholarTab = screen.getByRole("tab", { name: /Vault & Scholar/i });
+    const masteryTab = screen.getByRole("tab", { name: /Matrix Mastery/i });
+
+    expect(allTab.getAttribute("aria-selected")).toBe("true");
+    expect(bossTab.getAttribute("aria-selected")).toBe("false");
+    expect(questTab.getAttribute("aria-selected")).toBe("false");
+    expect(scholarTab.getAttribute("aria-selected")).toBe("false");
+    expect(masteryTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to Boss Guardians
+    fireEvent.click(bossTab);
+    expect(allTab.getAttribute("aria-selected")).toBe("false");
+    expect(bossTab.getAttribute("aria-selected")).toBe("true");
+
+    // Switch to Coding Trials
+    fireEvent.click(questTab);
+    expect(bossTab.getAttribute("aria-selected")).toBe("false");
+    expect(questTab.getAttribute("aria-selected")).toBe("true");
+
+    // Switch to Vault & Scholar
+    fireEvent.click(scholarTab);
+    expect(scholarTab.getAttribute("aria-selected")).toBe("true");
+    expect(questTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to Matrix Mastery
+    fireEvent.click(masteryTab);
+    expect(masteryTab.getAttribute("aria-selected")).toBe("true");
+    expect(scholarTab.getAttribute("aria-selected")).toBe("false");
   });
 
   it("calls onClose and plays SFX when Escape key is pressed", () => {
@@ -163,7 +210,7 @@ describe("AchievementsModal Component", () => {
       />
     );
 
-    const bossTab = screen.getByRole("button", { name: /Boss Guardians/i });
+    const bossTab = screen.getByRole("tab", { name: /Boss Guardians/i });
     fireEvent.click(bossTab);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");

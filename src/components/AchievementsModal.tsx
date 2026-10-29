@@ -155,7 +155,7 @@ export function AchievementsModal({
             </span>
             <div
               role="progressbar"
-              aria-label="Odyssey Completion Progress"
+              aria-label="Achievement completion progress"
               aria-valuenow={progressPercent}
               aria-valuemin={0}
               aria-valuemax={100}
@@ -180,9 +180,15 @@ export function AchievementsModal({
         </div>
 
         {/* Category Tabs */}
-        <div className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/40 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+        <div
+          role="tablist"
+          aria-label="Achievement categories"
+          className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/40 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs"
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={activeCategory === "all"}
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("all");
@@ -199,6 +205,8 @@ export function AchievementsModal({
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeCategory === "bosses"}
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("bosses");
@@ -215,6 +223,8 @@ export function AchievementsModal({
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeCategory === "quests"}
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("quests");
@@ -231,6 +241,8 @@ export function AchievementsModal({
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeCategory === "scholar"}
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("scholar");
@@ -247,6 +259,8 @@ export function AchievementsModal({
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeCategory === "mastery"}
             onClick={() => {
               soundEngine.playSfx("click");
               setActiveCategory("mastery");
