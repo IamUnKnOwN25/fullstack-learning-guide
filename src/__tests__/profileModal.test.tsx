@@ -408,4 +408,77 @@ describe("ProfileModal Component", () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(mockOnOpenAuthModal).toHaveBeenCalledTimes(1);
   });
+
+  it("provides accessible radiogroup semantics for avatar selection", () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    // Open edit profile mode
+    const editBtn = screen.getByTitle("Edit Profile");
+    fireEvent.click(editBtn);
+
+    const radiogroup = screen.getByRole("radiogroup", { name: "Choose avatar" });
+    expect(radiogroup).toBeDefined();
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(0);
+
+    // User's default avatar is cyber-ninja
+    const cyberNinjaRadio = screen.getByRole("radio", { name: /cyber ninja/i });
+    expect(cyberNinjaRadio.getAttribute("aria-checked")).toBe("true");
+
+    const codeMageRadio = screen.getByRole("radio", { name: /code enchanter/i });
+    expect(codeMageRadio.getAttribute("aria-checked")).toBe("false");
+
+    // Select code mage avatar
+    fireEvent.click(codeMageRadio);
+    expect(codeMageRadio.getAttribute("aria-checked")).toBe("true");
+    expect(cyberNinjaRadio.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("provides accessible status and polite live region for operation feedback and export", async () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    // Test export clipboard live status
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+    const copyBtn = screen.getByTitle("Copy Save Backup JSON to Clipboard");
+    fireEvent.click(copyBtn);
+
+    const copyStatus = screen.getByText("Copied!");
+    expect(copyStatus.getAttribute("role")).toBe("status");
+    expect(copyStatus.getAttribute("aria-live")).toBe("polite");
+
+    // Test import status alert on invalid JSON import
+    const pasteBtn = screen.getByTitle("Paste Save JSON");
+    fireEvent.click(pasteBtn);
+
+    const textarea = screen.getByPlaceholderText(/{"xp": 500/);
+    fireEvent.change(textarea, { target: { value: "invalid-json-data" } });
+
+    const applyBtn = screen.getByText("Apply Backup");
+    fireEvent.click(applyBtn);
+
+    await waitFor(() => {
+      const statusAlerts = screen.getAllByRole("status");
+      const errorAlert = statusAlerts.find((el) =>
+        el.textContent?.includes("Invalid save file structure.")
+      );
+      expect(errorAlert).toBeDefined();
+      expect(errorAlert?.getAttribute("aria-live")).toBe("polite");
+    });
+  });
 });

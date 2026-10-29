@@ -326,21 +326,24 @@ export function ProfileModal({
                   <label className="block text-[11px] text-gray-400 mb-1">
                     Select Identity Avatar:
                   </label>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                    {AVATAR_OPTIONS.map((av) => (
+                  <div role="radiogroup" aria-label="Choose avatar" className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    {AVATAR_OPTIONS.map((avatar) => (
                       <button
                         type="button"
-                        key={av.id}
-                        onClick={() => setSelectedAvatar(av.id)}
+                        key={avatar.id}
+                        role="radio"
+                        aria-checked={selectedAvatar === avatar.id}
+                        aria-label={avatar.name}
+                        onClick={() => setSelectedAvatar(avatar.id)}
                         className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all cursor-pointer ${
-                          selectedAvatar === av.id
-                            ? `${av.borderColor} bg-matrix-dark shadow-md ring-1 ring-matrix-neonCyan`
+                          selectedAvatar === avatar.id
+                            ? `${avatar.borderColor} bg-matrix-dark shadow-md ring-1 ring-matrix-neonCyan`
                             : "border-matrix-border bg-matrix-dark/40 opacity-60"
                         }`}
                       >
-                        <span className="text-xl">{av.emoji}</span>
+                        <span className="text-xl">{avatar.emoji}</span>
                         <span className="text-[9px] text-gray-300 truncate w-full text-center">
-                          {av.name.split(" ")[0]}
+                          {avatar.name.split(" ")[0]}
                         </span>
                       </button>
                     ))}
@@ -637,7 +640,7 @@ export function ProfileModal({
                     title="Copy Save Backup JSON to Clipboard"
                   >
                     <Copy className="w-3 h-3 text-matrix-accent" />
-                    <span>{copiedSave ? "Copied!" : "Copy JSON"}</span>
+                    <span role="status" aria-live="polite">{copiedSave ? "Copied!" : "Copy JSON"}</span>
                   </button>
 
                   <button
@@ -662,6 +665,8 @@ export function ProfileModal({
           {/* Operation Status Feedback */}
           {importMsg && (
             <div
+              role="status"
+              aria-live="polite"
               className={`p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 animate-fadeIn ${
                 importMsg.includes("successfully")
                   ? "bg-matrix-neonCyan/10 border-matrix-neonCyan/40 text-matrix-neonCyan"
@@ -694,7 +699,7 @@ export function ProfileModal({
                 className="w-full p-2.5 rounded-xl bg-matrix-card border border-matrix-border text-white text-[11px] outline-none font-mono"
               />
               {importMsg && (
-                <div className="text-[11px] text-matrix-neonCyan">{importMsg}</div>
+                <div role="status" aria-live="polite" className="text-[11px] text-matrix-neonCyan">{importMsg}</div>
               )}
               <div className="flex justify-end gap-2">
                 <button
