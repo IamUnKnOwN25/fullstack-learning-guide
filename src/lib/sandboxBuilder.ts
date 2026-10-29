@@ -1,3 +1,12 @@
+export const SANDBOX_CSP =
+  "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; img-src data: https:;";
+
+export const SANDBOX_CSP_META = `<meta http-equiv="Content-Security-Policy" content="${SANDBOX_CSP}" />`;
+
+export function escapeScriptBreakout(content: string): string {
+  return content.replace(/<\/script>/gi, "<\\/script>");
+}
+
 function cleanSingleParam(param: string): string {
   const trimmed = param.trim();
   if (!trimmed.includes(":")) return trimmed;
@@ -192,24 +201,8 @@ export function buildSandboxSrcDoc(
 
   // 2. SQL Schema & Query Execution Plan Simulator
   if (language === "sql") {
-    const encodedSql = JSON.stringify(code);
-    return `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0e17; color: #e2e8f0; font-family: ui-monospace, monospace; padding: 16px; font-size: 12px; }
-    .header { display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; color: #a855f7; font-weight: bold; text-transform: uppercase; font-size: 11px; }
-    .card { background: #111a30; border: 1px solid #1f2e4d; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background: rgba(0, 255, 157, 0.15); color: #00ff9d; margin-right: 6px; }
-    .warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
-  </style>
-</head>
-<body>
-  <div class="header"><span>PostgreSQL 16 Engine Simulator</span><span>DDL / Query Planner</span></div>
-  <div id="out"></div>
-  <script>
+    const encodedSql = escapeScriptBreakout(JSON.stringify(code));
+    const scriptBody = escapeScriptBreakout(`
     const sql = ${encodedSql};
     const out = document.getElementById('out');
     const tables = [...sql.matchAll(/CREATE\\s+TABLE\\s+(\\w+)/gi)].map(m => m[1]);
@@ -232,18 +225,48 @@ export function buildSandboxSrcDoc(
       html = '<div class="card"><span class="badge warn">WAITING</span> Write CREATE TABLE or CREATE INDEX statements to inspect the PostgreSQL execution plan.</div>';
     }
     out.innerHTML = html;
-  </script>
+  `);
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  ${SANDBOX_CSP_META}
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0a0e17; color: #e2e8f0; font-family: ui-monospace, monospace; padding: 16px; font-size: 12px; }
+    .header { display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 12px; color: #a855f7; font-weight: bold; text-transform: uppercase; font-size: 11px; }
+    .card { background: #111a30; border: 1px solid #1f2e4d; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; background: rgba(0, 255, 157, 0.15); color: #00ff9d; margin-right: 6px; }
+    .warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+  </style>
+</head>
+<body>
+  <div class="header"><span>PostgreSQL 16 Engine Simulator</span><span>DDL / Query Planner</span></div>
+  <div id="out"></div>
+  <script>${scriptBody}</script>
 </body>
 </html>`;
   }
 
   // 3. Dockerfile Multi-Stage Container Inspector
   if (language === "dockerfile") {
-    const encodedDocker = JSON.stringify(code);
+    const encodedDocker = escapeScriptBreakout(JSON.stringify(code));
+    const scriptBody = escapeScriptBreakout(`
+    const raw = ${encodedDocker};
+    const lines = raw.split('\\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+    const container = document.getElementById('layers');
+    lines.forEach((line, idx) => {
+      const div = document.createElement('div');
+      div.className = 'layer';
+      div.innerHTML = '<span><strong>Layer ' + (idx + 1) + ':</strong> ' + line.replace(/</g, '&lt;') + '</span><span style="color:#00ff9d">CACHED</span>';
+      container.appendChild(div);
+    });
+  `);
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
+  ${SANDBOX_CSP_META}
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0a0e17; color: #e2e8f0; font-family: ui-monospace, monospace; padding: 16px; font-size: 12px; }
@@ -254,28 +277,29 @@ export function buildSandboxSrcDoc(
 <body>
   <div class="header"><span>Docker BuildKit Layer Inspector</span><span>Container Image Analyzer</span></div>
   <div id="layers"></div>
-  <script>
-    const raw = ${encodedDocker};
-    const lines = raw.split('\\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
-    const container = document.getElementById('layers');
-    lines.forEach((line, idx) => {
-      const div = document.createElement('div');
-      div.className = 'layer';
-      div.innerHTML = '<span><strong>Layer ' + (idx + 1) + ':</strong> ' + line.replace(/</g, '&lt;') + '</span><span style="color:#00ff9d">CACHED</span>';
-      container.appendChild(div);
-    });
-  </script>
+  <script>${scriptBody}</script>
 </body>
 </html>`;
   }
 
   // 4. YAML CI/CD Workflow Inspector
   if (language === "yaml") {
-    const encodedYaml = JSON.stringify(code);
+    const encodedYaml = escapeScriptBreakout(JSON.stringify(code));
+    const scriptBody = escapeScriptBreakout(`
+    const yaml = ${encodedYaml};
+    const out = document.getElementById('steps');
+    const runs = [...yaml.matchAll(/run\\s*:\\s*(.+)/gi)].map(m => m[1].trim());
+    let html = '<div class="step">Trigger Events: <strong>' + (/push/i.test(yaml) ? 'push ' : '') + (/pull_request/i.test(yaml) ? 'pull_request' : '') + '</strong></div>';
+    runs.forEach((cmd, i) => {
+      html += '<div class="step" style="border-left: 3px solid #00ff9d">Step ' + (i + 1) + ': <code>' + cmd + '</code> <span style="float:right;color:#00ff9d">✓ READY</span></div>';
+    });
+    out.innerHTML = html;
+  `);
     return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
+  ${SANDBOX_CSP_META}
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #0a0e17; color: #e2e8f0; font-family: ui-monospace, monospace; padding: 16px; font-size: 12px; }
@@ -286,29 +310,102 @@ export function buildSandboxSrcDoc(
 <body>
   <div class="header"><span>GitHub Actions Runner Simulator</span><span>ubuntu-latest</span></div>
   <div id="steps"></div>
-  <script>
-    const yaml = ${encodedYaml};
-    const out = document.getElementById('steps');
-    const runs = [...yaml.matchAll(/run\\s*:\\s*(.+)/gi)].map(m => m[1].trim());
-    let html = '<div class="step">Trigger Events: <strong>' + (/push/i.test(yaml) ? 'push ' : '') + (/pull_request/i.test(yaml) ? 'pull_request' : '') + '</strong></div>';
-    runs.forEach((cmd, i) => {
-      html += '<div class="step" style="border-left: 3px solid #00ff9d">Step ' + (i + 1) + ': <code>' + cmd + '</code> <span style="float:right;color:#00ff9d">✓ READY</span></div>';
-    });
-    out.innerHTML = html;
-  </script>
+  <script>${scriptBody}</script>
 </body>
 </html>`;
   }
 
   // 5. JavaScript / TypeScript / React / Node Sandbox Console
   const runnableJs = transpileToRunnableJs(code);
-  const encodedRunnable = JSON.stringify(runnableJs);
-  const encodedRaw = JSON.stringify(code);
+  const encodedRunnable = escapeScriptBreakout(JSON.stringify(runnableJs));
+  const encodedRaw = escapeScriptBreakout(JSON.stringify(code));
+
+  // Sandbox shims for Node/Express/Next/Vitest quests guarded against script closing breakout
+  const injectedShims = escapeScriptBreakout(`
+    const express = () => {
+      const routes = [];
+      return {
+        use: () => {},
+        get: (path, fn) => { routes.push({ method: 'GET', path }); appendEntry('info', ['Registered Express Route: GET ' + path]); },
+        post: (path, fn) => { routes.push({ method: 'POST', path }); appendEntry('info', ['Registered Express Route: POST ' + path]); },
+      };
+    };
+    express.json = () => ({});
+    const revalidatePath = (p) => appendEntry('info', ['Next.js revalidatePath(\"' + p + '\") triggered']);
+    const jwt = {
+      verify: (token, secret, opts) => ({ sub: 'op-01', role: 'archmage', algorithms: opts?.algorithms }),
+      sign: () => 'mock.jwt.token'
+    };
+    const describe = (name, fn) => { appendEntry('info', ['Test Suite: ' + name]); try { fn(); } catch(e) {} };
+    const it = (name, fn) => { appendEntry('log', ['✓ Test Case: ' + name]); try { fn(); } catch(e) {} };
+    const test = it;
+    const expect = (actual) => ({
+      toBe: (expected) => appendEntry('log', ['Assertion expect(' + JSON.stringify(actual) + ').toBe(' + JSON.stringify(expected) + ') -> ' + (actual === expected ? 'PASS' : 'FAIL')]),
+      toEqual: (expected) => appendEntry('log', ['Assertion toEqual -> PASS']),
+      toHaveBeenCalledWith: (...args) => appendEntry('log', ['Spy Assertion toHaveBeenCalledWith(' + JSON.stringify(args) + ') -> PASS']),
+    });
+    const vi = {
+      fn: () => {
+        const mockFn = (...args) => Promise.resolve({ ok: true, args });
+        mockFn.mockResolvedValue = (val) => { appendEntry('info', ['Configured mockResolvedValue: ' + JSON.stringify(val)]); return mockFn; };
+        return mockFn;
+      }
+    };
+  `);
+
+  const scriptBody = escapeScriptBreakout(`
+    const output = document.getElementById('output');
+    let hasLogged = false;
+
+    function appendEntry(type, args) {
+      hasLogged = true;
+      const entry = document.createElement('div');
+      entry.className = 'log-entry log-' + type;
+      const tag = document.createElement('span');
+      tag.className = 'tag tag-' + type;
+      tag.textContent = type.toUpperCase();
+      entry.appendChild(tag);
+
+      const content = args.map(a => {
+        if (typeof a === 'object' && a !== null) {
+          try { return JSON.stringify(a, null, 2); } catch(e) { return String(a); }
+        }
+        return String(a);
+      }).join(' ');
+
+      entry.appendChild(document.createTextNode(content));
+      output.appendChild(entry);
+    }
+
+    console.log = (...args) => appendEntry('log', args);
+    console.info = (...args) => appendEntry('info', args);
+    console.warn = (...args) => appendEntry('warn', args);
+    console.error = (...args) => appendEntry('error', args);
+
+    ${injectedShims}
+
+    try {
+      const runnableCode = ${encodedRunnable};
+      const rawSource = ${encodedRaw};
+      if (!runnableCode.includes('<button') && !runnableCode.includes('JSX')) {
+        const runner = new Function('express', 'revalidatePath', 'jwt', 'describe', 'it', 'test', 'expect', 'vi', runnableCode);
+        runner(express, revalidatePath, jwt, describe, it, test, expect, vi);
+      } else {
+        appendEntry('info', ['React JSX Component verified in sandbox virtual DOM.']);
+      }
+      if (!hasLogged) {
+        appendEntry('info', ['Code parsed and evaluated cleanly with 0 runtime errors. Tip: Add console.log(...) to inspect values!']);
+      }
+    } catch (err) {
+      appendEntry('error', [err.name + ': ' + err.message]);
+    }
+  `);
 
   return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
+  ${SANDBOX_CSP_META}
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -368,82 +465,7 @@ export function buildSandboxSrcDoc(
     <span>Runtime Active</span>
   </div>
   <div id="output"></div>
-  <script>
-    const output = document.getElementById('output');
-    let hasLogged = false;
-
-    function appendEntry(type, args) {
-      hasLogged = true;
-      const entry = document.createElement('div');
-      entry.className = 'log-entry log-' + type;
-      const tag = document.createElement('span');
-      tag.className = 'tag tag-' + type;
-      tag.textContent = type.toUpperCase();
-      entry.appendChild(tag);
-
-      const content = args.map(a => {
-        if (typeof a === 'object' && a !== null) {
-          try { return JSON.stringify(a, null, 2); } catch(e) { return String(a); }
-        }
-        return String(a);
-      }).join(' ');
-
-      entry.appendChild(document.createTextNode(content));
-      output.appendChild(entry);
-    }
-
-    console.log = (...args) => appendEntry('log', args);
-    console.info = (...args) => appendEntry('info', args);
-    console.warn = (...args) => appendEntry('warn', args);
-    console.error = (...args) => appendEntry('error', args);
-
-    // Sandbox shims for Node/Express/Next/Vitest quests
-    const express = () => {
-      const routes = [];
-      return {
-        use: () => {},
-        get: (path, fn) => { routes.push({ method: 'GET', path }); appendEntry('info', ['Registered Express Route: GET ' + path]); },
-        post: (path, fn) => { routes.push({ method: 'POST', path }); appendEntry('info', ['Registered Express Route: POST ' + path]); },
-      };
-    };
-    express.json = () => ({});
-    const revalidatePath = (p) => appendEntry('info', ['Next.js revalidatePath(\"' + p + '\") triggered']);
-    const jwt = {
-      verify: (token, secret, opts) => ({ sub: 'op-01', role: 'archmage', algorithms: opts?.algorithms }),
-      sign: () => 'mock.jwt.token'
-    };
-    const describe = (name, fn) => { appendEntry('info', ['Test Suite: ' + name]); try { fn(); } catch(e) {} };
-    const it = (name, fn) => { appendEntry('log', ['✓ Test Case: ' + name]); try { fn(); } catch(e) {} };
-    const test = it;
-    const expect = (actual) => ({
-      toBe: (expected) => appendEntry('log', ['Assertion expect(' + JSON.stringify(actual) + ').toBe(' + JSON.stringify(expected) + ') -> ' + (actual === expected ? 'PASS' : 'FAIL')]),
-      toEqual: (expected) => appendEntry('log', ['Assertion toEqual -> PASS']),
-      toHaveBeenCalledWith: (...args) => appendEntry('log', ['Spy Assertion toHaveBeenCalledWith(' + JSON.stringify(args) + ') -> PASS']),
-    });
-    const vi = {
-      fn: () => {
-        const mockFn = (...args) => Promise.resolve({ ok: true, args });
-        mockFn.mockResolvedValue = (val) => { appendEntry('info', ['Configured mockResolvedValue: ' + JSON.stringify(val)]); return mockFn; };
-        return mockFn;
-      }
-    };
-
-    try {
-      const runnableCode = ${encodedRunnable};
-      const rawSource = ${encodedRaw};
-      if (!runnableCode.includes('<button') && !runnableCode.includes('JSX')) {
-        const runner = new Function('express', 'revalidatePath', 'jwt', 'describe', 'it', 'test', 'expect', 'vi', runnableCode);
-        runner(express, revalidatePath, jwt, describe, it, test, expect, vi);
-      } else {
-        appendEntry('info', ['React JSX Component verified in sandbox virtual DOM.']);
-      }
-      if (!hasLogged) {
-        appendEntry('info', ['Code parsed and evaluated cleanly with 0 runtime errors. Tip: Add console.log(...) to inspect values!']);
-      }
-    } catch (err) {
-      appendEntry('error', [err.name + ': ' + err.message]);
-    }
-  </script>
+  <script>${scriptBody}</script>
 </body>
 </html>`;
 }

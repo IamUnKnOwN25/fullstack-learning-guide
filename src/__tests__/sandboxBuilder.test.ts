@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { transpileToRunnableJs, buildSandboxSrcDoc } from "../lib/sandboxBuilder";
+import {
+  transpileToRunnableJs,
+  buildSandboxSrcDoc,
+  escapeScriptBreakout,
+  SANDBOX_CSP,
+  SANDBOX_CSP_META,
+} from "../lib/sandboxBuilder";
 import { QUESTS } from "../data/quests";
 
 describe("Sandbox Builder & TypeScript Transpiler", () => {
@@ -131,5 +137,84 @@ describe("Sandbox Builder & TypeScript Transpiler", () => {
         expect(doc.length).toBeGreaterThan(50);
       }
     }
+  });
+
+  // --- Script Breakout Protection & Content-Security-Policy Tests ---
+
+  it("escapes </script> in user code to prevent premature closing tag breakouts in console sandbox", () => {
+    const maliciousCode = 'const payload = "</script><script>alert(\'pwned\')</script>";';
+    const doc = buildSandboxSrcDoc(maliciousCode, "javascript", "console");
+
+    // Must not contain an unescaped </script> inside the script string
+    expect(doc).not.toContain('</script><script>');
+    // Must contain escaped variant <\/script>
+    expect(doc).toContain("<\\/script>");
+
+    // Ensure exactly ONE closing </script> tag exists in the whole document (the wrapper's end tag)
+    const closingTagCount = (doc.match(/<\/script>/gi) || []).length;
+    expect(closingTagCount).toBe(1);
+  });
+
+  it("handles case-insensitive closing script tag variations in user code", () => {
+    const mixedCaseCode = 'const s1 = "</SCRIPT>"; const s2 = "</Script>"; const s3 = "</script>";';
+    const doc = buildSandboxSrcDoc(mixedCaseCode, "typescript", "console");
+
+    // All variations must be escaped to <\/script>
+    expect(doc).not.toContain("</SCRIPT>");
+    expect(doc).not.toContain("</Script>");
+    const closingTagCount = (doc.match(/<\/script>/gi) || []).length;
+    expect(closingTagCount).toBe(1);
+  });
+
+  it("escapes </script> in SQL, Dockerfile, and YAML simulators", () => {
+    const sqlWithScript = "SELECT '</script><script>alert(1)</script>';";
+    const sqlDoc = buildSandboxSrcDoc(sqlWithScript, "sql", "console");
+    expect(sqlDoc).not.toContain("</script><script>");
+    expect(sqlDoc).toContain("<\\/script>");
+    expect((sqlDoc.match(/<\/script>/gi) || []).length).toBe(1);
+
+    const dockerWithScript = "RUN echo '</script><script>xss()</script>'";
+    const dockerDoc = buildSandboxSrcDoc(dockerWithScript, "dockerfile", "console");
+    expect(dockerDoc).not.toContain("</script><script>");
+    expect(dockerDoc).toContain("<\\/script>");
+    expect((dockerDoc.match(/<\/script>/gi) || []).length).toBe(1);
+
+    const yamlWithScript = "run: echo '</script><script>hack()</script>'";
+    const yamlDoc = buildSandboxSrcDoc(yamlWithScript, "yaml", "console");
+    expect(yamlDoc).not.toContain("</script><script>");
+    expect(yamlDoc).toContain("<\\/script>");
+    expect((yamlDoc.match(/<\/script>/gi) || []).length).toBe(1);
+  });
+
+  it("verifies escapeScriptBreakout helper utility function directly", () => {
+    expect(escapeScriptBreakout("</script>")).toBe("<\\/script>");
+    expect(escapeScriptBreakout("</SCRIPT>")).toBe("<\\/script>");
+    expect(escapeScriptBreakout("</Script>")).toBe("<\\/script>");
+    expect(escapeScriptBreakout("normal text without tags")).toBe("normal text without tags");
+    expect(escapeScriptBreakout("<a></script><b></SCRIPT><c>")).toBe("<a><\\/script><b><\\/script><c>");
+  });
+
+  it("ensures consistent Content-Security-Policy meta tag headers across all console sandbox documents", () => {
+    const jsDoc = buildSandboxSrcDoc("console.log('matrix');", "javascript", "console");
+    const tsDoc = buildSandboxSrcDoc("const x: number = 1;", "typescript", "console");
+    const sqlDoc = buildSandboxSrcDoc("SELECT 1;", "sql", "console");
+    const dockerDoc = buildSandboxSrcDoc("FROM alpine", "dockerfile", "console");
+    const yamlDoc = buildSandboxSrcDoc("name: CI", "yaml", "console");
+
+    // All console sandboxes must contain Content-Security-Policy meta tag
+    for (const doc of [jsDoc, tsDoc, sqlDoc, dockerDoc, yamlDoc]) {
+      expect(doc).toContain('http-equiv="Content-Security-Policy"');
+      expect(doc).toContain(SANDBOX_CSP);
+      expect(doc).toContain(SANDBOX_CSP_META);
+      expect(doc).toContain("default-src 'none'");
+      expect(doc).toContain("script-src 'unsafe-inline' 'unsafe-eval'");
+      expect(doc).toContain("style-src 'unsafe-inline'");
+    }
+  });
+
+  it("does not inject strict console CSP into HTML interactive DOM preview", () => {
+    const htmlDoc = buildSandboxSrcDoc("<h1>Interactive Site</h1>", "html", "html");
+    expect(htmlDoc).not.toContain('http-equiv="Content-Security-Policy"');
+    expect(htmlDoc).not.toContain("default-src 'none'");
   });
 });
