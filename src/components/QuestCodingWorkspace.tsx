@@ -953,10 +953,15 @@ export function QuestCodingWorkspace({
         >
           {/* Workspace Tab Header */}
           <div className="px-3 sm:px-4 py-2 border-b border-matrix-border bg-matrix-dark/70 flex items-center justify-between gap-2 overflow-x-auto">
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div
+              role="tablist"
+              aria-label="Workspace view tabs"
+              className="flex items-center gap-1.5 shrink-0"
+            >
               <button
                 type="button"
-                aria-pressed={activeTab === "editor"}
+                role="tab"
+                aria-selected={activeTab === "editor"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("editor");
@@ -973,7 +978,8 @@ export function QuestCodingWorkspace({
 
               <button
                 type="button"
-                aria-pressed={activeTab === "split"}
+                role="tab"
+                aria-selected={activeTab === "split"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("split");
@@ -991,7 +997,8 @@ export function QuestCodingWorkspace({
 
               <button
                 type="button"
-                aria-pressed={activeTab === "preview"}
+                role="tab"
+                aria-selected={activeTab === "preview"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("preview");
@@ -1008,7 +1015,8 @@ export function QuestCodingWorkspace({
 
               <button
                 type="button"
-                aria-pressed={activeTab === "terminal"}
+                role="tab"
+                aria-selected={activeTab === "terminal"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("terminal");
@@ -1032,7 +1040,8 @@ export function QuestCodingWorkspace({
 
               <button
                 type="button"
-                aria-pressed={activeTab === "visualizer"}
+                role="tab"
+                aria-selected={activeTab === "visualizer"}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setActiveTab("visualizer");
@@ -1091,7 +1100,17 @@ export function QuestCodingWorkspace({
 
           {/* Tab 1 / Split / Tab 2: Code Editor & Sandboxed Live Preview */}
           {(activeTab === "editor" || activeTab === "split" || activeTab === "preview") && (
-            <div className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden animate-fadeIn">
+            <div
+              role="tabpanel"
+              aria-label={
+                activeTab === "editor"
+                  ? "Code Editor"
+                  : activeTab === "split"
+                  ? "Split"
+                  : "Live Preview"
+              }
+              className="flex-1 min-h-0 flex flex-col xl:flex-row overflow-hidden animate-fadeIn"
+            >
               {(activeTab === "editor" || activeTab === "split") && (
                 <div
                   className={`flex-1 min-w-0 bg-matrix-dark flex flex-col font-mono text-xs sm:text-sm overflow-hidden ${
@@ -1209,7 +1228,11 @@ export function QuestCodingWorkspace({
 
           {/* Tab 3: Matrix Terminal & Assertion Report */}
           {activeTab === "terminal" && (
-            <div className="flex-1 p-6 bg-matrix-dark font-mono text-xs sm:text-sm flex flex-col space-y-4 overflow-y-auto animate-fadeIn">
+            <div
+              role="tabpanel"
+              aria-label="Terminal"
+              className="flex-1 p-6 bg-matrix-dark font-mono text-xs sm:text-sm flex flex-col space-y-4 overflow-y-auto animate-fadeIn"
+            >
               <div className="flex items-center justify-between text-matrix-neonCyan pb-2 border-b border-matrix-border">
                 <div className="flex items-center gap-2">
                   <Terminal className="w-4 h-4" />
@@ -1380,7 +1403,11 @@ export function QuestCodingWorkspace({
 
           {/* Tab 4: Interactive Concept Visualizer */}
           {activeTab === "visualizer" && (
-            <div className="flex-1 bg-matrix-dark overflow-y-auto animate-fadeIn">
+            <div
+              role="tabpanel"
+              aria-label="Visualizer"
+              className="flex-1 bg-matrix-dark overflow-y-auto animate-fadeIn"
+            >
               <RealmConceptVisualizer realmId={realmId} />
             </div>
           )}

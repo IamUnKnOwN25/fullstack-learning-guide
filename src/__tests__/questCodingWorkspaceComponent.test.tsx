@@ -62,22 +62,22 @@ describe("QuestCodingWorkspace Component", () => {
   it("switches workspace tabs (Code Editor, Live Preview, Terminal, Visualizer)", () => {
     render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
 
-    const editorTab = screen.getByRole("button", { name: /code editor/i });
-    const previewTab = screen.getByRole("button", { name: /live preview/i });
-    const terminalTab = screen.getByRole("button", { name: /terminal/i });
-    const visualizerTab = screen.getByRole("button", { name: /visualizer/i });
+    const editorTab = screen.getByRole("tab", { name: /code editor/i });
+    const previewTab = screen.getByRole("tab", { name: /live preview/i });
+    const terminalTab = screen.getByRole("tab", { name: /terminal/i });
+    const visualizerTab = screen.getByRole("tab", { name: /visualizer/i });
 
-    expect(editorTab.getAttribute("aria-pressed")).toBe("true");
+    expect(editorTab.getAttribute("aria-selected")).toBe("true");
 
     fireEvent.click(previewTab);
-    expect(previewTab.getAttribute("aria-pressed")).toBe("true");
+    expect(previewTab.getAttribute("aria-selected")).toBe("true");
 
     fireEvent.click(terminalTab);
-    expect(terminalTab.getAttribute("aria-pressed")).toBe("true");
+    expect(terminalTab.getAttribute("aria-selected")).toBe("true");
     expect(screen.getByText(/TERMINAL TEST RUNNER OUTPUT/i)).toBeDefined();
 
     fireEvent.click(visualizerTab);
-    expect(visualizerTab.getAttribute("aria-pressed")).toBe("true");
+    expect(visualizerTab.getAttribute("aria-selected")).toBe("true");
   });
 
   it("inserts programmer symbols at cursor", () => {
@@ -254,6 +254,49 @@ describe("QuestCodingWorkspace Component", () => {
     expect(writeTextMock).toHaveBeenCalledWith(htmlQuest.starterCode);
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.getByText(/Copied!/i)).toBeDefined();
+  });
+
+  it("provides tablist semantics, tab selection states, and tabpanel container roles", () => {
+    render(<QuestCodingWorkspace realmId="html" questId={htmlQuest.id} />);
+
+    const tablist = screen.getByRole("tablist", { name: "Workspace view tabs" });
+    expect(tablist).toBeDefined();
+
+    const editorTab = screen.getByRole("tab", { name: /code editor/i });
+    const splitTab = screen.getByRole("tab", { name: /split/i });
+    const previewTab = screen.getByRole("tab", { name: /live preview/i });
+    const terminalTab = screen.getByRole("tab", { name: /terminal/i });
+    const visualizerTab = screen.getByRole("tab", { name: /visualizer/i });
+
+    expect(editorTab.getAttribute("aria-selected")).toBe("true");
+    expect(splitTab.getAttribute("aria-selected")).toBe("false");
+    expect(previewTab.getAttribute("aria-selected")).toBe("false");
+    expect(terminalTab.getAttribute("aria-selected")).toBe("false");
+    expect(visualizerTab.getAttribute("aria-selected")).toBe("false");
+
+    let panel = screen.getByRole("tabpanel", { name: "Code Editor" });
+    expect(panel).toBeDefined();
+
+    fireEvent.click(splitTab);
+    expect(splitTab.getAttribute("aria-selected")).toBe("true");
+    expect(editorTab.getAttribute("aria-selected")).toBe("false");
+    panel = screen.getByRole("tabpanel", { name: "Split" });
+    expect(panel).toBeDefined();
+
+    fireEvent.click(previewTab);
+    expect(previewTab.getAttribute("aria-selected")).toBe("true");
+    panel = screen.getByRole("tabpanel", { name: "Live Preview" });
+    expect(panel).toBeDefined();
+
+    fireEvent.click(terminalTab);
+    expect(terminalTab.getAttribute("aria-selected")).toBe("true");
+    panel = screen.getByRole("tabpanel", { name: "Terminal" });
+    expect(panel).toBeDefined();
+
+    fireEvent.click(visualizerTab);
+    expect(visualizerTab.getAttribute("aria-selected")).toBe("true");
+    panel = screen.getByRole("tabpanel", { name: "Visualizer" });
+    expect(panel).toBeDefined();
   });
 
   it("allows toggling task checklist items manually", () => {
