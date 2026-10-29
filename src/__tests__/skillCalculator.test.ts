@@ -61,10 +61,23 @@ describe("skillCalculator", () => {
 
     it("does not return negative available points", () => {
       expect(calculateAvailableSkillPoints(1, ["skill_2", "skill_4"])).toBe(0); // 1 - 6 = -5 -> 0
+      expect(calculateAvailableSkillPoints(1, ["skill_2"])).toBe(0); // 1 - 2 = -1 -> 0
     });
 
     it("returns 0 when level is NaN or non-numeric", () => {
       expect(calculateAvailableSkillPoints(NaN, ["skill_2"])).toBe(0);
+      expect(calculateAvailableSkillPoints(NaN, [])).toBe(0);
+      expect(calculateAvailableSkillPoints(null as any, [])).toBe(0);
+      expect(calculateAvailableSkillPoints(undefined as any, [])).toBe(0);
+    });
+
+    it("handles non-finite infinity values safely", () => {
+      expect(calculateAvailableSkillPoints(Infinity, [])).toBe(0);
+      expect(calculateAvailableSkillPoints(-Infinity, [])).toBe(0);
+    });
+
+    it("sanitizes fractional levels and enforces bounds", () => {
+      expect(calculateAvailableSkillPoints(5.8, ["skill_2"])).toBe(3); // floor(5.8) = 5 -> 5 - 2 = 3
     });
   });
 
@@ -72,6 +85,55 @@ describe("skillCalculator", () => {
     it("fails if skill is not found", () => {
       const result = validateSkillUnlock("unknown_skill", 10, []);
       expect(result).toEqual({ canUnlock: false, reason: "Skill not found." });
+    });
+
+    it("fails with invalid skill IDs", () => {
+      expect(validateSkillUnlock("", 10, [])).toEqual({
+        canUnlock: false,
+        reason: "Invalid skill ID.",
+      });
+      expect(validateSkillUnlock("   ", 10, [])).toEqual({
+        canUnlock: false,
+        reason: "Invalid skill ID.",
+      });
+      expect(validateSkillUnlock(null as any, 10, [])).toEqual({
+        canUnlock: false,
+        reason: "Invalid skill ID.",
+      });
+      expect(validateSkillUnlock(undefined as any, 10, [])).toEqual({
+        canUnlock: false,
+        reason: "Invalid skill ID.",
+      });
+    });
+
+    it("fails when level / available points is non-finite", () => {
+      expect(validateSkillUnlock("skill_2", NaN, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
+      expect(validateSkillUnlock("skill_2", Infinity, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
+      expect(validateSkillUnlock("skill_2", -Infinity, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
+      expect(validateSkillUnlock("skill_2", null as any, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
+    });
+
+    it("fails when level / available points is negative", () => {
+      expect(validateSkillUnlock("skill_2", -1, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
+      expect(validateSkillUnlock("skill_2", -10, [])).toEqual({
+        canUnlock: false,
+        reason: "Not enough skill points.",
+      });
     });
 
     it("fails if skill is already unlocked", () => {
