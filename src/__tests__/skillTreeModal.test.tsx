@@ -4,7 +4,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { SkillTreeModal } from "../components/SkillTreeModal";
 import { useGameStore } from "../lib/gameStore";
 import { useAuthStore } from "../lib/authStore";
@@ -37,6 +37,7 @@ describe("SkillTreeModal Component", () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("does not render when isOpen is false", () => {
@@ -144,7 +145,7 @@ describe("SkillTreeModal Component", () => {
     );
 
     // Filter by Frontend & Reactive branch
-    const frontendTab = screen.getByRole("button", { name: /Frontend & Reactive/ });
+    const frontendTab = screen.getByRole("tab", { name: /Frontend & Reactive/ });
     fireEvent.click(frontendTab);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
@@ -216,5 +217,95 @@ describe("SkillTreeModal Component", () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(mockOpenAuthModal).toHaveBeenCalledTimes(1);
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+  });
+
+  it("provides tablist semantics with role='tablist', aria-label='Skill branches', and dynamic aria-selected states", () => {
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    const tablist = screen.getByRole("tablist", { name: "Skill branches" });
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(6);
+
+    const allTab = screen.getByRole("tab", { name: /All Branches/ });
+    const foundationsTab = screen.getByRole("tab", { name: /Foundations & Styles/ });
+    const frontendTab = screen.getByRole("tab", { name: /Frontend & Reactive/ });
+
+    expect(allTab.getAttribute("aria-selected")).toBe("true");
+    expect(foundationsTab.getAttribute("aria-selected")).toBe("false");
+    expect(frontendTab.getAttribute("aria-selected")).toBe("false");
+
+    fireEvent.click(foundationsTab);
+    expect(foundationsTab.getAttribute("aria-selected")).toBe("true");
+    expect(allTab.getAttribute("aria-selected")).toBe("false");
+    expect(frontendTab.getAttribute("aria-selected")).toBe("false");
+
+    fireEvent.click(allTab);
+    expect(allTab.getAttribute("aria-selected")).toBe("true");
+    expect(foundationsTab.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("renders skill purchase feedback toast with role='status' and aria-live='polite' upon unlock", () => {
+    useGameStore.setState({
+      level: 15,
+      unlockedSkills: ["syntax_sense"],
+    });
+
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    expect(screen.queryByRole("status")).toBeNull();
+
+    const unlockButtons = screen.getAllByRole("button", { name: /Unlock for/ });
+    expect(unlockButtons.length).toBeGreaterThan(0);
+    fireEvent.click(unlockButtons[0]);
+
+    const toast = screen.getByRole("status");
+    expect(toast).toBeDefined();
+    expect(toast.getAttribute("aria-live")).toBe("polite");
+    expect(toast.textContent).toContain("Unlocked");
+    expect(toast.textContent).toContain("perk!");
+
+    const dismissBtn = screen.getByLabelText("Dismiss feedback notification");
+    fireEvent.click(dismissBtn);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("auto-dismisses the skill purchase feedback notification toast after timeout", () => {
+    vi.useFakeTimers();
+
+    useGameStore.setState({
+      level: 15,
+      unlockedSkills: ["syntax_sense"],
+    });
+
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const unlockButtons = screen.getAllByRole("button", { name: /Unlock for/ });
+    fireEvent.click(unlockButtons[0]);
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });

@@ -59,6 +59,15 @@ export function SkillTreeModal({
   const { isAuthenticated } = useAuthStore();
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | "all">("all");
   const [confirmRespec, setConfirmRespec] = useState(false);
+  const [purchaseToast, setPurchaseToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!purchaseToast) return;
+    const timer = setTimeout(() => {
+      setPurchaseToast(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [purchaseToast]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,6 +95,8 @@ export function SkillTreeModal({
   const handleUnlock = (skillId: string, cost: number) => {
     const success = unlockSkill(skillId, cost);
     if (success) {
+      const skill = SKILL_TREE.find((s) => s.id === skillId);
+      setPurchaseToast(`Unlocked ${skill?.name || "Skill"} perk!`);
       try {
         confetti({
           particleCount: 50,
@@ -153,13 +164,19 @@ export function SkillTreeModal({
         </div>
 
         {/* Branch Filter Tabs */}
-        <div className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs">
+        <div
+          role="tablist"
+          aria-label="Skill branches"
+          className="px-3 sm:px-4 py-2.5 border-b border-matrix-border bg-matrix-dark/50 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs"
+        >
           <button
             type="button"
             onClick={() => {
               soundEngine.playSfx("click");
               setSelectedCategory("all");
             }}
+            role="tab"
+            aria-selected={selectedCategory === "all"}
             className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
               selectedCategory === "all"
                 ? "bg-matrix-neonPurple/20 border-matrix-neonPurple text-white font-bold"
@@ -172,6 +189,8 @@ export function SkillTreeModal({
           {SKILL_CATEGORIES.map((cat) => (
             <button
               type="button"
+              role="tab"
+              aria-selected={selectedCategory === cat.id}
               key={cat.id}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -187,6 +206,28 @@ export function SkillTreeModal({
             </button>
           ))}
         </div>
+
+        {/* Skill Purchase Feedback / Notification Toast */}
+        {purchaseToast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="px-4 py-2.5 mx-3 sm:mx-4 mt-2.5 rounded-2xl bg-matrix-accent/15 border border-matrix-accent/40 text-matrix-accent text-xs flex items-center justify-between gap-2 shadow-lg shadow-matrix-accent/10 animate-fadeIn"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-matrix-accent shrink-0" />
+              <span className="font-bold">{purchaseToast}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPurchaseToast(null)}
+              aria-label="Dismiss feedback notification"
+              className="text-gray-400 hover:text-white p-0.5 cursor-pointer rounded"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Modal Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
@@ -232,6 +273,7 @@ export function SkillTreeModal({
                   onClick={() => {
                     respecSkills();
                     setConfirmRespec(false);
+                    setPurchaseToast(null);
                   }}
                   className="px-2.5 py-1 rounded-lg bg-matrix-neonRed text-white font-bold text-xs cursor-pointer"
                 >
