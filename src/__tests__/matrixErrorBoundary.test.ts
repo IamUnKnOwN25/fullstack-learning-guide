@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MatrixErrorBoundary } from '../components/MatrixErrorBoundary';
 
@@ -18,6 +18,7 @@ beforeEach(() => {
 
 afterEach(() => {
   console.error = originalConsoleError;
+  vi.useRealTimers();
 });
 
 class ProblemChild extends React.Component<{ shouldThrow?: boolean }> {
@@ -62,6 +63,20 @@ describe('MatrixErrorBoundary', () => {
     expect(screen.getByRole('button', { name: /REBOOT SUBSYSTEM/i })).toBeDefined();
     expect(screen.getByRole('link', { name: /RETURN TO MATRIX NEXUS/i })).toBeDefined();
     expect(screen.getByRole('link', { name: /RETURN TO MATRIX NEXUS/i }).getAttribute('href')).toBe('/');
+  });
+
+  it('renders error container with role="alert" and aria-live="assertive"', () => {
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const alertContainer = screen.getByRole('alert');
+    expect(alertContainer).toBeDefined();
+    expect(alertContainer.getAttribute('aria-live')).toBe('assertive');
   });
 
   it('resets the error boundary when reboot subsystem is clicked', () => {
@@ -154,13 +169,138 @@ describe('MatrixErrorBoundary', () => {
     );
 
     const copyBtn = screen.getByTitle('Copy Crash Diagnostics');
-    fireEvent.click(copyBtn);
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
 
     expect(writeTextMock).toHaveBeenCalledTimes(1);
     const clipboardPayload = writeTextMock.mock.calls[0][0];
     expect(clipboardPayload).toContain('[DEVQUEST SYSTEM FAILURE REPORT]');
     expect(clipboardPayload).toContain('Neural Net Pipeline');
     expect(clipboardPayload).toContain('Test Matrix Error');
+  });
+
+  it('provides accessible Copy Error Details button with visual state feedback ("Copied!" badge for 2s)', async () => {
+    vi.useFakeTimers();
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const copyBtn = screen.getByRole('button', { name: /copy error details/i });
+    expect(copyBtn).toBeDefined();
+    expect(screen.getByText('Copy Error Details')).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(writeTextMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Copied!')).toBeDefined();
+
+    // Fast-forward 2 seconds
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    // Feedback should revert back to Copy Error Details
+    expect(screen.queryByText('Copied!')).toBeNull();
+    expect(screen.getByText('Copy Error Details')).toBeDefined();
+  });
+
+  it('falls back to document.execCommand when navigator.clipboard.writeText fails', async () => {
+    const originalExecCommand = document.execCommand;
+    const execCommandMock = vi.fn().mockReturnValue(true);
+    document.execCommand = execCommandMock;
+
+    const writeTextMock = vi.fn().mockRejectedValue(new Error('Permission denied'));
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const copyBtn = screen.getByRole('button', { name: /copy error details/i });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(writeTextMock).toHaveBeenCalledTimes(1);
+    expect(execCommandMock).toHaveBeenCalledWith('copy');
+    expect(screen.getByText('Copied!')).toBeDefined();
+
+    document.execCommand = originalExecCommand;
+  });
+
+  it('falls back to document.execCommand when navigator.clipboard is not available', async () => {
+    const originalExecCommand = document.execCommand;
+    const execCommandMock = vi.fn().mockReturnValue(true);
+    document.execCommand = execCommandMock;
+
+    Object.assign(navigator, {
+      clipboard: undefined,
+    });
+
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const copyBtn = screen.getByRole('button', { name: /copy error details/i });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(execCommandMock).toHaveBeenCalledWith('copy');
+    expect(screen.getByText('Copied!')).toBeDefined();
+
+    document.execCommand = originalExecCommand;
+  });
+
+  it('clears copy timeout timer on component unmount without error', async () => {
+    vi.useFakeTimers();
+    const writeTextMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextMock },
+    });
+
+    const { unmount } = render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const copyBtn = screen.getByRole('button', { name: /copy error details/i });
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    expect(screen.getByText('Copied!')).toBeDefined();
+
+    expect(() => unmount()).not.toThrow();
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
   });
 
   it('supports custom fallback render function with error and reset handler', () => {
