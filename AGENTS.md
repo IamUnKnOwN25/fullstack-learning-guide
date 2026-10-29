@@ -82,3 +82,9 @@ When operating in continuous development mode:
 - **Root Cause**: Web Audio specification mandates float target value must be strictly positive (> 0)
 - **Mandatory Pattern**: `Guard AudioParam ramps with safeExponentialRamp that floors target value to 0.0001 or gracefully falls back to linearRampToValueAtTime for silence`
 - **Anti-Pattern**: `Calling exponentialRampToValueAtTime(0, time) or unvalidated volume targets without positive clamping`
+
+### [Learned: 2026-10-29] Windows CRLF Multi-Line Edit Target Mismatch
+- **Symptom**: edit_file fails with 'target content not found in the file' or multi-match replaces all occurrences
+- **Root Cause**: Git worktrees on Windows check out files with CRLF (\r\n) line endings, causing multi-line string matches in JSON payloads using \n to fail
+- **Mandatory Pattern**: `Use single-line unique targets or normalize CRLF when invoking file edit tools on Windows worktrees`
+- **Anti-Pattern**: `Avoid repeating the root cause above.`
