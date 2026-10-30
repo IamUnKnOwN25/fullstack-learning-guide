@@ -22,8 +22,11 @@ export interface IdeDiagnostic {
 }
 
 export function detectFileLanguage(
-  filename: string
+  filename?: string | null
 ): "html" | "css" | "javascript" | "typescript" | "sql" | "json" | "markdown" {
+  if (!filename || typeof filename !== "string") {
+    return "javascript";
+  }
   const lower = filename.trim().toLowerCase();
   if (lower.endsWith(".html") || lower.endsWith(".htm")) return "html";
   if (lower.endsWith(".css")) return "css";
@@ -126,7 +129,8 @@ function stripInterfaceDeclarations(code: string): string {
  * Supports custom return type identifiers (e.g., ': CustomResult', ': UserData[]'),
  * indented or multi-line interface declarations, generics, and variable types.
  */
-export function stripTypeScriptForBrowser(raw: string): string {
+export function stripTypeScriptForBrowser(raw?: string | null): string {
+  if (!raw || typeof raw !== "string") return "";
   let code = raw;
 
   // 1. Remove import statements
@@ -163,11 +167,14 @@ export function stripTypeScriptForBrowser(raw: string): string {
   return code;
 }
 
-export function bundleIdeProject(files: IdeFile[], activeFileName?: string): string {
-  const activeFile = files.find((f) => f.name === activeFileName) || files[0];
-  const allHtmlFiles = files.filter((f) => f.language === "html");
-  const cssFiles = files.filter((f) => f.language === "css");
-  const jsTsFiles = files.filter(
+export function bundleIdeProject(files?: IdeFile[] | null, activeFileName?: string): string {
+  const safeFiles = Array.isArray(files)
+    ? files.filter((f): f is IdeFile => f != null)
+    : [];
+  const activeFile = safeFiles.find((f) => f.name === activeFileName) || safeFiles[0];
+  const allHtmlFiles = safeFiles.filter((f) => f.language === "html");
+  const cssFiles = safeFiles.filter((f) => f.language === "css");
+  const jsTsFiles = safeFiles.filter(
     (f) => f.language === "javascript" || f.language === "typescript"
   );
 
@@ -179,20 +186,21 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
   const htmlFile =
     (activeFile && activeFile.language === "html")
       ? activeFile
-      : allHtmlFiles.find((f) => f.name.toLowerCase() === activeFileName?.toLowerCase()) ||
-        allHtmlFiles.find((f) => f.name.toLowerCase() === "index.html") ||
+      : allHtmlFiles.find((f) => f.name?.toLowerCase() === activeFileName?.toLowerCase()) ||
+        allHtmlFiles.find((f) => f.name?.toLowerCase() === "index.html") ||
         allHtmlFiles[0];
 
   // If the active file is SQL, CSS, JSON, or Markdown and there is no HTML file, use sandboxBuilder or preview
   if (!htmlFile && activeFile) {
+    const activeContent = activeFile.content ?? "";
     if (activeFile.language === "sql") {
-      return buildSandboxSrcDoc(activeFile.content, "sql", "console");
+      return buildSandboxSrcDoc(activeContent, "sql", "console");
     }
     if (activeFile.language === "css") {
-      return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>:root{color-scheme:dark;}body{background:#0a0e17;color:#f8fafc;font-family:ui-monospace,monospace;padding:20px;}${activeFile.content}</style></head><body><div id="devquest-ide-preview"><h2>CSS Preview (${activeFile.name})</h2><p>Active stylesheet applied.</p></div></body></html>`;
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>:root{color-scheme:dark;}body{background:#0a0e17;color:#f8fafc;font-family:ui-monospace,monospace;padding:20px;}${activeContent}</style></head><body><div id="devquest-ide-preview"><h2>CSS Preview (${activeFile.name ?? ""})</h2><p>Active stylesheet applied.</p></div></body></html>`;
     }
     return buildSandboxSrcDoc(
-      activeFile.content,
+      activeContent,
       activeFile.language === "typescript" ? "typescript" : "javascript",
       "console"
     );
@@ -202,7 +210,7 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
     htmlFile?.content ||
     `<div id="app" style="padding:16px;font-family:monospace;color:#00ff9d;">Running scripts...</div>`;
 
-  const combinedCss = cssFiles.map((f) => `/* ${f.name} */\n${f.content}`).join("\n\n");
+  const combinedCss = cssFiles.map((f) => `/* ${f.name ?? ""} */\n${f.content ?? ""}`).join("\n\n");
 
 
 
@@ -219,8 +227,8 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
   const combinedJs = jsTsFiles
     .map((f) => {
       const runnable =
-        f.language === "typescript" ? stripTypeScriptForBrowser(f.content) : f.content;
-      return `// --- ${f.name} ---\n${runnable}`;
+        f.language === "typescript" ? stripTypeScriptForBrowser(f.content ?? "") : (f.content ?? "");
+      return `// --- ${f.name ?? ""} ---\n${runnable}`;
     })
     .join("\n\n");
 
@@ -298,6 +306,7 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
 
     // Prevent 404 network requests for workspace CSS files linked via <link rel="stylesheet">
     cssFiles.forEach((cf) => {
+      if (!cf?.name) return;
       const escaped = cf.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const re = new RegExp(
         `<link\\s+[^>]*href=["'](?:\\.\\/)?${escaped}["'][^>]*>`,
@@ -308,6 +317,7 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
 
     // Prevent 404 network requests for workspace JS/TS files linked via <script src="...">
     jsTsFiles.forEach((jf) => {
+      if (!jf?.name) return;
       const escaped = jf.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const re = new RegExp(
         `<script\\s+[^>]*src=["'](?:\\.\\/)?${escaped}["'][^>]*>\\s*<\\/script>`,
@@ -354,17 +364,23 @@ export function bundleIdeProject(files: IdeFile[], activeFileName?: string): str
 /**
  * Runs static diagnostics on workspace files to populate the VS Code "Problems" panel.
  */
-export function analyzeWorkspaceDiagnostics(files: IdeFile[]): IdeDiagnostic[] {
+export function analyzeWorkspaceDiagnostics(files?: IdeFile[] | null): IdeDiagnostic[] {
+  if (!Array.isArray(files)) {
+    return [];
+  }
   const diagnostics: IdeDiagnostic[] = [];
 
   for (const file of files) {
-    const lines = file.content.split("\n");
+    if (!file) continue;
+    const content = typeof file.content === "string" ? file.content : (file.content == null ? "" : String(file.content));
+    const lines = content.split("\n");
+    const fileName = file.name ?? "";
     lines.forEach((line, idx) => {
       const lineNum = idx + 1;
       if (file.language === "javascript" || file.language === "typescript") {
         if (/\bvar\s+\w+/.test(line)) {
           diagnostics.push({
-            file: file.name,
+            file: fileName,
             line: lineNum,
             severity: "warning",
             message: "Prefer 'const' or 'let' over legacy 'var' declarations to avoid hoisting bugs.",
@@ -372,7 +388,7 @@ export function analyzeWorkspaceDiagnostics(files: IdeFile[]): IdeDiagnostic[] {
         }
         if (file.language === "typescript" && /:\s*any\b/.test(line)) {
           diagnostics.push({
-            file: file.name,
+            file: fileName,
             line: lineNum,
             severity: "warning",
             message: "Avoid explicit 'any'. Use 'unknown', generics, or a discriminated union.",
@@ -380,7 +396,7 @@ export function analyzeWorkspaceDiagnostics(files: IdeFile[]): IdeDiagnostic[] {
         }
         if (/eval\s*\(/.test(line)) {
           diagnostics.push({
-            file: file.name,
+            file: fileName,
             line: lineNum,
             severity: "error",
             message: "Security risk: 'eval()' executes arbitrary code strings.",
@@ -391,7 +407,7 @@ export function analyzeWorkspaceDiagnostics(files: IdeFile[]): IdeDiagnostic[] {
       if (file.language === "html") {
         if (/<img\b(?![^>]*\balt=)/i.test(line)) {
           diagnostics.push({
-            file: file.name,
+            file: fileName,
             line: lineNum,
             severity: "warning",
             message: "Accessibility (A11y): <img> elements should include a descriptive 'alt' attribute.",
@@ -402,7 +418,7 @@ export function analyzeWorkspaceDiagnostics(files: IdeFile[]): IdeDiagnostic[] {
       if (file.language === "sql") {
         if (/\+\s*req\.|\$\{/.test(line)) {
           diagnostics.push({
-            file: file.name,
+            file: fileName,
             line: lineNum,
             severity: "error",
             message: "SQL Injection risk: Use parameterized placeholders ($1, $2) instead of string interpolation.",

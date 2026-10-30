@@ -5,6 +5,7 @@ import {
   analyzeWorkspaceDiagnostics,
   IDE_PROJECT_TEMPLATES,
   stripTypeScriptForBrowser,
+  type IdeFile,
 } from "../lib/ideBundler";
 
 describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
@@ -314,5 +315,59 @@ console.log("Service loaded", getList());
     ]);
     expect(doc).toContain("window.parent.postMessage");
     expect(doc).toContain("source: 'devquest-ide-preview'");
+  });
+
+  it("detectFileLanguage safely handles nullish and non-string inputs without throwing", () => {
+    expect(detectFileLanguage(null)).toBe("javascript");
+    expect(detectFileLanguage(undefined)).toBe("javascript");
+    expect(detectFileLanguage("")).toBe("javascript");
+    expect(detectFileLanguage("   ")).toBe("javascript");
+    expect(detectFileLanguage(123 as unknown as string)).toBe("javascript");
+    expect(detectFileLanguage({} as unknown as string)).toBe("javascript");
+    expect(detectFileLanguage(false as unknown as string)).toBe("javascript");
+  });
+
+  it("bundleIdeProject tolerates nullish and non-array files argument and skips null file entries", () => {
+    const nullDoc = bundleIdeProject(null);
+    const undefinedDoc = bundleIdeProject(undefined);
+    const nonArrayDoc = bundleIdeProject({} as unknown as IdeFile[]);
+    const emptyDoc = bundleIdeProject([]);
+
+    expect(nullDoc).toBe(emptyDoc);
+    expect(undefinedDoc).toBe(emptyDoc);
+    expect(nonArrayDoc).toBe(emptyDoc);
+
+    const docWithNulls = bundleIdeProject([
+      null as unknown as IdeFile,
+      undefined as unknown as IdeFile,
+      { name: "index.html", language: "html", content: "<h1>Valid Entry</h1>" },
+      null as unknown as IdeFile,
+    ]);
+    expect(docWithNulls).toContain("<h1>Valid Entry</h1>");
+    expect(docWithNulls).toContain("devquest-ide-preview");
+
+    const docNonHtmlWithNulls = bundleIdeProject([
+      null as unknown as IdeFile,
+      { name: "app.ts", language: "typescript", content: "console.log('TS');" },
+    ]);
+    expect(docNonHtmlWithNulls).toContain("Live Sandbox Console (TYPESCRIPT)");
+  });
+
+  it("analyzeWorkspaceDiagnostics tolerates nullish argument, skips null files, and treats nullish content as empty string", () => {
+    expect(analyzeWorkspaceDiagnostics(null)).toEqual([]);
+    expect(analyzeWorkspaceDiagnostics(undefined)).toEqual([]);
+    expect(analyzeWorkspaceDiagnostics({} as unknown as IdeFile[])).toEqual([]);
+
+    const diags = analyzeWorkspaceDiagnostics([
+      null as unknown as IdeFile,
+      undefined as unknown as IdeFile,
+      { name: "empty.js", language: "javascript", content: null as unknown as string },
+      { name: "empty2.ts", language: "typescript", content: undefined as unknown as string },
+      { name: "valid.js", language: "javascript", content: "var legacy = 1;" },
+    ]);
+
+    expect(diags).toHaveLength(1);
+    expect(diags[0].file).toBe("valid.js");
+    expect(diags[0].message).toContain("Prefer 'const' or 'let'");
   });
 });
