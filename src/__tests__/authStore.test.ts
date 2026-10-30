@@ -7,6 +7,7 @@ import {
   hashPassword,
   DEFAULT_GUEST_USER,
   AVATAR_OPTIONS,
+  UserProfile,
 } from "../lib/authStore";
 import { useGameStore } from "../lib/gameStore";
 
@@ -60,6 +61,9 @@ describe("useAuthStore & Auth Utilities", () => {
     it("rejects empty or whitespace-only inputs", () => {
       expect(validateUsername("").valid).toBe(false);
       expect(validateUsername("   ").valid).toBe(false);
+      expect(validateUsername(null as unknown as string).valid).toBe(false);
+      expect(validateUsername(undefined as unknown as string).valid).toBe(false);
+      expect(validateUsername(12345 as unknown as string).valid).toBe(false);
     });
 
     it("rejects usernames shorter than 3 alphanumeric characters", () => {
@@ -84,6 +88,9 @@ describe("useAuthStore & Auth Utilities", () => {
       expect(validatePassphrase("").valid).toBe(false);
       expect(validatePassphrase("abc").valid).toBe(false);
       expect(validatePassphrase("12").valid).toBe(false);
+      expect(validatePassphrase(null as unknown as string).valid).toBe(false);
+      expect(validatePassphrase(undefined as unknown as string).valid).toBe(false);
+      expect(validatePassphrase(123 as unknown as string).valid).toBe(false);
     });
 
     it("accepts passphrases with 4 or more characters", () => {
@@ -102,6 +109,13 @@ describe("useAuthStore & Auth Utilities", () => {
 
     it("returns different hashes for different inputs", () => {
       expect(hashPassword("keyA")).not.toBe(hashPassword("keyB"));
+    });
+
+    it("safely handles nullish or non-string inputs without throwing", () => {
+      expect(hashPassword(null as unknown as string)).toBe("hash_0");
+      expect(hashPassword(undefined as unknown as string)).toBe("hash_0");
+      expect(hashPassword(12345 as unknown as string)).toBe("hash_0");
+      expect(hashPassword("")).toBe("hash_0");
     });
   });
 
@@ -223,6 +237,58 @@ describe("useAuthStore & Auth Utilities", () => {
       useAuthStore.getState().continueAsGuest();
       expect(useAuthStore.getState().isAuthenticated).toBe(false);
       expect(useAuthStore.getState().currentUser.isGuest).toBe(true);
+    });
+
+    it("handles login with nullish or non-string username and password safely", () => {
+      const nullUser = useAuthStore.getState().login(null as unknown as string, "pass123");
+      expect(nullUser.success).toBe(false);
+      expect(nullUser.message).toContain("not found");
+
+      const undefinedUser = useAuthStore.getState().login(undefined as unknown as string, "pass123");
+      expect(undefinedUser.success).toBe(false);
+      expect(undefinedUser.message).toContain("not found");
+
+      const numUser = useAuthStore.getState().login(12345 as unknown as string, "pass123");
+      expect(numUser.success).toBe(false);
+      expect(numUser.message).toContain("not found");
+
+      useAuthStore.getState().signup("operator_guard", "Operator Guard", "guardPass123");
+      useAuthStore.getState().logout();
+
+      const nullPass = useAuthStore.getState().login("operator_guard", null as unknown as string);
+      expect(nullPass.success).toBe(false);
+      expect(nullPass.message).toContain("Incorrect");
+
+      const undefinedPass = useAuthStore.getState().login("operator_guard", undefined as unknown as string);
+      expect(undefinedPass.success).toBe(false);
+      expect(undefinedPass.message).toContain("Incorrect");
+
+      const numPass = useAuthStore.getState().login("operator_guard", 12345 as unknown as string);
+      expect(numPass.success).toBe(false);
+      expect(numPass.message).toContain("Incorrect");
+    });
+
+    it("handles switchAccount with nullish or non-string username safely", () => {
+      expect(useAuthStore.getState().switchAccount(null as unknown as string)).toBe(false);
+      expect(useAuthStore.getState().switchAccount(undefined as unknown as string)).toBe(false);
+      expect(useAuthStore.getState().switchAccount(12345 as unknown as string)).toBe(false);
+    });
+
+    it("safely ignores nullish or non-object inputs in updateProfile", () => {
+      useAuthStore.getState().signup("profile_guard", "Profile Guard", "pass1234");
+      const current = useAuthStore.getState().currentUser;
+
+      useAuthStore.getState().updateProfile(null as unknown as Partial<UserProfile>);
+      expect(useAuthStore.getState().currentUser).toEqual(current);
+
+      useAuthStore.getState().updateProfile(undefined as unknown as Partial<UserProfile>);
+      expect(useAuthStore.getState().currentUser).toEqual(current);
+
+      useAuthStore.getState().updateProfile("invalid" as unknown as Partial<UserProfile>);
+      expect(useAuthStore.getState().currentUser).toEqual(current);
+
+      useAuthStore.getState().updateProfile([] as unknown as Partial<UserProfile>);
+      expect(useAuthStore.getState().currentUser).toEqual(current);
     });
   });
 });

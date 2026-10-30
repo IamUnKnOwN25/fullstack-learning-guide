@@ -123,7 +123,7 @@ export interface CredentialValidationResult {
 }
 
 export function validateUsername(username: string): CredentialValidationResult {
-  const clean = (username || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const clean = (typeof username === "string" ? username : "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
   if (!clean || clean.length < 3) {
     return { valid: false, message: "Username must be at least 3 alphanumeric characters." };
   }
@@ -131,7 +131,7 @@ export function validateUsername(username: string): CredentialValidationResult {
 }
 
 export function validatePassphrase(pass: string): CredentialValidationResult {
-  if (!pass || pass.length < 4) {
+  if (typeof pass !== "string" || pass.length < 4) {
     return { valid: false, message: "Passphrase must be at least 4 characters." };
   }
   return { valid: true };
@@ -139,9 +139,10 @@ export function validatePassphrase(pass: string): CredentialValidationResult {
 
 // Simple deterministic hash for client vault passphrases
 export function hashPassword(pass: string): string {
+  const safePass = typeof pass === "string" ? pass : "";
   let hash = 0;
-  for (let i = 0; i < pass.length; i++) {
-    const char = pass.charCodeAt(i);
+  for (let i = 0; i < safePass.length; i++) {
+    const char = safePass.charCodeAt(i);
     hash = (hash << 5) - hash + char;
     hash |= 0;
   }
@@ -187,7 +188,7 @@ export const useAuthStore = create<AuthState>()(
         const profile: UserProfile = {
           id: `cadet-${Date.now()}`,
           username: cleanUser,
-          displayName: displayName.trim() || cleanUser,
+          displayName: (typeof displayName === "string" ? displayName.trim() : "") || cleanUser,
           avatarId,
           customBio: "Full-Stack Operator mastering the Web Matrix.",
           title: gameStoreState.rankTitle || "Novice Byte",
@@ -229,6 +230,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       login: (username, pass) => {
+        if (typeof username !== "string") {
+          return { success: false, message: "Cadet handle not found in terminal registry." };
+        }
         const cleanUser = username.trim().toLowerCase();
         const state = get();
         const account = state.accounts[cleanUser];
@@ -290,6 +294,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateProfile: (data) => {
+        if (!data || typeof data !== "object" || Array.isArray(data)) {
+          return;
+        }
         const state = get();
         const updated = { ...state.currentUser, ...data };
         const accounts = { ...state.accounts };
@@ -306,6 +313,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       switchAccount: (username) => {
+        if (typeof username !== "string") return false;
         const cleanUser = username.trim().toLowerCase();
         const state = get();
         const account = state.accounts[cleanUser];
