@@ -126,5 +126,46 @@ describe("QuestFilterBar", () => {
       const empty = filterQuestsList(mockQuests, "form", "css", "Intermediate");
       expect(empty).toHaveLength(0);
     });
+
+    it("returns empty array when quests is null, undefined, or not an array", () => {
+      expect(filterQuestsList(null, "basics", "All", "All")).toEqual([]);
+      expect(filterQuestsList(undefined, "basics", "All", "All")).toEqual([]);
+      expect(filterQuestsList("not-an-array" as any, "basics", "All", "All")).toEqual([]);
+      expect(filterQuestsList(123 as any, "basics", "All", "All")).toEqual([]);
+      expect(filterQuestsList({} as any, "basics", "All", "All")).toEqual([]);
+    });
+
+    it("skips nullish quest items in the input array", () => {
+      const questsWithNulls = [
+        null,
+        undefined,
+        { id: "q1", realmId: "html", title: "HTML Basics", xpReward: 10 },
+        null,
+      ];
+      const result = filterQuestsList(questsWithNulls, "basics", "All", "All");
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("q1");
+    });
+
+    it("treats NaN and non-finite xpReward as invalid, defaulting safely to 0 XP", () => {
+      const nanQuests: FilterableQuest[] = [
+        { id: "nan1", realmId: "html", title: "NaN Quest", xpReward: Number.NaN },
+        { id: "inf1", realmId: "html", title: "Infinite Quest", xpReward: Number.POSITIVE_INFINITY },
+        { id: "negInf", realmId: "html", title: "Neg Infinite Quest", xpReward: Number.NEGATIVE_INFINITY },
+        { id: "valid", realmId: "html", title: "Valid Quest", xpReward: 50 },
+      ];
+
+      // With NaN/non-finite XP defaulting to 0, they match Beginner (xp <= 25)
+      const beginner = filterQuestsList(nanQuests, "", "All", "Beginner");
+      expect(beginner.map((q) => q.id)).toEqual(["nan1", "inf1", "negInf"]);
+
+      // They should NOT match Intermediate (25 < xp < 75)
+      const intermediate = filterQuestsList(nanQuests, "", "All", "Intermediate");
+      expect(intermediate.map((q) => q.id)).toEqual(["valid"]);
+
+      // They should NOT match Advanced (xp >= 75)
+      const advanced = filterQuestsList(nanQuests, "", "All", "Advanced");
+      expect(advanced).toHaveLength(0);
+    });
   });
 });

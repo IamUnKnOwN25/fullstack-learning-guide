@@ -9,16 +9,24 @@ export interface FilterableQuest {
   xpReward?: number;
 }
 
-export function filterQuestsList<T extends FilterableQuest>(
-  quests: T[],
+export function filterQuestsList<T extends FilterableQuest = FilterableQuest>(
+  quests: (T | null | undefined)[] | null | undefined,
   searchQuery: string,
   realmId: string,
   difficultyLevel: DifficultyLevel
 ): T[] {
+  if (!quests || !Array.isArray(quests)) {
+    return [];
+  }
+
   const query = (searchQuery || "").trim().toLowerCase();
   const normalizedRealm = (realmId || "All").trim();
 
-  return quests.filter((q) => {
+  return quests.filter((q): q is T => {
+    if (!q || typeof q !== "object") {
+      return false;
+    }
+
     // Search match
     const titleMatch = typeof q.title === "string" ? q.title.toLowerCase().includes(query) : false;
     const summaryMatch =
@@ -36,7 +44,7 @@ export function filterQuestsList<T extends FilterableQuest>(
     // Difficulty logic (mapping to XP reward bounds)
     let matchDifficulty = true;
     if (difficultyLevel !== "All") {
-      const xp = typeof q.xpReward === "number" ? q.xpReward : 0;
+      const xp = Number.isFinite(q.xpReward) ? (q.xpReward as number) : 0;
       if (difficultyLevel === "Beginner" && xp > 25) matchDifficulty = false;
       if (difficultyLevel === "Intermediate" && (xp <= 25 || xp >= 75)) matchDifficulty = false;
       if (difficultyLevel === "Advanced" && xp < 75) matchDifficulty = false;
