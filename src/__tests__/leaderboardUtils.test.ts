@@ -130,7 +130,7 @@ describe("leaderboardUtils", () => {
     it("should filter entries by exact tier match", () => {
       const result = filterLeaderboardByTier(mockEntries, "Type Warden");
       expect(result.length).toBe(2);
-      expect(result.map(e => e.id)).toEqual(["2", "3"]);
+      expect(result.map((e) => e.id)).toEqual(["2", "3"]);
     });
 
     it("should return empty array if no matches found", () => {
@@ -138,14 +138,37 @@ describe("leaderboardUtils", () => {
       expect(result.length).toBe(0);
     });
 
-    it("should perform exact case-sensitive matching", () => {
-      const lower = filterLeaderboardByTier(mockEntries, "type warden");
-      expect(lower.length).toBe(0);
+    it("should perform case-insensitive and trimmed tier matching", () => {
+      const lower = filterLeaderboardByTier(mockEntries, "  type warden  ");
+      expect(lower.length).toBe(2);
+      expect(lower.map((e) => e.id)).toEqual(["2", "3"]);
+
+      const upper = filterLeaderboardByTier(mockEntries, "NOVICE BYTE");
+      expect(upper.length).toBe(1);
+      expect(upper[0].id).toBe("4");
     });
 
-    it("should return all entries if tier is empty string", () => {
-      const result = filterLeaderboardByTier(mockEntries, "");
-      expect(result.length).toBe(mockEntries.length);
+    it("should return all entries if tier is empty string or whitespace only", () => {
+      const emptyResult = filterLeaderboardByTier(mockEntries, "");
+      expect(emptyResult.length).toBe(mockEntries.length);
+
+      const whitespaceResult = filterLeaderboardByTier(mockEntries, "   ");
+      expect(whitespaceResult.length).toBe(mockEntries.length);
+    });
+
+    it("should safely handle nullish or invalid entries and non-string tiers", () => {
+      const entriesWithNull = [
+        ...mockEntries,
+        null as any,
+        undefined as any,
+        { id: "5", title: null as any } as any,
+      ];
+      const result = filterLeaderboardByTier(entriesWithNull, "novice byte");
+      expect(result.length).toBe(1);
+      expect(result[0].id).toBe("4");
+
+      expect(filterLeaderboardByTier(mockEntries, null as any)).toEqual(mockEntries);
+      expect(filterLeaderboardByTier(mockEntries, undefined as any)).toEqual(mockEntries);
     });
   });
 
@@ -258,6 +281,41 @@ describe("leaderboardUtils", () => {
       // Next, level 10 stars 5 alphabetical: alice before charlie
       expect(sorted[2].username).toBe("alice");
       expect(sorted[3].username).toBe("charlie");
+    });
+
+    it("treats NaN and non-finite xp/level as 0 deterministically", () => {
+      const entries: LeaderboardEntry[] = [
+        { ...mockEntries[0], id: "nan-xp", username: "z_nan_xp", xp: NaN, level: 10 },
+        { ...mockEntries[0], id: "valid-xp", username: "a_valid_xp", xp: 100, level: 1 },
+        { ...mockEntries[0], id: "inf-xp", username: "b_inf_xp", xp: Infinity, level: 5 },
+        { ...mockEntries[0], id: "nan-lvl", username: "c_nan_lvl", xp: 0, level: NaN },
+      ];
+      const sorted = sortLeaderboardEntries(entries);
+      // valid-xp has xp 100 (> 0), so it comes first
+      expect(sorted[0].id).toBe("valid-xp");
+      // the others have xp treated as 0; nan-xp has level 10, so it comes next
+      expect(sorted[1].id).toBe("nan-xp");
+      // inf-xp has level 5, comes next
+      expect(sorted[2].id).toBe("inf-xp");
+      // nan-lvl has level treated as 0
+      expect(sorted[3].id).toBe("nan-lvl");
+    });
+
+    it("filters out nullish items and handles nullish usernames without throwing", () => {
+      const mixedEntries = [
+        null as any,
+        undefined as any,
+        { ...mockEntries[0], id: "null-user", username: null as any, xp: 500, level: 5, stars: 0, bossesSlain: 0 },
+        { ...mockEntries[0], id: "user-b", username: "bravo", xp: 500, level: 5, stars: 0, bossesSlain: 0 },
+        null as any,
+        { ...mockEntries[0], id: "user-a", username: "alpha", xp: 500, level: 5, stars: 0, bossesSlain: 0 },
+      ];
+      const sorted = sortLeaderboardEntries(mixedEntries);
+      expect(sorted.length).toBe(3);
+      // null username falls back to "", which precedes "alpha" and "bravo" in ascending order
+      expect(sorted[0].id).toBe("null-user");
+      expect(sorted[1].id).toBe("user-a");
+      expect(sorted[2].id).toBe("user-b");
     });
 
     it("returns empty array for invalid inputs", () => {

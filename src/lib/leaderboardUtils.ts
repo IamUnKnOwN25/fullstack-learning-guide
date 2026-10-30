@@ -31,8 +31,15 @@ export function filterLeaderboardByTier(
   tier: string
 ): LeaderboardEntry[] {
   if (!Array.isArray(entries)) return [];
-  if (!tier) return entries;
-  return entries.filter((entry) => entry.title === tier);
+  if (typeof tier !== "string") return entries;
+  const normalizedTier = tier.trim().toLowerCase();
+  if (!normalizedTier) return entries;
+  return entries.filter(
+    (entry) =>
+      Boolean(entry) &&
+      typeof entry.title === "string" &&
+      entry.title.trim().toLowerCase() === normalizedTier
+  );
 }
 
 /**
@@ -69,16 +76,27 @@ export function calculateTopPercentage(rank: number, totalPlayers: number): numb
  */
 export function sortLeaderboardEntries(entries: LeaderboardEntry[]): LeaderboardEntry[] {
   if (!Array.isArray(entries)) return [];
-  return [...entries].sort((a, b) => {
-    if (b.xp !== a.xp) return b.xp - a.xp;
-    if (b.level !== a.level) return b.level - a.level;
+  const validEntries = entries.filter((entry): entry is LeaderboardEntry => Boolean(entry));
+  return validEntries.sort((a, b) => {
+    const bXp = Number.isFinite(b.xp) ? b.xp : 0;
+    const aXp = Number.isFinite(a.xp) ? a.xp : 0;
+    if (bXp !== aXp) return bXp - aXp;
+
+    const bLevel = Number.isFinite(b.level) ? b.level : 0;
+    const aLevel = Number.isFinite(a.level) ? a.level : 0;
+    if (bLevel !== aLevel) return bLevel - aLevel;
+
     const bStars = Number.isFinite(b.stars) ? b.stars : 0;
     const aStars = Number.isFinite(a.stars) ? a.stars : 0;
     if (bStars !== aStars) return bStars - aStars;
+
     const bBosses = Number.isFinite(b.bossesSlain) ? b.bossesSlain : 0;
     const aBosses = Number.isFinite(a.bossesSlain) ? a.bossesSlain : 0;
     if (bBosses !== aBosses) return bBosses - aBosses;
-    return a.username.localeCompare(b.username);
+
+    const aUser = typeof a.username === "string" ? a.username : "";
+    const bUser = typeof b.username === "string" ? b.username : "";
+    return aUser.localeCompare(bUser);
   });
 }
 
