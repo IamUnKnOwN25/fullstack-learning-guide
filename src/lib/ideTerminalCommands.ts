@@ -41,7 +41,7 @@ export function executeTerminalCommand(
   const cmd = parts[0].toLowerCase();
   const arg = parts[1];
   const rest = trimmed.substring(parts[0].length).trim();
-  const safeFiles = Array.isArray(context?.files) ? context.files : [];
+  const safeFiles = (Array.isArray(context?.files) ? context.files : []).filter((f): f is IdeFile => f != null && typeof f === "object");
 
   if (cmd === "help" || cmd === "man") {
     if (arg) {
@@ -83,15 +83,17 @@ export function executeTerminalCommand(
     return { handled: true, clear: true };
   } else if (cmd === "pwd") {
     return { handled: true, output: ["/workspace (virtual dev environment)"] };
+  } else if (cmd === "whoami") {
+    return { handled: true, output: ["operator (virtual dev environment)"] };
   } else if (cmd === "ls") {
-    const out = safeFiles.map((f) => `${f.name} (${f.content.length}B)`).join("   ");
+    const out = safeFiles.map((f) => `${typeof f.name === "string" ? f.name : ""} (${typeof f.content === "string" ? f.content.length : 0}B)`).join("   ");
     return { handled: true, output: [out] };
   } else if (cmd === "cat") {
     const target = safeFiles.find((f) => f.name === arg);
     if (!target) {
       return { handled: true, output: [`cat: ${arg || "<missing>"}: No such file in workspace`] };
     }
-    return { handled: true, output: [target.content] };
+    return { handled: true, output: [typeof target.content === "string" ? target.content : ""] };
   } else if (cmd === "echo") {
     let echoStr = rest;
     if ((echoStr.startsWith('"') && echoStr.endsWith('"')) || (echoStr.startsWith("'") && echoStr.endsWith("'"))) {
@@ -103,7 +105,7 @@ export function executeTerminalCommand(
     if (!target) {
       return { handled: true, output: [`wc: ${arg || "<missing>"}: No such file in workspace`] };
     }
-    const content = target.content;
+    const content = typeof target.content === "string" ? target.content : "";
     const lines = content.split("\n").length;
     const words = content.split(/\s+/).filter((w) => w.length > 0).length;
     const chars = content.length;

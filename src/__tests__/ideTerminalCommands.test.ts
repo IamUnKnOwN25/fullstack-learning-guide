@@ -142,6 +142,105 @@ describe("ideTerminalCommands", () => {
     expect(helpCat.output?.[0]).toContain("cat <filename> - Print entire content");
   });
 
+  it("handles whoami command returning active operator identity", () => {
+    const res = executeTerminalCommand("whoami", { files: mockFiles });
+    expect(res.handled).toBe(true);
+    expect(res.output?.[0]).toBe("operator (virtual dev environment)");
+
+    const upper = executeTerminalCommand("WHOAMI", { files: mockFiles });
+    expect(upper.handled).toBe(true);
+    expect(upper.output?.[0]).toBe("operator (virtual dev environment)");
+
+    const withArgs = executeTerminalCommand("whoami status", { files: mockFiles });
+    expect(withArgs.handled).toBe(true);
+    expect(withArgs.output?.[0]).toBe("operator (virtual dev environment)");
+  });
+
+  it("handles nullish and corrupt file entries safely across ls, cat, and wc", () => {
+    const corruptFiles: any[] = [
+      null,
+      undefined,
+      {
+        name: "index.html",
+        language: "html",
+        content: "<h1>Hello</h1>",
+      },
+      {
+        name: "missing-content.txt",
+        language: "text",
+        content: undefined,
+      },
+      {
+        name: "null-content.txt",
+        language: "text",
+        content: null,
+      },
+      {
+        name: "numeric-content.txt",
+        language: "text",
+        content: 42,
+      },
+    ];
+
+    // ls should skip nullish entries and treat undefined/non-string content as empty (0B)
+    const lsRes = executeTerminalCommand("ls", { files: corruptFiles });
+    expect(lsRes.handled).toBe(true);
+    expect(lsRes.output?.[0]).toContain("index.html (14B)");
+    expect(lsRes.output?.[0]).toContain("missing-content.txt (0B)");
+    expect(lsRes.output?.[0]).toContain("null-content.txt (0B)");
+    expect(lsRes.output?.[0]).toContain("numeric-content.txt (0B)");
+
+    // cat should treat missing/non-string content as empty string without throwing
+    const catValid = executeTerminalCommand("cat index.html", { files: corruptFiles });
+    expect(catValid.handled).toBe(true);
+    expect(catValid.output?.[0]).toBe("<h1>Hello</h1>");
+
+    const catMissingContent = executeTerminalCommand("cat missing-content.txt", { files: corruptFiles });
+    expect(catMissingContent.handled).toBe(true);
+    expect(catMissingContent.output?.[0]).toBe("");
+
+    const catNullContent = executeTerminalCommand("cat null-content.txt", { files: corruptFiles });
+    expect(catNullContent.handled).toBe(true);
+    expect(catNullContent.output?.[0]).toBe("");
+
+    const catNumericContent = executeTerminalCommand("cat numeric-content.txt", { files: corruptFiles });
+    expect(catNumericContent.handled).toBe(true);
+    expect(catNumericContent.output?.[0]).toBe("");
+
+    // wc should calculate lines, words, chars on treated empty string without throwing
+    const wcValid = executeTerminalCommand("wc index.html", { files: corruptFiles });
+    expect(wcValid.handled).toBe(true);
+    expect(wcValid.output?.[0]).toBe("1 1 14 index.html");
+
+    const wcMissingContent = executeTerminalCommand("wc missing-content.txt", { files: corruptFiles });
+    expect(wcMissingContent.handled).toBe(true);
+    expect(wcMissingContent.output?.[0]).toBe("1 0 0 missing-content.txt");
+
+    const wcNullContent = executeTerminalCommand("wc null-content.txt", { files: corruptFiles });
+    expect(wcNullContent.handled).toBe(true);
+    expect(wcNullContent.output?.[0]).toBe("1 0 0 null-content.txt");
+
+    const wcNumericContent = executeTerminalCommand("wc numeric-content.txt", { files: corruptFiles });
+    expect(wcNumericContent.handled).toBe(true);
+    expect(wcNumericContent.output?.[0]).toBe("1 0 0 numeric-content.txt");
+  });
+
+  it("handles pure nullish file arrays across ls, cat, and wc without throwing", () => {
+    const nullishFiles: any[] = [null, undefined];
+
+    const lsRes = executeTerminalCommand("ls", { files: nullishFiles });
+    expect(lsRes.handled).toBe(true);
+    expect(lsRes.output?.[0]).toBe("");
+
+    const catRes = executeTerminalCommand("cat file.txt", { files: nullishFiles });
+    expect(catRes.handled).toBe(true);
+    expect(catRes.output?.[0]).toContain("cat: file.txt: No such file in workspace");
+
+    const wcRes = executeTerminalCommand("wc file.txt", { files: nullishFiles });
+    expect(wcRes.handled).toBe(true);
+    expect(wcRes.output?.[0]).toContain("wc: file.txt: No such file in workspace");
+  });
+
   it("handles nullish context safely without throwing", () => {
     const res = executeTerminalCommand("ls", null as any);
     expect(res.handled).toBe(true);
