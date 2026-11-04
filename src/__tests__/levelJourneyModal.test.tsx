@@ -4,7 +4,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { LevelJourneyModal } from "../components/LevelJourneyModal";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -207,5 +207,85 @@ describe("LevelJourneyModal Component", () => {
     expect(screen.getByText("Boss Guardians")).toBeDefined();
     expect(screen.getByText("Curriculum Checkpoints")).toBeDefined();
     expect(screen.getByText("Matrix IDE & Drills")).toBeDefined();
+  });
+
+  it("renders XP progressbar with accessible role and clamped 0-100 attributes", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const progressBar = screen.getByRole("progressbar");
+    expect(progressBar).toBeDefined();
+    expect(progressBar.getAttribute("aria-label")).toBe("XP to next rank progress");
+    expect(progressBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(progressBar.getAttribute("aria-valuemax")).toBe("100");
+
+    const valueNow = Number(progressBar.getAttribute("aria-valuenow"));
+    expect(Number.isFinite(valueNow)).toBe(true);
+    expect(valueNow).toBeGreaterThanOrEqual(0);
+    expect(valueNow).toBeLessThanOrEqual(100);
+  });
+
+  it("clamps progressbar aria-valuenow between 0 and 100 for edge cases", () => {
+    useGameStore.setState({ xp: 0, level: 1 });
+    const { unmount } = render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const zeroBar = screen.getByRole("progressbar");
+    expect(zeroBar.getAttribute("aria-valuenow")).toBe("0");
+    expect(zeroBar.getAttribute("aria-valuemin")).toBe("0");
+    expect(zeroBar.getAttribute("aria-valuemax")).toBe("100");
+
+    unmount();
+
+    useGameStore.setState({ xp: 150000, level: 50 });
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const maxBar = screen.getByRole("progressbar");
+    const maxValueNow = Number(maxBar.getAttribute("aria-valuenow"));
+    expect(maxValueNow).toBeGreaterThanOrEqual(0);
+    expect(maxValueNow).toBeLessThanOrEqual(100);
+  });
+
+  it("renders Career Rank Ladder with list and listitem semantic roles", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const rankList = screen.getByRole("list", { name: "Career Rank Ladder" });
+    expect(rankList).toBeDefined();
+
+    const rankItems = within(rankList).getAllByRole("listitem");
+    expect(rankItems.length).toBe(RANKS.length);
+  });
+
+  it("renders How to Earn EXP guide with list and listitem semantic roles", () => {
+    render(
+      <LevelJourneyModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const guideList = screen.getByRole("list", { name: "How to earn EXP guide" });
+    expect(guideList).toBeDefined();
+
+    const guideItems = within(guideList).getAllByRole("listitem");
+    expect(guideItems.length).toBe(4);
   });
 });

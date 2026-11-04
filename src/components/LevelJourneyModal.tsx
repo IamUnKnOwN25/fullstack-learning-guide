@@ -65,6 +65,9 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
   const maxMana = calculateManaForLevel(level);
   const availableSkillPoints = Math.max(0, level - unlockedSkills.length);
   const isGrandmaster = level >= 50;
+  const progressPercentClamped = Number.isFinite(progress.progressPercent)
+    ? Math.min(100, Math.max(0, Math.round(progress.progressPercent)))
+    : 0;
 
   return (
     <div
@@ -180,7 +183,14 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 </span>
               </div>
 
-              <div className="w-full h-3 rounded-full bg-matrix-dark border border-matrix-border overflow-hidden p-0.5">
+              <div
+                role="progressbar"
+                aria-label="XP to next rank progress"
+                aria-valuenow={progressPercentClamped}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                className="w-full h-3 rounded-full bg-matrix-dark border border-matrix-border overflow-hidden p-0.5"
+              >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500 shadow-sm shadow-matrix-neonCyan/50"
                   style={{ width: `${progress.progressPercent}%` }}
@@ -239,7 +249,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5">
+            <div role="list" aria-label="Career Rank Ladder" className="grid grid-cols-1 gap-2.5">
               {RANKS.map((r) => {
                 const isUnlocked = level >= r.level;
                 const isCurrent = rankTitle === r.title;
@@ -247,6 +257,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 return (
                   <div
                     key={r.level}
+                    role="listitem"
                     className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
                       isCurrent
                         ? "bg-matrix-neonGold/10 border-matrix-neonGold shadow-md shadow-matrix-neonGold/10"
@@ -318,8 +329,8 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
               <span>How to Earn EXP & Level Up</span>
             </h4>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-              <div className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
+            <div role="list" aria-label="How to earn EXP guide" className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+              <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
                   <Sword className="w-3.5 h-3.5 text-matrix-accent" />
                   <span>Quest Trials</span>
@@ -329,7 +340,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
+              <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
                   <Crown className="w-3.5 h-3.5 text-matrix-neonGold" />
                   <span>Boss Guardians</span>
@@ -339,7 +350,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
+              <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
                   <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" />
                   <span>Curriculum Checkpoints</span>
@@ -349,7 +360,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 </p>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
+              <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
                   <Terminal className="w-3.5 h-3.5 text-matrix-neonPurple" />
                   <span>Matrix IDE & Drills</span>
