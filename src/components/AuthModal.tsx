@@ -128,9 +128,15 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
         </div>
 
         {/* Mode Switch Tabs */}
-        <div className="flex border-b border-matrix-border bg-matrix-dark/50 text-xs font-mono">
+        <div
+          role="tablist"
+          aria-label="Authentication modes"
+          className="flex border-b border-matrix-border bg-matrix-dark/50 text-xs font-mono"
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === "login"}
             onClick={() => {
               soundEngine.playSfx("click");
               setMode("login");
@@ -148,6 +154,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
 
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === "signup"}
             onClick={() => {
               soundEngine.playSfx("click");
               setMode("signup");
@@ -166,6 +174,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
           {savedAccountList.length > 0 && (
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === "accounts"}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMode("accounts");
@@ -186,14 +196,21 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
         {/* Modal Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
           {errorMsg && (
-            <div className="p-3 rounded-xl bg-matrix-neonRed/15 border border-matrix-neonRed/50 text-matrix-neonRed text-xs flex items-center gap-2">
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-matrix-neonRed/15 border border-matrix-neonRed/50 text-matrix-neonRed text-xs flex items-center gap-2"
+            >
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-xl bg-matrix-accent/15 border border-matrix-accent/50 text-matrix-accent text-xs flex items-center gap-2">
+            <div
+              role="status"
+              aria-live="polite"
+              className="p-3 rounded-xl bg-matrix-accent/15 border border-matrix-accent/50 text-matrix-accent text-xs flex items-center gap-2"
+            >
               <Sparkles className="w-4 h-4 shrink-0" />
               <span>{successMsg}</span>
             </div>
@@ -256,13 +273,20 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                   <label className="block text-xs text-gray-300 font-bold mb-1.5">
                     Select Cybernetic Insignia Avatar:
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div
+                    role="radiogroup"
+                    aria-label="Select Cybernetic Insignia Avatar"
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-2"
+                  >
                     {AVATAR_OPTIONS.map((av) => {
                       const isSelected = selectedAvatarId === av.id;
                       return (
                         <button
                           type="button"
                           key={av.id}
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-label={av.name}
                           onClick={() => {
                             soundEngine.playSfx("click");
                             setSelectedAvatarId(av.id);
