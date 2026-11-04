@@ -323,4 +323,106 @@ describe("Achievements Data & Logic", () => {
       expect(progress.claimable).toBe(2); // first_blood_boss and skill_pioneer are claimable
     });
   });
+
+  describe("Null Safety & Resilience", () => {
+    it("calculateAchievementProgress handles null or undefined stats gracefully", () => {
+      const progressNull = calculateAchievementProgress(null);
+      expect(progressNull.total).toBe(ACHIEVEMENTS.length);
+      expect(progressNull.unlocked).toBe(1); // welcome_initiate
+      expect(progressNull.claimed).toBe(0);
+      expect(progressNull.claimable).toBe(1);
+
+      const progressUndef = calculateAchievementProgress(undefined);
+      expect(progressUndef.total).toBe(ACHIEVEMENTS.length);
+      expect(progressUndef.unlocked).toBe(1);
+
+      const progressNoArgs = calculateAchievementProgress();
+      expect(progressNoArgs.total).toBe(ACHIEVEMENTS.length);
+      expect(progressNoArgs.unlocked).toBe(1);
+    });
+
+    it("calculateAchievementProgress handles corrupted stats with non-array fields", () => {
+      const corruptedStats = {
+        level: 1,
+        completedBosses: "not-an-array",
+        completedQuests: 12345,
+        unlockedSkills: null,
+        completedCurriculumTasks: {},
+        completedChapters: true,
+        claimedAchievements: "single_id_not_array",
+        stars: "invalid_stars",
+        streak: "invalid",
+      } as unknown as PlayerStats;
+
+      const progress = calculateAchievementProgress(corruptedStats);
+      expect(progress.total).toBe(ACHIEVEMENTS.length);
+      expect(progress.unlocked).toBe(1); // only welcome_initiate
+      expect(progress.claimed).toBe(0);
+      expect(progress.claimable).toBe(1);
+    });
+
+    it("calculateAchievementProgress handles non-array claimedList parameter", () => {
+      const stats = createMockStats({
+        completedBosses: ["html"],
+      });
+      const progress = calculateAchievementProgress(stats, null as unknown as string[]);
+      expect(progress.unlocked).toBe(2);
+      expect(progress.claimed).toBe(0);
+      expect(progress.claimable).toBe(2);
+    });
+
+    it("evaluates checkProgress only once per achievement during calculateAchievementProgress", () => {
+      const stats = createMockStats();
+      let callCount = 0;
+      const spies = ACHIEVEMENTS.map((ach) => {
+        const orig = ach.checkProgress;
+        ach.checkProgress = (s) => {
+          callCount++;
+          return orig(s);
+        };
+        return { ach, orig };
+      });
+
+      try {
+        calculateAchievementProgress(stats);
+        expect(callCount).toBe(ACHIEVEMENTS.length);
+      } finally {
+        spies.forEach(({ ach, orig }) => {
+          ach.checkProgress = orig;
+        });
+      }
+    });
+
+    it("every achievement checkProgress callback is safe against null, undefined, and non-array fields", () => {
+      const badInputs = [
+        null,
+        undefined,
+        {} as unknown as PlayerStats,
+        {
+          completedBosses: null,
+          completedQuests: undefined,
+          unlockedSkills: 123,
+          completedCurriculumTasks: "none",
+          completedChapters: false,
+          stars: null,
+          level: null,
+          streak: null,
+        } as unknown as PlayerStats,
+      ];
+
+      ACHIEVEMENTS.forEach((ach) => {
+        badInputs.forEach((input) => {
+          expect(() => {
+            const res = ach.checkProgress(input);
+            expect(res).toHaveProperty("current");
+            expect(res).toHaveProperty("target");
+            expect(res).toHaveProperty("isUnlocked");
+            expect(typeof res.current).toBe("number");
+            expect(typeof res.target).toBe("number");
+            expect(typeof res.isUnlocked).toBe("boolean");
+          }).not.toThrow();
+        });
+      });
+    });
+  });
 });

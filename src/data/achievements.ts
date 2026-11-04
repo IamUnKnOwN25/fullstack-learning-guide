@@ -12,7 +12,7 @@ export interface Achievement {
   icon: string;
   xpReward: number;
   badgeId?: string;
-  checkProgress: (stats: PlayerStats) => {
+  checkProgress: (stats?: PlayerStats | null) => {
     current: number;
     target: number;
     isUnlocked: boolean;
@@ -55,6 +55,35 @@ export const RARITY_CONFIG: Record<
   },
 };
 
+function getSafeArray<T>(val: unknown): T[] {
+  return Array.isArray(val) ? (val as T[]) : [];
+}
+
+export const DEFAULT_PLAYER_STATS: PlayerStats = {
+  xp: 0,
+  level: 1,
+  hp: 100,
+  maxHp: 100,
+  mana: 50,
+  maxMana: 50,
+  streak: 0,
+  rankTitle: "Initiate",
+  completedQuests: [],
+  completedBosses: [],
+  unlockedRealms: [],
+  stars: {},
+  unlockedSkills: [],
+  badges: [],
+  completedCurriculumTasks: [],
+  curriculumTaskAwards: {},
+  completedChapters: [],
+  claimedAchievements: [],
+  audioMuted: false,
+  bgmActive: false,
+  pendingLevelUp: null,
+  recentXpGain: null,
+};
+
 export const ACHIEVEMENTS: Achievement[] = [
   // Boss Vanquisher Trophies
   {
@@ -66,11 +95,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "ShieldAlert",
     xpReward: 100,
     badgeId: "slayer_of_divs",
-    checkProgress: (s) => ({
-      current: s.completedBosses.includes("html") ? 1 : 0,
-      target: 1,
-      isUnlocked: s.completedBosses.includes("html"),
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      const isUnlocked = bosses.includes("html");
+      return {
+        current: isUnlocked ? 1 : 0,
+        target: 1,
+        isUnlocked,
+      };
+    },
   },
   {
     id: "slayer_of_hydra",
@@ -81,11 +114,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Award",
     xpReward: 150,
     badgeId: "slayer_of_hydra",
-    checkProgress: (s) => ({
-      current: s.completedBosses.includes("css") ? 1 : 0,
-      target: 1,
-      isUnlocked: s.completedBosses.includes("css"),
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      const isUnlocked = bosses.includes("css");
+      return {
+        current: isUnlocked ? 1 : 0,
+        target: 1,
+        isUnlocked,
+      };
+    },
   },
   {
     id: "slayer_of_kraken",
@@ -96,11 +133,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Sparkles",
     xpReward: 200,
     badgeId: "slayer_of_kraken",
-    checkProgress: (s) => ({
-      current: s.completedBosses.includes("javascript") ? 1 : 0,
-      target: 1,
-      isUnlocked: s.completedBosses.includes("javascript"),
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      const isUnlocked = bosses.includes("javascript");
+      return {
+        current: isUnlocked ? 1 : 0,
+        target: 1,
+        isUnlocked,
+      };
+    },
   },
   {
     id: "slayer_of_any",
@@ -111,11 +152,15 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Shield",
     xpReward: 250,
     badgeId: "slayer_of_any",
-    checkProgress: (s) => ({
-      current: s.completedBosses.includes("typescript") ? 1 : 0,
-      target: 1,
-      isUnlocked: s.completedBosses.includes("typescript"),
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      const isUnlocked = bosses.includes("typescript");
+      return {
+        current: isUnlocked ? 1 : 0,
+        target: 1,
+        isUnlocked,
+      };
+    },
   },
   {
     id: "boss_halfway",
@@ -125,11 +170,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "epic",
     icon: "Sword",
     xpReward: 350,
-    checkProgress: (s) => ({
-      current: Math.min(6, s.completedBosses.length),
-      target: 6,
-      isUnlocked: s.completedBosses.length >= 6,
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      return {
+        current: Math.min(6, bosses.length),
+        target: 6,
+        isUnlocked: bosses.length >= 6,
+      };
+    },
   },
   {
     id: "all_bosses_slain",
@@ -140,11 +188,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Crown",
     xpReward: 1000,
     badgeId: "master_of_the_matrix",
-    checkProgress: (s) => ({
-      current: Math.min(12, s.completedBosses.length),
-      target: 12,
-      isUnlocked: s.completedBosses.length >= 12,
-    }),
+    checkProgress: (s) => {
+      const bosses = getSafeArray<string>(s?.completedBosses);
+      return {
+        current: Math.min(12, bosses.length),
+        target: 12,
+        isUnlocked: bosses.length >= 12,
+      };
+    },
   },
 
   // Quest & Coding Trials
@@ -169,7 +220,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     xpReward: 100,
     badgeId: "speed_coder",
     checkProgress: (s) => {
-      const hasThreeStar = Object.values(s.stars || {}).some((stars) => stars === 3);
+      const stars = s?.stars && typeof s.stars === "object" && !Array.isArray(s.stars) ? s.stars : {};
+      const hasThreeStar = Object.values(stars).some((stars) => stars === 3);
       return { current: hasThreeStar ? 1 : 0, target: 1, isUnlocked: hasThreeStar };
     },
   },
@@ -181,11 +233,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "epic",
     icon: "CheckCircle2",
     xpReward: 300,
-    checkProgress: (s) => ({
-      current: Math.min(10, s.completedQuests.length),
-      target: 10,
-      isUnlocked: s.completedQuests.length >= 10,
-    }),
+    checkProgress: (s) => {
+      const quests = getSafeArray<string>(s?.completedQuests);
+      return {
+        current: Math.min(10, quests.length),
+        target: 10,
+        isUnlocked: quests.length >= 10,
+      };
+    },
   },
   {
     id: "quest_all_24",
@@ -195,11 +250,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "legendary",
     icon: "Trophy",
     xpReward: 750,
-    checkProgress: (s) => ({
-      current: Math.min(24, s.completedQuests.length),
-      target: 24,
-      isUnlocked: s.completedQuests.length >= 24,
-    }),
+    checkProgress: (s) => {
+      const quests = getSafeArray<string>(s?.completedQuests);
+      return {
+        current: Math.min(24, quests.length),
+        target: 24,
+        isUnlocked: quests.length >= 24,
+      };
+    },
   },
   {
     id: "stars_milestone_50",
@@ -210,7 +268,8 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Star",
     xpReward: 500,
     checkProgress: (s) => {
-      const sum = Object.values(s.stars || {}).reduce((acc, st) => acc + st, 0);
+      const stars = s?.stars && typeof s.stars === "object" && !Array.isArray(s.stars) ? s.stars : {};
+      const sum = Object.values(stars).reduce((acc, st) => acc + (typeof st === "number" ? st : 0), 0);
       return { current: Math.min(50, sum), target: 50, isUnlocked: sum >= 50 };
     },
   },
@@ -224,11 +283,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "rare",
     icon: "BookOpen",
     xpReward: 150,
-    checkProgress: (s) => ({
-      current: Math.min(25, (s.completedCurriculumTasks || []).length),
-      target: 25,
-      isUnlocked: (s.completedCurriculumTasks || []).length >= 25,
-    }),
+    checkProgress: (s) => {
+      const tasks = getSafeArray<string>(s?.completedCurriculumTasks);
+      return {
+        current: Math.min(25, tasks.length),
+        target: 25,
+        isUnlocked: tasks.length >= 25,
+      };
+    },
   },
   {
     id: "chapters_milestone_5",
@@ -238,11 +300,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "epic",
     icon: "BookOpen",
     xpReward: 250,
-    checkProgress: (s) => ({
-      current: Math.min(5, (s.completedChapters || []).length),
-      target: 5,
-      isUnlocked: (s.completedChapters || []).length >= 5,
-    }),
+    checkProgress: (s) => {
+      const chapters = getSafeArray<string>(s?.completedChapters);
+      return {
+        current: Math.min(5, chapters.length),
+        target: 5,
+        isUnlocked: chapters.length >= 5,
+      };
+    },
   },
   {
     id: "chapters_all_13",
@@ -252,11 +317,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "mythic",
     icon: "Crown",
     xpReward: 800,
-    checkProgress: (s) => ({
-      current: Math.min(13, (s.completedChapters || []).length),
-      target: 13,
-      isUnlocked: (s.completedChapters || []).length >= 13,
-    }),
+    checkProgress: (s) => {
+      const chapters = getSafeArray<string>(s?.completedChapters);
+      return {
+        current: Math.min(13, chapters.length),
+        target: 13,
+        isUnlocked: chapters.length >= 13,
+      };
+    },
   },
 
   // Mastery & Progression
@@ -269,11 +337,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     icon: "Zap",
     xpReward: 100,
     badgeId: "skill_pioneer",
-    checkProgress: (s) => ({
-      current: s.unlockedSkills.length > 0 ? 1 : 0,
-      target: 1,
-      isUnlocked: s.unlockedSkills.length > 0,
-    }),
+    checkProgress: (s) => {
+      const skills = getSafeArray<string>(s?.unlockedSkills);
+      return {
+        current: skills.length > 0 ? 1 : 0,
+        target: 1,
+        isUnlocked: skills.length > 0,
+      };
+    },
   },
   {
     id: "streak_7_days",
@@ -283,11 +354,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "epic",
     icon: "Flame",
     xpReward: 400,
-    checkProgress: (s) => ({
-      current: Math.min(7, s.streak || 1),
-      target: 7,
-      isUnlocked: (s.streak || 1) >= 7,
-    }),
+    checkProgress: (s) => {
+      const streak = typeof s?.streak === "number" && !isNaN(s.streak) ? (s.streak || 1) : 1;
+      return {
+        current: Math.min(7, streak),
+        target: 7,
+        isUnlocked: streak >= 7,
+      };
+    },
   },
   {
     id: "level_25",
@@ -297,11 +371,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     rarity: "legendary",
     icon: "Award",
     xpReward: 500,
-    checkProgress: (s) => ({
-      current: Math.min(25, s.level),
-      target: 25,
-      isUnlocked: s.level >= 25,
-    }),
+    checkProgress: (s) => {
+      const level = typeof s?.level === "number" && !isNaN(s.level) ? s.level : 1;
+      return {
+        current: Math.min(25, level),
+        target: 25,
+        isUnlocked: level >= 25,
+      };
+    },
   },
   {
     id: "matrix_archmage_mastery",
@@ -313,7 +390,9 @@ export const ACHIEVEMENTS: Achievement[] = [
     xpReward: 1500,
     badgeId: "grandmaster_matrix",
     checkProgress: (s) => {
-      const unlocked = s.level >= 50 && s.unlockedSkills.includes("matrix_grandmaster");
+      const level = typeof s?.level === "number" && !isNaN(s.level) ? s.level : 1;
+      const skills = getSafeArray<string>(s?.unlockedSkills);
+      const unlocked = level >= 50 && skills.includes("matrix_grandmaster");
       return { current: unlocked ? 1 : 0, target: 1, isUnlocked: unlocked };
     },
   },
@@ -358,8 +437,8 @@ export interface AchievementProgressSummary {
  * Calculate comprehensive achievement unlock and claim statistics for given player stats.
  */
 export function calculateAchievementProgress(
-  stats: PlayerStats,
-  claimedList: string[] = stats.claimedAchievements || []
+  stats?: PlayerStats | null,
+  claimedList?: string[]
 ): AchievementProgressSummary {
   const total = ACHIEVEMENTS.length;
   if (total === 0) {
@@ -374,26 +453,34 @@ export function calculateAchievementProgress(
     };
   }
 
+  const safeStats: PlayerStats = stats ? { ...DEFAULT_PLAYER_STATS, ...stats } : DEFAULT_PLAYER_STATS;
+  const safeClaimed = Array.isArray(claimedList)
+    ? claimedList
+    : (Array.isArray(safeStats.claimedAchievements) ? safeStats.claimedAchievements : []);
+
   let unlocked = 0;
   let claimed = 0;
+  let claimable = 0;
   let totalXpAvailable = 0;
   let totalXpClaimed = 0;
 
   for (const ach of ACHIEVEMENTS) {
     totalXpAvailable += ach.xpReward;
-    const isUnlocked = ach.checkProgress(stats).isUnlocked;
+    const isClaimed = safeClaimed.includes(ach.id);
+    const progress = ach.checkProgress(safeStats);
+    const isUnlocked = Boolean(progress && progress.isUnlocked);
+
     if (isUnlocked) {
       unlocked++;
+      if (!isClaimed) {
+        claimable++;
+      }
     }
-    if (claimedList.includes(ach.id)) {
+    if (isClaimed) {
       claimed++;
       totalXpClaimed += ach.xpReward;
     }
   }
-
-  const claimable = ACHIEVEMENTS.filter(
-    (a) => a.checkProgress(stats).isUnlocked && !claimedList.includes(a.id)
-  ).length;
 
   const percentUnlocked = Math.round((unlocked / total) * 100);
 
