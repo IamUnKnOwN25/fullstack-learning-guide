@@ -72,10 +72,10 @@ describe("WorldCampaignMap Component", () => {
     const gridBtn = screen.getByRole("button", { name: /switch to grid view/i });
     fireEvent.click(gridBtn);
 
-    const backendFilter = screen.getByRole("button", { name: /backend & db/i });
+    const backendFilter = screen.getByRole("tab", { name: /backend & db/i });
     fireEvent.click(backendFilter);
 
-    expect(backendFilter.getAttribute("aria-pressed")).toBe("true");
+    expect(backendFilter.getAttribute("aria-selected")).toBe("true");
     expect(
       screen.getByRole("heading", { name: "Node.js & Server Architecture", level: 3 })
     ).toBeDefined();
@@ -204,5 +204,90 @@ describe("WorldCampaignMap Component", () => {
     fireEvent.click(victoryBtn);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("victory");
+  });
+
+  it("provides keyboard accessible grid-view realm cards with Enter and Space handlers", () => {
+    render(<WorldCampaignMap />);
+
+    // Switch to grid view
+    const gridBtn = screen.getByRole("button", { name: /switch to grid view/i });
+    fireEvent.click(gridBtn);
+
+    // CSS card heading
+    const cssHeading = screen.getByRole("heading", { name: "CSS, Flexbox & Grid", level: 3 });
+    const cssCard = cssHeading.closest("[role='button']");
+    expect(cssCard).not.toBeNull();
+    expect(cssCard?.getAttribute("tabindex")).toBe("0");
+
+    // Keydown other key (e.g. Escape) does not select
+    fireEvent.keyDown(cssCard!, { key: "Escape" });
+    expect(screen.queryByRole("heading", { name: "CSS, Flexbox & Grid", level: 2 })).toBeNull();
+
+    // Keydown Enter selects realm card
+    fireEvent.keyDown(cssCard!, { key: "Enter" });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(
+      screen.getByRole("heading", { name: "CSS, Flexbox & Grid", level: 2 })
+    ).toBeDefined();
+
+    // Close inspector
+    const closeBtn = screen.getByRole("button", { name: /close realm inspector/i });
+    fireEvent.click(closeBtn);
+    expect(screen.queryByRole("heading", { name: "CSS, Flexbox & Grid", level: 2 })).toBeNull();
+
+    // Keydown Space selects realm card
+    const jsHeading = screen.getByRole("heading", { name: "Modern JavaScript (ES6+)", level: 3 });
+    const jsCard = jsHeading.closest("[role='button']");
+    expect(jsCard?.getAttribute("tabindex")).toBe("0");
+
+    fireEvent.keyDown(jsCard!, { key: " " });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(
+      screen.getByRole("heading", { name: "Modern JavaScript (ES6+)", level: 2 })
+    ).toBeDefined();
+  });
+
+  it("renders category filter pills within role='tablist' with proper role='tab' and aria-selected", () => {
+    render(<WorldCampaignMap />);
+
+    const tablist = screen.getByRole("tablist", { name: /realm categories/i });
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.length).toBe(5);
+
+    const allTab = screen.getByRole("tab", { name: /all realms/i });
+    const devopsTab = screen.getByRole("tab", { name: /devops & qa/i });
+
+    expect(allTab.getAttribute("aria-selected")).toBe("true");
+    expect(devopsTab.getAttribute("aria-selected")).toBe("false");
+
+    fireEvent.click(devopsTab);
+    expect(allTab.getAttribute("aria-selected")).toBe("false");
+    expect(devopsTab.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("announces filtered search result count via role='status' aria-live='polite' region", () => {
+    render(<WorldCampaignMap />);
+
+    const liveRegion = screen.getByRole("status");
+    expect(liveRegion.getAttribute("aria-live")).toBe("polite");
+    expect(liveRegion.textContent).toBe("12 realms found");
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /search realms and skills/i,
+    });
+
+    // Single match
+    fireEvent.change(searchInput, { target: { value: "sanctuary" } });
+    expect(liveRegion.textContent).toBe("1 realm found");
+
+    // Zero matches
+    fireEvent.change(searchInput, { target: { value: "zzzznonexistent" } });
+    expect(liveRegion.textContent).toBe("0 realms found");
+
+    // Reset via empty input
+    fireEvent.change(searchInput, { target: { value: "" } });
+    expect(liveRegion.textContent).toBe("12 realms found");
   });
 });

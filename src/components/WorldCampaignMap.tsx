@@ -206,7 +206,7 @@ export function WorldCampaignMap() {
       {/* Realm Filter & Search Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-matrix-card/60 p-3.5 rounded-xl border border-matrix-border">
         {/* Category Filter Pills (Horizontal swipe on mobile) */}
-        <div className="flex items-center gap-1.5 font-mono text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
+        <div role="tablist" aria-label="Realm categories" className="flex items-center gap-1.5 font-mono text-xs overflow-x-auto pb-1 sm:pb-0 scrollbar-none max-w-full">
           {(
             [
               { id: "all", label: "All Realms (12)" },
@@ -218,7 +218,8 @@ export function WorldCampaignMap() {
           ).map((cat) => (
             <button
               key={cat.id}
-              aria-pressed={activeCategory === cat.id}
+              role="tab"
+              aria-selected={activeCategory === cat.id}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setActiveCategory(cat.id);
@@ -277,6 +278,9 @@ export function WorldCampaignMap() {
           {/* Quick Search Input */}
           <div className="relative sm:w-56">
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
+            <div role="status" aria-live="polite" className="sr-only">
+              {filteredRealms.length} {filteredRealms.length === 1 ? "realm" : "realms"} found
+            </div>
             <input
               type="text"
               placeholder="Search realms, skills..."
@@ -342,6 +346,20 @@ export function WorldCampaignMap() {
                 return (
                   <div
                     key={realm.id}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        soundEngine.playSfx("click");
+                        setSelectedRealm(realm);
+                        if (typeof window !== "undefined" && window.innerWidth < 1024) {
+                          setTimeout(() => {
+                            document.getElementById("realm-inspector")?.scrollIntoView({ behavior: "smooth" });
+                          }, 50);
+                        }
+                      }
+                    }}
                 onClick={() => {
                   soundEngine.playSfx("click");
                   setSelectedRealm(realm);
@@ -417,6 +435,7 @@ export function WorldCampaignMap() {
                   <div
                     className="flex flex-wrap items-center gap-1.5"
                     onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
                   >
                     {realmQuests.map((rq) => (
                       <Link
