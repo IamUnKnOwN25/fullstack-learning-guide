@@ -1112,7 +1112,88 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
       </div>
 
       {/* Mobile Segmented Mode Switcher */}
-      <div className="md:hidden grid grid-cols-4 gap-1 p-1 bg-matrix-card border border-matrix-border rounded-xl text-xs font-bold shrink-0">
+      <div role="tablist" aria-label="Mobile mode switcher" className="md:hidden grid grid-cols-4 gap-1 p-1 bg-matrix-card border border-matrix-border rounded-xl text-xs font-bold shrink-0">
+        <button
+          type="button"
+          role="tab"
+          id="mobile-tab-editor"
+          aria-selected={mobileIdeTab === "editor"}
+          aria-controls="mobile-panel-editor"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("editor");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "editor"
+              ? "bg-matrix-accent/20 text-matrix-accent border border-matrix-accent/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Code className="w-3.5 h-3.5" />
+          <span>Code</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="mobile-tab-preview"
+          aria-selected={mobileIdeTab === "preview"}
+          aria-controls="mobile-panel-preview"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("preview");
+            handleRunProject();
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "preview"
+              ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span>Preview</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="mobile-tab-files"
+          aria-selected={mobileIdeTab === "files"}
+          aria-controls="mobile-panel-files"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("files");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "files"
+              ? "bg-matrix-neonPurple/20 text-matrix-neonPurple border border-matrix-neonPurple/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          <span>Files ({files.length})</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="mobile-tab-terminal"
+          aria-selected={mobileIdeTab === "terminal"}
+          aria-controls="mobile-panel-terminal"
+          onClick={() => {
+            soundEngine.playSfx("click");
+            setMobileIdeTab("terminal");
+            setBottomPanelOpen(true);
+            setBottomTab("terminal");
+          }}
+          className={`py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileIdeTab === "terminal"
+              ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/40 shadow-sm"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Terminal className="w-3.5 h-3.5" />
+          <span>Shell</span>
+        </button>
+        {false && (
+          <div>
         <button
           type="button"
           onClick={() => {
@@ -1173,6 +1254,10 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
         >
           <Terminal className="w-3.5 h-3.5" />
           <span>Shell</span>
+        </button>
+        </div>
+      )}
+      <button className="hidden">
         </button>
       </div>
 
@@ -1272,6 +1357,8 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           {/* Collapsible VS Code Sidebar (Explorer / Search / Snippets) */}
           {(sidebarTab || mobileIdeTab === "files") && (
             <div
+              id="mobile-panel-files"
+              aria-labelledby="mobile-tab-files"
               className={`bg-matrix-dark/70 border-matrix-border flex flex-col overflow-hidden ${
                 mobileIdeTab === "files"
                   ? "w-full md:hidden flex-1"
@@ -1581,6 +1668,8 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
           >
             {/* Code Editor Pane */}
             <div
+              id="mobile-panel-editor"
+              aria-labelledby="mobile-tab-editor"
               className={`flex-1 min-w-0 flex flex-col overflow-hidden ${
                 viewMode === "split" ? "lg:border-r border-matrix-border" : ""
               } ${
@@ -1879,6 +1968,8 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
             {/* Right Pane: Live Browser Preview */}
             <div
+              id="mobile-panel-preview"
+              aria-labelledby="mobile-tab-preview"
               className={`flex-1 min-w-0 flex flex-col bg-matrix-dark overflow-hidden min-h-[340px] md:min-h-[420px] ${
                 mobileIdeTab === "preview" ? "flex" : "hidden"
               } ${
@@ -2013,12 +2104,79 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
 
         {/* Bottom Panel: Integrated Terminal, Live Console & Linter Problems */}
         <div
+          id="mobile-panel-terminal"
+          aria-labelledby="mobile-tab-terminal"
           className={`border-t border-matrix-border bg-matrix-dark flex-col ${
             mobileIdeTab === "terminal" ? "flex flex-1" : "hidden"
           } md:flex shrink-0`}
         >
           <div className="px-3 py-1.5 bg-matrix-card/90 border-b border-matrix-border flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 overflow-x-auto">
+            <div
+              role="tablist"
+              aria-label="Bottom panel tabs"
+              className="flex items-center gap-2 overflow-x-auto"
+            >
+              <button
+                type="button"
+                role="tab"
+                id="bottom-tab-console"
+                aria-selected={(bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "console"}
+                aria-controls="bottom-panel-console"
+                onClick={() => {
+                  setBottomPanelOpen(true);
+                  setBottomTab("console");
+                }}
+                className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "console"
+                    ? "bg-matrix-neonCyan/20 text-matrix-neonCyan border border-matrix-neonCyan/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Layers className="w-3 h-3 shrink-0" />
+                <span>CONSOLE ({consoleLogs.length})</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                id="bottom-tab-terminal"
+                aria-selected={(bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "terminal"}
+                aria-controls="bottom-panel-terminal"
+                onClick={() => {
+                  setBottomPanelOpen(true);
+                  setBottomTab("terminal");
+                }}
+                className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "terminal"
+                    ? "bg-matrix-accent/20 text-matrix-accent border border-matrix-accent/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <Terminal className="w-3 h-3 shrink-0" />
+                <span>TERMINAL (matrix-sh)</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                id="bottom-tab-problems"
+                aria-selected={(bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "problems"}
+                aria-controls="bottom-panel-problems"
+                onClick={() => {
+                  setBottomPanelOpen(true);
+                  setBottomTab("problems");
+                }}
+                className={`px-2.5 py-1 rounded font-bold text-[11px] flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  (bottomPanelOpen || mobileIdeTab === "terminal") && bottomTab === "problems"
+                    ? "bg-matrix-neonGold/20 text-matrix-neonGold border border-matrix-neonGold/40"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+                <span>PROBLEMS ({diagnostics.length})</span>
+              </button>
+              {false && (
+                <div>
               <button
                 type="button"
                 onClick={() => {
@@ -2066,6 +2224,10 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
                 <AlertTriangle className="w-3 h-3 shrink-0" />
                 <span>PROBLEMS ({diagnostics.length})</span>
               </button>
+              </div>
+            )}
+            <button className="hidden">
+              </button>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
@@ -2100,7 +2262,43 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               } overflow-y-auto p-3 text-xs font-mono space-y-1.5 select-text`}
             >
               {bottomTab === "console" && (
-                <div className="space-y-1">
+                <div
+                  id="bottom-panel-console"
+                  role="tabpanel"
+                  aria-labelledby="bottom-tab-console"
+                  className="space-y-1"
+                >
+                  <div role="log" aria-live="polite" aria-label="Console output" className="space-y-1">
+                    {consoleLogs.length === 0 ? (
+                      <div className="text-gray-500 italic">
+                        Console is clean. Use console.log() in your JS/TS files and press Run & Preview.
+                      </div>
+                    ) : (
+                      consoleLogs.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className={`px-2.5 py-1 rounded border flex items-start justify-between gap-3 ${
+                            entry.level === "error"
+                              ? "bg-red-950/30 border-red-800/50 text-matrix-neonRed"
+                              : entry.level === "warn"
+                              ? "bg-amber-950/30 border-amber-800/50 text-amber-300"
+                              : entry.level === "system"
+                              ? "bg-matrix-card/60 border-matrix-border text-matrix-neonCyan"
+                              : "bg-black/40 border-matrix-border/50 text-matrix-accent"
+                          }`}
+                        >
+                          <span className="whitespace-pre-wrap break-all">{entry.text}</span>
+                          <span className="text-[10px] text-gray-500 whitespace-nowrap shrink-0">
+                            {entry.timestamp}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+              {false && bottomTab === "console" && (
+                <div>
                   {consoleLogs.length === 0 ? (
                     <div className="text-gray-500 italic">
                       Console is clean. Use console.log() in your JS/TS files and press Run & Preview.
@@ -2130,6 +2328,44 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               )}
 
               {bottomTab === "terminal" && (
+                <div
+                  id="bottom-panel-terminal"
+                  role="tabpanel"
+                  aria-labelledby="bottom-tab-terminal"
+                  className="space-y-1.5"
+                >
+                  <div role="log" aria-live="polite" aria-label="Terminal output" className="space-y-1.5">
+                    {terminalHistory.map((line, i) => (
+                      <div
+                        key={i}
+                        className={
+                          line.startsWith("$")
+                            ? "text-matrix-neonCyan font-bold"
+                            : line.startsWith("RuntimeError")
+                            ? "text-matrix-neonRed"
+                            : "text-gray-300 whitespace-pre-wrap"
+                        }
+                      >
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                  <form onSubmit={handleTerminalCommand} className="flex items-center gap-2 pt-1">
+                    <span className="text-matrix-accent font-bold shrink-0">
+                      operator@matrix-ide:~$
+                    </span>
+                    <input
+                      type="text"
+                      value={terminalInput}
+                      onChange={(e) => setTerminalInput(e.target.value)}
+                      aria-label="Matrix interactive shell terminal input"
+                      placeholder="Type a command (help, ls, node app.js, cat index.html, clear)..."
+                      className="w-full bg-transparent text-white outline-none text-xs font-mono"
+                    />
+                  </form>
+                </div>
+              )}
+              {false && bottomTab === "terminal" && (
                 <div className="space-y-1.5">
                   {terminalHistory.map((line, i) => (
                     <div
@@ -2162,6 +2398,42 @@ export function OnlineMatrixIde({ initialQuestId }: Props) {
               )}
 
               {bottomTab === "problems" && (
+                <div
+                  id="bottom-panel-problems"
+                  role="tabpanel"
+                  aria-labelledby="bottom-tab-problems"
+                  className="space-y-1.5"
+                >
+                  {diagnostics.length === 0 ? (
+                    <div className="flex items-center gap-2 text-matrix-accent">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>No static analysis problems detected across workspace files.</span>
+                    </div>
+                  ) : (
+                    diagnostics.map((d, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          if (!openTabs.includes(d.file)) setOpenTabs([...openTabs, d.file]);
+                          setActiveFileName(d.file);
+                          setMobileIdeTab("editor");
+                        }}
+                        className="w-full text-left px-3 py-1.5 rounded bg-matrix-card border border-matrix-border hover:border-matrix-neonGold flex items-center justify-between gap-2"
+                      >
+                        <span className="text-amber-300 flex items-center gap-2">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span>{d.message}</span>
+                        </span>
+                        <span className="text-[10px] text-matrix-neonCyan whitespace-nowrap shrink-0">
+                          {d.file}:{d.line}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+              {false && bottomTab === "problems" && (
                 <div className="space-y-1.5">
                   {diagnostics.length === 0 ? (
                     <div className="flex items-center gap-2 text-matrix-accent">

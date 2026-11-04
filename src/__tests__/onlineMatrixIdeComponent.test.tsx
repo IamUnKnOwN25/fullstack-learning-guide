@@ -126,7 +126,7 @@ describe("OnlineMatrixIde Component", () => {
     render(<OnlineMatrixIde />);
 
     // Open terminal tab at bottom
-    const terminalBottomTab = screen.getByRole("button", {
+    const terminalBottomTab = screen.getByRole("tab", {
       name: /terminal \(matrix-sh\)/i,
     });
     fireEvent.click(terminalBottomTab);
@@ -196,6 +196,118 @@ describe("OnlineMatrixIde Component", () => {
     });
     expect(closeIndexBtn).toBeDefined();
     expect(closeIndexBtn.getAttribute("aria-label")).toBe("Close index.html");
+  });
+
+  it("provides tablist semantics, tab controls, and log live regions for bottom panel", () => {
+    render(<OnlineMatrixIde />);
+
+    const bottomTablist = screen.getByRole("tablist", {
+      name: /bottom panel tabs/i,
+    });
+    expect(bottomTablist).toBeDefined();
+
+    const consoleTab = screen.getByRole("tab", { name: /console/i });
+    const terminalTab = screen.getByRole("tab", { name: /terminal/i });
+    const problemsTab = screen.getByRole("tab", { name: /problems/i });
+
+    expect(consoleTab).toBeDefined();
+    expect(terminalTab).toBeDefined();
+    expect(problemsTab).toBeDefined();
+
+    expect(consoleTab.getAttribute("aria-controls")).toBe("bottom-panel-console");
+    expect(terminalTab.getAttribute("aria-controls")).toBe("bottom-panel-terminal");
+    expect(problemsTab.getAttribute("aria-controls")).toBe("bottom-panel-problems");
+
+    // Initially bottom panel is closed, so tabs are not selected
+    expect(consoleTab.getAttribute("aria-selected")).toBe("false");
+    expect(terminalTab.getAttribute("aria-selected")).toBe("false");
+    expect(problemsTab.getAttribute("aria-selected")).toBe("false");
+
+    // Open Console tab
+    fireEvent.click(consoleTab);
+    expect(consoleTab.getAttribute("aria-selected")).toBe("true");
+    expect(terminalTab.getAttribute("aria-selected")).toBe("false");
+    expect(problemsTab.getAttribute("aria-selected")).toBe("false");
+
+    const consolePanel = screen.getByRole("tabpanel", { name: /console/i });
+    expect(consolePanel).toBeDefined();
+    expect(consolePanel.id).toBe("bottom-panel-console");
+
+    const consoleLog = screen.getByRole("log", { name: /console output/i });
+    expect(consoleLog).toBeDefined();
+    expect(consoleLog.getAttribute("aria-live")).toBe("polite");
+
+    // Switch to Terminal tab
+    fireEvent.click(terminalTab);
+    expect(terminalTab.getAttribute("aria-selected")).toBe("true");
+    expect(consoleTab.getAttribute("aria-selected")).toBe("false");
+
+    const terminalPanel = screen.getByRole("tabpanel", { name: /terminal/i });
+    expect(terminalPanel).toBeDefined();
+    expect(terminalPanel.id).toBe("bottom-panel-terminal");
+
+    const terminalLog = screen.getByRole("log", { name: /terminal output/i });
+    expect(terminalLog).toBeDefined();
+    expect(terminalLog.getAttribute("aria-live")).toBe("polite");
+
+    // Switch to Problems tab
+    fireEvent.click(problemsTab);
+    expect(problemsTab.getAttribute("aria-selected")).toBe("true");
+    expect(terminalTab.getAttribute("aria-selected")).toBe("false");
+
+    const problemsPanel = screen.getByRole("tabpanel", { name: /problems/i });
+    expect(problemsPanel).toBeDefined();
+    expect(problemsPanel.id).toBe("bottom-panel-problems");
+  });
+
+  it("provides mobile segmented mode switcher tablist semantics and tab controls", () => {
+    render(<OnlineMatrixIde />);
+
+    const mobileTablist = screen.getByRole("tablist", {
+      name: /mobile mode switcher/i,
+    });
+    expect(mobileTablist).toBeDefined();
+
+    const codeTab = screen.getByRole("tab", { name: /code/i });
+    const previewTab = screen.getByRole("tab", { name: /preview/i });
+    const filesTab = screen.getByRole("tab", { name: /files/i });
+    const shellTab = screen.getByRole("tab", { name: /shell/i });
+
+    expect(codeTab).toBeDefined();
+    expect(previewTab).toBeDefined();
+    expect(filesTab).toBeDefined();
+    expect(shellTab).toBeDefined();
+
+    expect(codeTab.getAttribute("aria-controls")).toBe("mobile-panel-editor");
+    expect(previewTab.getAttribute("aria-controls")).toBe("mobile-panel-preview");
+    expect(filesTab.getAttribute("aria-controls")).toBe("mobile-panel-files");
+    expect(shellTab.getAttribute("aria-controls")).toBe("mobile-panel-terminal");
+
+    // Default mode is code editor
+    expect(codeTab.getAttribute("aria-selected")).toBe("true");
+    expect(previewTab.getAttribute("aria-selected")).toBe("false");
+    expect(filesTab.getAttribute("aria-selected")).toBe("false");
+    expect(shellTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to preview mode
+    fireEvent.click(previewTab);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(previewTab.getAttribute("aria-selected")).toBe("true");
+    expect(codeTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to files mode
+    fireEvent.click(filesTab);
+    expect(filesTab.getAttribute("aria-selected")).toBe("true");
+    expect(previewTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to shell mode
+    fireEvent.click(shellTab);
+    expect(shellTab.getAttribute("aria-selected")).toBe("true");
+    expect(filesTab.getAttribute("aria-selected")).toBe("false");
+
+    // When shell mode is selected on mobile, bottom terminal panel is rendered with tabpanel semantics
+    const terminalPanel = screen.getByRole("tabpanel", { name: /terminal/i });
+    expect(terminalPanel).toBeDefined();
   });
 
   it("resets modified files when clicking Reset Project Code", () => {
