@@ -103,6 +103,13 @@ describe("saveManager", () => {
       expect(deserializeSaveData(JSON.stringify({ xp: -50 }))).toBeNull();
       expect(deserializeSaveData(JSON.stringify({ level: 0 }))).toBeNull();
       expect(deserializeSaveData(JSON.stringify({ level: -1 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ hp: -10 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ maxHp: 0 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ maxHp: -100 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ mana: -5 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ maxMana: 0 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ maxMana: -50 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ streak: -1 }))).toBeNull();
     });
 
     it("should reject non-string items within string array fields", () => {
@@ -126,6 +133,11 @@ describe("saveManager", () => {
       expect(deserializeSaveData(JSON.stringify({ audioMuted: "false" }))).toBeNull();
       expect(deserializeSaveData(JSON.stringify({ bgmActive: 1 }))).toBeNull();
       expect(deserializeSaveData(JSON.stringify({ rankTitle: 999 }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ stars: { html_1: NaN } }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ stars: { html_1: Infinity } }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ stars: { html_1: -Infinity } }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ curriculumTaskAwards: { task_1: NaN } }))).toBeNull();
+      expect(deserializeSaveData(JSON.stringify({ curriculumTaskAwards: { task_1: Infinity } }))).toBeNull();
     });
 
     it("should drop invalid fields but keep valid ones in direct parsing mode", () => {
@@ -189,6 +201,18 @@ describe("saveManager", () => {
       expect(isValidStatsObject({ maxMana: Infinity })).toBe(false);
       expect(isValidStatsObject({ streak: Infinity })).toBe(false);
       expect(deserializeSaveData(JSON.stringify({ xp: Infinity }))).toBeNull();
+      expect(isValidStatsObject({ hp: -1 })).toBe(false);
+      expect(isValidStatsObject({ maxHp: 0 })).toBe(false);
+      expect(isValidStatsObject({ maxHp: -50 })).toBe(false);
+      expect(isValidStatsObject({ mana: -1 })).toBe(false);
+      expect(isValidStatsObject({ maxMana: 0 })).toBe(false);
+      expect(isValidStatsObject({ maxMana: -25 })).toBe(false);
+      expect(isValidStatsObject({ streak: -1 })).toBe(false);
+      expect(isValidStatsObject({ hp: 0, maxHp: 1, mana: 0, maxMana: 1, streak: 0 })).toBe(true);
+      expect(isValidStatsObject({ stars: { html_1: NaN } })).toBe(false);
+      expect(isValidStatsObject({ stars: { html_1: Infinity } })).toBe(false);
+      expect(isValidStatsObject({ curriculumTaskAwards: { task_1: NaN } })).toBe(false);
+      expect(isValidStatsObject({ curriculumTaskAwards: { task_1: Infinity } })).toBe(false);
     });
   });
 
@@ -261,6 +285,39 @@ describe("saveManager", () => {
       expect(migrated.data.mana).toBe(50);
       expect(migrated.data.maxMana).toBe(50);
       expect(migrated.data.streak).toBe(0);
+    });
+
+    it("validates dictionary entries and drops or resets invalid entries during migration", () => {
+      const corrupted = {
+        data: {
+          stars: {
+            validQuest: 3,
+            nanQuest: NaN,
+            infQuest: Infinity,
+            negInfQuest: -Infinity,
+            strQuest: "bad" as any,
+          },
+          curriculumTaskAwards: {
+            validTask: 50,
+            nanTask: NaN,
+            infTask: Infinity,
+            strTask: "wrong" as any,
+          },
+        },
+      };
+      const migrated = migrateSaveData(corrupted as any);
+      expect(migrated.data.stars).toEqual({ validQuest: 3 });
+      expect(migrated.data.curriculumTaskAwards).toEqual({ validTask: 50 });
+
+      const corruptedTypes = {
+        data: {
+          stars: "not-an-object",
+          curriculumTaskAwards: [1, 2, 3],
+        },
+      };
+      const migratedReset = migrateSaveData(corruptedTypes as any);
+      expect(migratedReset.data.stars).toEqual({});
+      expect(migratedReset.data.curriculumTaskAwards).toEqual({});
     });
 
     it("handles UTF-8 strings in base64 encoding without deprecated escape/unescape", () => {

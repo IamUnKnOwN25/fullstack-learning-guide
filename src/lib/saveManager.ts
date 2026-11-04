@@ -25,11 +25,11 @@ export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
 
   if ("xp" in o && (typeof o.xp !== "number" || o.xp < 0 || !Number.isFinite(o.xp))) return false;
   if ("level" in o && (typeof o.level !== "number" || o.level < 1 || !Number.isFinite(o.level))) return false;
-  if ("hp" in o && (typeof o.hp !== "number" || !Number.isFinite(o.hp))) return false;
-  if ("maxHp" in o && (typeof o.maxHp !== "number" || !Number.isFinite(o.maxHp))) return false;
-  if ("mana" in o && (typeof o.mana !== "number" || !Number.isFinite(o.mana))) return false;
-  if ("maxMana" in o && (typeof o.maxMana !== "number" || !Number.isFinite(o.maxMana))) return false;
-  if ("streak" in o && (typeof o.streak !== "number" || !Number.isFinite(o.streak))) return false;
+  if ("hp" in o && (typeof o.hp !== "number" || !Number.isFinite(o.hp) || o.hp < 0)) return false;
+  if ("maxHp" in o && (typeof o.maxHp !== "number" || !Number.isFinite(o.maxHp) || o.maxHp <= 0)) return false;
+  if ("mana" in o && (typeof o.mana !== "number" || !Number.isFinite(o.mana) || o.mana < 0)) return false;
+  if ("maxMana" in o && (typeof o.maxMana !== "number" || !Number.isFinite(o.maxMana) || o.maxMana <= 0)) return false;
+  if ("streak" in o && (typeof o.streak !== "number" || !Number.isFinite(o.streak) || o.streak < 0)) return false;
   if ("rankTitle" in o && typeof o.rankTitle !== "string") return false;
 
   const arrayFields = [
@@ -55,14 +55,14 @@ export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
 
   if (
     "stars" in o &&
-    (typeof o.stars !== "object" || o.stars === null || Array.isArray(o.stars))
+    (typeof o.stars !== "object" || o.stars === null || Array.isArray(o.stars) || !Object.values(o.stars as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v)))
   )
     return false;
   if (
     "curriculumTaskAwards" in o &&
     (typeof o.curriculumTaskAwards !== "object" ||
       o.curriculumTaskAwards === null ||
-      Array.isArray(o.curriculumTaskAwards))
+      Array.isArray(o.curriculumTaskAwards) || !Object.values(o.curriculumTaskAwards as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v)))
   )
     return false;
   if ("audioMuted" in o && typeof o.audioMuted !== "boolean") return false;
@@ -145,6 +145,34 @@ export function migrateSaveData(save: Partial<SaveFile>): SaveFile {
   if (typeof rawData.mana !== "number" || !Number.isFinite(rawData.mana) || rawData.mana < 0) rawData.mana = 50;
   if (typeof rawData.maxMana !== "number" || !Number.isFinite(rawData.maxMana) || rawData.maxMana <= 0) rawData.maxMana = 50;
   if (typeof rawData.streak !== "number" || !Number.isFinite(rawData.streak) || rawData.streak < 0) rawData.streak = 0;
+  if (typeof rawData.stars !== "object" || rawData.stars === null || Array.isArray(rawData.stars)) {
+    rawData.stars = {};
+  } else {
+    const cleanStars: Record<string, number> = {};
+    for (const [key, val] of Object.entries(rawData.stars)) {
+      if (typeof val === "number" && Number.isFinite(val)) {
+        cleanStars[key] = val;
+      }
+    }
+    rawData.stars = cleanStars;
+  }
+  if (rawData.curriculumTaskAwards !== undefined) {
+    if (
+      typeof rawData.curriculumTaskAwards !== "object" ||
+      rawData.curriculumTaskAwards === null ||
+      Array.isArray(rawData.curriculumTaskAwards)
+    ) {
+      rawData.curriculumTaskAwards = {};
+    } else {
+      const cleanAwards: Record<string, number> = {};
+      for (const [key, val] of Object.entries(rawData.curriculumTaskAwards)) {
+        if (typeof val === "number" && Number.isFinite(val)) {
+          cleanAwards[key] = val;
+        }
+      }
+      rawData.curriculumTaskAwards = cleanAwards;
+    }
+  }
 
   return {
     version: SAVE_FORMAT_VERSION,
