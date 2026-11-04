@@ -174,11 +174,11 @@ function RichMarkdownViewer({
           key={`table-${key}`}
           className="my-4 overflow-x-auto rounded-xl border border-matrix-border shadow-md"
         >
-          <table className="w-full text-left font-mono text-xs border-collapse">
+          <table aria-label="Curriculum reference table" className="w-full text-left font-mono text-xs border-collapse">
             <thead>
               <tr className="bg-matrix-dark border-b border-matrix-border text-matrix-neonCyan font-bold">
                 {headerRow.map((col, idx) => (
-                  <th key={idx} className="p-3 border-r border-matrix-border/50 last:border-r-0">
+                  <th key={idx} scope="col" className="p-3 border-r border-matrix-border/50 last:border-r-0">
                     {formatInlineText(col.trim())}
                   </th>
                 ))}
@@ -600,6 +600,8 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 flex-1 min-h-0">
         {/* Left Sidebar: File List */}
         <div
+          role="navigation"
+          aria-label="Curriculum chapters"
           className={`bg-matrix-card border border-matrix-border rounded-xl p-3.5 flex-col gap-3 overflow-hidden ${
             focusReader ? "hidden" : "hidden md:flex md:col-span-4 lg:col-span-3"
           }`}
@@ -629,6 +631,11 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
             )}
           </div>
 
+          <div role="status" aria-live="polite" className="sr-only">
+            {searchQuery
+              ? `${filteredDocs.length} matching ${filteredDocs.length === 1 ? "chapter" : "chapters"}`
+              : `${filteredDocs.length} chapters available`}
+          </div>
           <div className="flex-1 overflow-y-auto space-y-1 pr-1">
             {filteredDocs.length === 0 ? (
               <div className="py-8 px-3 text-center text-xs font-mono text-gray-400 space-y-1">
@@ -749,7 +756,7 @@ export function CurriculumViewer({ docs, initialFile }: Props) {
 
               {/* Section Table of Contents Jump Bar */}
               {sectionHeadings.length > 0 && (
-                <div className="flex items-center gap-1.5 p-2 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px] overflow-x-auto scrollbar-none whitespace-nowrap select-none">
+                <div role="navigation" aria-label="Section navigation" className="flex items-center gap-1.5 p-2 rounded-xl bg-matrix-dark/70 border border-matrix-border font-mono text-[11px] overflow-x-auto scrollbar-none whitespace-nowrap select-none">
                   <span className="text-gray-500 uppercase font-bold mr-1 shrink-0">Jump to:</span>
                   {sectionHeadings.map((sec) => (
                     <a

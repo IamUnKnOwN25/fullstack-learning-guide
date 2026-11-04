@@ -26,6 +26,13 @@ Here are semantic tags:
 </main>
 \`\`\`
 
+## Semantic Tags Table
+| Element | Purpose | Landmark |
+| --- | --- | --- |
+| header | Introductory content | banner |
+| nav | Navigational links | navigation |
+| main | Dominant page content | main |
+
 ## Interactive Tasks
 - [ ] Implement semantic article structure
 - [x] Configure responsive viewport meta tag
@@ -249,5 +256,61 @@ describe("CurriculumViewer Component", () => {
 
     // Clear button is gone
     expect(screen.queryByRole("button", { name: /clear search/i })).toBeNull();
+  });
+
+  it("provides navigation landmarks with descriptive aria-labels for sidebar and section jump bar", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const chapterSidebarNav = screen.getByRole("navigation", {
+      name: "Curriculum chapters",
+    });
+    expect(chapterSidebarNav).toBeDefined();
+
+    const sectionJumpNav = screen.getByRole("navigation", {
+      name: "Section navigation",
+    });
+    expect(sectionJumpNav).toBeDefined();
+  });
+
+  it("announces matching search results count in aria-live polite status region", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent).toBe("2 chapters available");
+
+    const filterInput = screen.getByRole("textbox", { name: /filter topics/i });
+
+    // Filter to single match
+    fireEvent.change(filterInput, { target: { value: "CSS" } });
+    expect(statusRegion.textContent).toBe("1 matching chapter");
+
+    // Filter to zero matches
+    fireEvent.change(filterInput, { target: { value: "UnknownQuery" } });
+    expect(statusRegion.textContent).toBe("0 matching chapters");
+
+    // Clear search query
+    fireEvent.change(filterInput, { target: { value: "" } });
+    expect(statusRegion.textContent).toBe("2 chapters available");
+  });
+
+  it("renders markdown tables with aria-label and scope='col' on header cells", () => {
+    render(<CurriculumViewer docs={mockDocs} />);
+
+    const table = screen.getByRole("table", { name: "Curriculum reference table" });
+    expect(table).toBeDefined();
+    expect(table.getAttribute("aria-label")).toBe("Curriculum reference table");
+
+    const columnHeaders = screen.getAllByRole("columnheader");
+    expect(columnHeaders.length).toBe(3);
+    expect(columnHeaders.map((th) => th.textContent)).toEqual([
+      "Element",
+      "Purpose",
+      "Landmark",
+    ]);
+    columnHeaders.forEach((th) => {
+      expect(th.getAttribute("scope")).toBe("col");
+    });
   });
 });
