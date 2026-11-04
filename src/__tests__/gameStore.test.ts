@@ -313,6 +313,103 @@ describe("DevQuest Game Store", () => {
     expect(useGameStore.getState().xp).toBe(250);
   });
 
+  it("normalizes realmId casing and whitespace in defeatBoss to unlock sequence", () => {
+    const store = useGameStore.getState();
+    expect(store.unlockedRealms).toEqual(["html"]);
+
+    // Mixed case and padded ' HTML ' unlocks 'css'
+    store.defeatBoss("  HTML  ", "html_badge", 100);
+    let state = useGameStore.getState();
+    expect(state.unlockedRealms).toContain("css");
+    expect(state.completedBosses).toContain("html");
+    expect(state.badges).toContain("html_badge");
+
+    // Mixed-case 'cSS' unlocks 'javascript'
+    store.defeatBoss("cSS", "css_badge", 100);
+    state = useGameStore.getState();
+    expect(state.unlockedRealms).toContain("javascript");
+    expect(state.completedBosses).toContain("css");
+
+    // Padded and mixed-case '  JavaScript  ' unlocks 'typescript'
+    store.defeatBoss("  JavaScript  ", "js_badge", 100);
+    state = useGameStore.getState();
+    expect(state.unlockedRealms).toContain("typescript");
+    expect(state.completedBosses).toContain("javascript");
+
+    // Invalid realm does not throw and does not unlock unexpected realms
+    const realmCountBefore = state.unlockedRealms.length;
+    store.defeatBoss("unknown_matrix_dimension", "bogus_badge", 50);
+    expect(useGameStore.getState().unlockedRealms.length).toBe(realmCountBefore);
+  });
+
+  it("clamps and validates stars in completeQuest to integer in [0,3] and rejects NaN", () => {
+    const store = useGameStore.getState();
+
+    // NaN stars is clamped to 0 and does not poison record
+    store.completeQuest("quest_nan", "html", NaN, 50);
+    expect(useGameStore.getState().stars["quest_nan"]).toBe(0);
+
+    // Negative stars clamped to 0
+    store.completeQuest("quest_neg", "html", -5, 50);
+    expect(useGameStore.getState().stars["quest_neg"]).toBe(0);
+
+    // Greater than 3 stars clamped to 3
+    store.completeQuest("quest_over", "html", 10, 50);
+    expect(useGameStore.getState().stars["quest_over"]).toBe(3);
+    expect(useGameStore.getState().badges).toContain("speed_coder");
+
+    // Float stars clamped to floor integer in [0,3]
+    store.completeQuest("quest_float", "html", 2.8, 50);
+    expect(useGameStore.getState().stars["quest_float"]).toBe(2);
+
+    // Existing higher stars are not overwritten by NaN or lower
+    store.completeQuest("quest_preserved", "html", 2, 50);
+    expect(useGameStore.getState().stars["quest_preserved"]).toBe(2);
+    store.completeQuest("quest_preserved", "html", NaN, 50);
+    expect(useGameStore.getState().stars["quest_preserved"]).toBe(2);
+    store.completeQuest("quest_preserved", "html", 1, 50);
+    expect(useGameStore.getState().stars["quest_preserved"]).toBe(2);
+  });
+
+  it("treats NaN, negative, and non-finite xpReward as 0 in completeChapter and claimAchievement", () => {
+    const store = useGameStore.getState();
+    expect(store.xp).toBe(0);
+
+    // claimAchievement with NaN, negative, and non-finite
+    expect(store.claimAchievement("ach_nan", NaN)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.claimAchievement("ach_neg", -100)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.claimAchievement("ach_inf", Infinity)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.claimAchievement("ach_valid", 100)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(100);
+
+    // Reset XP for chapter tests
+    useGameStore.getState().removeXp(100);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    // completeChapter with NaN, negative, and non-finite
+    expect(store.completeChapter("ch_nan.md", NaN)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.completeChapter("ch_neg.md", -50)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.completeChapter("ch_inf.md", Infinity)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(0);
+
+    expect(store.completeChapter("ch_valid.md", 75)).toBe(true);
+    expect(useGameStore.getState().xp).toBe(75);
+
+    // Default xpReward parameter in completeChapter awards 50 XP
+    expect(store.completeChapter("ch_default.md")).toBe(true);
+    expect(useGameStore.getState().xp).toBe(125);
+  });
+
   it("sanitizes non-finite, negative, and NaN inputs in mutators", () => {
     const store = useGameStore.getState();
 

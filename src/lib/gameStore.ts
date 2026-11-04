@@ -183,11 +183,18 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         const isNewCompletion = !completed.has(questId);
         completed.add(questId);
 
-        const currentStars = state.stars[questId] || 0;
-        const newStars = { ...state.stars, [questId]: Math.max(currentStars, stars) };
+        const safeStars =
+          typeof stars === "number" && Number.isFinite(stars)
+            ? Math.min(3, Math.max(0, Math.floor(stars)))
+            : 0;
+        const currentStars =
+          typeof state.stars[questId] === "number" && Number.isFinite(state.stars[questId])
+            ? state.stars[questId]
+            : 0;
+        const newStars = { ...state.stars, [questId]: Math.max(currentStars, safeStars) };
 
         const badges = new Set(state.badges);
-        if (stars === 3) {
+        if (safeStars === 3) {
           badges.add("speed_coder");
         }
 
@@ -198,16 +205,21 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         });
 
         if (isNewCompletion) {
-          get().addXp(xpReward, `Quest: ${questId}`);
+          const safeXp = typeof xpReward === "number" && Number.isFinite(xpReward) && xpReward > 0 ? xpReward : 0;
+          get().addXp(safeXp, `Quest: ${questId}`);
           soundEngine.playSfx("correct");
         }
       },
 
       defeatBoss: (realmId: string, badgeId: string, xpReward: number) => {
         const state = get();
+        const normalizedRealmId = typeof realmId === "string" ? realmId.trim().toLowerCase() : "";
+        const targetRealmId = normalizedRealmId || realmId;
         const bosses = new Set(state.completedBosses);
-        const isNewBoss = !bosses.has(realmId);
-        bosses.add(realmId);
+        const isNewBoss = !bosses.has(targetRealmId) && !bosses.has(realmId);
+        if (targetRealmId) {
+          bosses.add(targetRealmId);
+        }
 
         const badges = new Set(state.badges);
         if (badgeId) badges.add(badgeId);
@@ -231,7 +243,7 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
           "capstone",
         ];
 
-        const currentIndex = REALM_ORDER.indexOf(realmId);
+        const currentIndex = REALM_ORDER.indexOf(normalizedRealmId);
         const realms = new Set(state.unlockedRealms);
         if (currentIndex !== -1 && currentIndex + 1 < REALM_ORDER.length) {
           realms.add(REALM_ORDER[currentIndex + 1]);
@@ -245,7 +257,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         });
 
         if (isNewBoss) {
-          get().addXp(xpReward, `Boss Vanquished: ${realmId.toUpperCase()}`);
+          const safeXp = typeof xpReward === "number" && Number.isFinite(xpReward) && xpReward > 0 ? xpReward : 0;
+          get().addXp(safeXp, `Boss Vanquished: ${targetRealmId.toUpperCase()}`);
           soundEngine.playSfx("victory");
         }
       },
@@ -284,7 +297,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
 
         claimed.add(achievementId);
         set({ claimedAchievements: Array.from(claimed) });
-        get().addXp(xpReward, "Achievement Claimed");
+        const safeXp = typeof xpReward === "number" && Number.isFinite(xpReward) && xpReward > 0 ? xpReward : 0;
+        get().addXp(safeXp, "Achievement Claimed");
         soundEngine.playSfx("victory");
         return true;
       },
@@ -353,7 +367,8 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         }
         chapters.add(filename);
         set({ completedChapters: Array.from(chapters) });
-        get().addXp(xpReward, `Chapter Mastered: ${filename.replace(/\.md$/, "")}`);
+        const safeXp = typeof xpReward === "number" && Number.isFinite(xpReward) && xpReward > 0 ? xpReward : 0;
+        get().addXp(safeXp, `Chapter Mastered: ${filename.replace(/\.md$/, "")}`);
         soundEngine.playSfx("victory");
         return true;
       },
