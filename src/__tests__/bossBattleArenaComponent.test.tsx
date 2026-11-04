@@ -357,4 +357,75 @@ describe("BossBattleArena Component", () => {
     const overflowMpFill = playerMpBar.firstElementChild as HTMLElement;
     expect(overflowMpFill.style.width).toBe("100%");
   });
+
+  it("renders realm breadcrumb quest trail with role='navigation', aria-label, and aria-current='page' on active boss item", () => {
+    render(<BossBattleArena realmId="html" />);
+
+    const nav = screen.getByRole("navigation", { name: /realm quest trail/i });
+    expect(nav).toBeDefined();
+
+    const activeItem = nav.querySelector("[aria-current='page']");
+    expect(activeItem).not.toBeNull();
+    expect(activeItem?.textContent).toContain("Boss");
+
+    const trialLinks = within(nav).getAllByRole("link");
+    expect(trialLinks.length).toBeGreaterThan(0);
+    trialLinks.forEach((link) => {
+      expect(link.getAttribute("aria-current")).toBeNull();
+    });
+  });
+
+  it("marks victory screen with role='status' and aria-live='polite'", () => {
+    useGameStore.setState({
+      completedBosses: ["html"],
+    });
+
+    render(<BossBattleArena realmId="html" />);
+
+    const victoryStatus = screen.getByRole("status");
+    expect(victoryStatus).toBeDefined();
+    expect(victoryStatus.getAttribute("aria-live")).toBe("polite");
+    expect(within(victoryStatus).getByText("VICTORY ACHIEVED!")).toBeDefined();
+  });
+
+  it("marks code collapse failure screen with role='alert' and aria-live='assertive'", () => {
+    useGameStore.setState({ hp: 10 });
+
+    render(<BossBattleArena realmId="html" />);
+
+    const editor = screen.getByRole("textbox", {
+      name: /combat code editor/i,
+    });
+    fireEvent.change(editor, { target: { value: "invalid syntax causing counter" } });
+
+    const strikeBtn = screen.getByRole("button", {
+      name: /cast refactor strike/i,
+    });
+    fireEvent.click(strikeBtn);
+
+    const failureAlert = screen.getByRole("alert");
+    expect(failureAlert).toBeDefined();
+    expect(failureAlert.getAttribute("aria-live")).toBe("assertive");
+    expect(within(failureAlert).getByText("CODE COLLAPSE")).toBeDefined();
+  });
+
+  it("hides floating combat damage numbers from assistive technologies with aria-hidden='true'", () => {
+    const htmlBoss = BOSSES["html"];
+    render(<BossBattleArena realmId="html" />);
+
+    const editor = screen.getByRole("textbox", {
+      name: /combat code editor/i,
+    }) as HTMLTextAreaElement;
+    fireEvent.change(editor, { target: { value: htmlBoss.phases[0].hint } });
+
+    const strikeBtn = screen.getByRole("button", {
+      name: /cast refactor strike/i,
+    });
+    fireEvent.click(strikeBtn);
+
+    const floatingText = screen.getByText(/REFACTOR CRIT!/i);
+    expect(floatingText).toBeDefined();
+    expect(floatingText.getAttribute("aria-hidden")).toBe("true");
+    expect(floatingText.parentElement?.getAttribute("aria-hidden")).toBe("true");
+  });
 });

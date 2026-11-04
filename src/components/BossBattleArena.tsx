@@ -231,7 +231,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Realm Trial & Boss Quick Switcher */}
-          <div className="flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0 overflow-x-auto select-none">
+          <div role="navigation" aria-label="Realm quest trail" className="flex items-center gap-1 bg-matrix-dark p-1 rounded-lg border border-matrix-border font-mono text-xs shrink-0 overflow-x-auto select-none">
             {realmQuests.map((rq) => {
               const solved = completedQuests.includes(rq.id);
               return (
@@ -250,7 +250,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
                 </Link>
               );
             })}
-            <span className="px-2.5 py-1 rounded flex items-center gap-1 bg-matrix-neonRed text-white font-bold whitespace-nowrap shrink-0">
+            <span aria-current="page" className="px-2.5 py-1 rounded flex items-center gap-1 bg-matrix-neonRed text-white font-bold whitespace-nowrap shrink-0">
               <Swords className="w-3 h-3 shrink-0" />
               <span>Boss</span>
             </span>
@@ -287,10 +287,10 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
         )}
 
         {/* Floating Combat Text Layer */}
-        <div className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none z-30 flex items-center justify-center overflow-hidden">
           {floatingNumbers.map((item) => (
             <div
-              key={item.id}
+              key={item.id} aria-hidden="true"
               className={`absolute font-mono font-extrabold text-sm sm:text-base px-3 py-1 rounded-lg shadow-2xl animate-float-up ${
                 item.type === "player-hit"
                   ? "bg-matrix-accent/90 text-matrix-dark border border-white"
@@ -422,7 +422,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
       {/* Battle Victory Screen */}
       {battleWon && (
-        <div className="p-6 rounded-2xl bg-matrix-accent/10 border-2 border-matrix-accent text-center space-y-4 animate-fadeIn">
+        <div role="status" aria-live="polite" className="p-6 rounded-2xl bg-matrix-accent/10 border-2 border-matrix-accent text-center space-y-4 animate-fadeIn">
           <div className="w-14 h-14 rounded-full bg-matrix-accent/20 border-2 border-matrix-accent flex items-center justify-center text-matrix-accent mx-auto">
             <Award className="w-8 h-8" />
           </div>
@@ -538,7 +538,7 @@ export function BossBattleArena({ boss: initialBoss, realmId }: Props) {
 
       {/* Battle Loss Screen */}
       {battleLost && !battleWon && (
-        <div className="p-6 rounded-2xl bg-matrix-neonRed/10 border-2 border-matrix-neonRed text-center space-y-4 animate-fadeIn">
+        <div role="alert" aria-live="assertive" className="p-6 rounded-2xl bg-matrix-neonRed/10 border-2 border-matrix-neonRed text-center space-y-4 animate-fadeIn">
           <h3 className="text-2xl font-bold text-matrix-neonRed font-mono">CODE COLLAPSE</h3>
           <p className="text-xs text-gray-300 max-w-md mx-auto">
             Your HP reached 0. The Bug Monster overpowered your syntax defenses. Regroup and try
