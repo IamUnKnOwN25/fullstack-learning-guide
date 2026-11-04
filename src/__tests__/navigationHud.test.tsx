@@ -279,4 +279,92 @@ describe("NavigationHud Component", () => {
     expect(screen.getByText(/No matching realms or quests found/i)).toBeDefined();
     expect(screen.getByText(/quantum_nonexistent_realm/i)).toBeDefined();
   });
+
+  it("provides combobox and listbox accessibility semantics for Quick Jump command palette", () => {
+    render(<NavigationHud />);
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+
+    const combobox = screen.getByRole("combobox", { name: "Quick Jump Search" });
+    expect(combobox).toBeDefined();
+    expect(combobox.getAttribute("aria-expanded")).toBe("true");
+    expect(combobox.getAttribute("aria-autocomplete")).toBe("list");
+    expect(combobox.getAttribute("aria-controls")).toBe("command-palette-results");
+
+    const listbox = screen.getByRole("listbox", { name: "Search results" });
+    expect(listbox).toBeDefined();
+    expect(listbox.id).toBe("command-palette-results");
+
+    const options = screen.getAllByRole("option");
+    expect(options.length).toBe(12);
+
+    // Live status region announcing match count
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent).toBe("12 matches found");
+
+    // Filter to single match
+    fireEvent.change(combobox, { target: { value: "CSS" } });
+    expect(combobox.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getAllByRole("option").length).toBe(1);
+    expect(statusRegion.textContent).toBe("1 match found");
+
+    // Filter to zero matches
+    fireEvent.change(combobox, { target: { value: "nomatch_realm_xyz" } });
+    expect(combobox.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryAllByRole("option").length).toBe(0);
+    expect(statusRegion.textContent).toBe("0 matches found");
+  });
+
+  it("provides descriptive aria-labels for all mobile bottom navigation items", () => {
+    render(<NavigationHud />);
+
+    const worldMapLink = screen.getByLabelText("Mobile World Map");
+    expect(worldMapLink).toBeDefined();
+    expect(worldMapLink.getAttribute("href")).toBe("/");
+
+    const vaultLink = screen.getByLabelText("Mobile Curriculum Vault");
+    expect(vaultLink).toBeDefined();
+    expect(vaultLink.getAttribute("href")).toBe("/curriculum");
+
+    const ideLink = screen.getByLabelText("Mobile Matrix IDE");
+    expect(ideLink).toBeDefined();
+    expect(ideLink.getAttribute("href")).toBe("/ide");
+
+    const skillTreeBtn = screen.getByLabelText("Mobile Skill Tree");
+    expect(skillTreeBtn).toBeDefined();
+    fireEvent.click(skillTreeBtn);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(screen.getByText("Cybernetic Skill Tree")).toBeDefined();
+
+    const badgesBtn = screen.getByLabelText("Mobile Trophies & Badges");
+    expect(badgesBtn).toBeDefined();
+
+    const leaderboardBtn = screen.getByLabelText("Mobile Global Matrix Leaderboards");
+    expect(leaderboardBtn).toBeDefined();
+
+    const profileBtn = screen.getByLabelText("Mobile Operative Profile");
+    expect(profileBtn).toBeDefined();
+
+    const keysBtn = screen.getByLabelText("Mobile Keyboard Shortcuts");
+    expect(keysBtn).toBeDefined();
+
+    const jumpBtn = screen.getByLabelText("Mobile Quick Jump Search");
+    expect(jumpBtn).toBeDefined();
+    fireEvent.click(jumpBtn);
+    expect(screen.getByRole("combobox", { name: "Quick Jump Search" })).toBeDefined();
+  });
+
+  it("provides Mobile Sign In aria-label when user is unauthenticated", () => {
+    useAuthStore.setState({
+      currentUser: undefined,
+      isAuthenticated: false,
+    });
+
+    render(<NavigationHud />);
+
+    const signInBtn = screen.getByLabelText("Mobile Sign In");
+    expect(signInBtn).toBeDefined();
+  });
 });

@@ -515,6 +515,11 @@ export function NavigationHud() {
             <div className="flex items-center gap-3 px-4 py-3 border-b border-matrix-border bg-matrix-dark">
               <Search className="w-4 h-4 text-matrix-neonCyan shrink-0" />
               <input
+                role="combobox"
+                aria-expanded={filteredRealms.length > 0}
+                aria-controls="command-palette-results"
+                aria-autocomplete="list"
+                aria-label="Quick Jump Search"
                 type="text"
                 autoFocus
                 placeholder="Search 12 realms, 24 coding quests, 12 bosses, or curriculum guides..."
@@ -536,6 +541,9 @@ export function NavigationHud() {
             </div>
 
             <div className="max-h-96 overflow-y-auto p-3 space-y-2 text-xs">
+              <div role="status" aria-live="polite" className="sr-only">
+                {filteredRealms.length} {filteredRealms.length === 1 ? "match" : "matches"} found
+              </div>
               <div className="grid grid-cols-2 gap-2 pb-1">
                 <Link
                   href="/ide"
@@ -560,80 +568,91 @@ export function NavigationHud() {
                   <span>Open Curriculum Vault</span>
                 </Link>
               </div>
-              {filteredRealms.length === 0 ? (
-                <div className="p-6 text-center text-gray-400 font-mono text-xs">
-                  <p className="font-bold text-gray-300">No matching realms or quests found</p>
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    No results match your search &ldquo;{commandQuery}&rdquo;. Try another realm, quest, or boss name.
-                  </p>
-                </div>
-              ) : (
-                filteredRealms.map((r) => {
-                const quests = QUESTS[r.id] || [];
-                const boss = BOSSES[r.id];
-                return (
-                  <div
-                    key={r.id}
-                    className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">
-                        {String(r.order).padStart(2, "0")}. {r.title}
-                      </span>
-                      <Link
-                        href={`/curriculum?file=${r.fileRef}`}
-                        onClick={() => {
-                          soundEngine.playSfx("click");
-                          setCommandOpen(false);
-                        }}
-                        className="text-[11px] text-matrix-neonCyan hover:underline flex items-center gap-1"
-                      >
-                        <BookOpen className="w-3 h-3" />
-                        Guide
-                      </Link>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {quests.map((q) => (
-                        <Link
-                          key={q.id}
-                          href={`/quest/${r.id}/${q.id}`}
-                          onClick={() => {
-                            soundEngine.playSfx("click");
-                            setCommandOpen(false);
-                          }}
-                          className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
-                            completedQuests.includes(q.id)
-                              ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent"
-                              : "bg-matrix-card border-matrix-border hover:border-matrix-neonCyan text-gray-200"
-                          }`}
-                        >
-                          <Code className="w-3 h-3" />
-                          <span>{q.title}</span>
-                        </Link>
-                      ))}
-
-                      {boss && (
-                        <Link
-                          href={`/boss/${r.id}`}
-                          onClick={() => {
-                            soundEngine.playSfx("click");
-                            setCommandOpen(false);
-                          }}
-                          className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
-                            completedBosses.includes(r.id)
-                              ? "bg-matrix-neonGold/15 border-matrix-neonGold/50 text-matrix-neonGold"
-                              : "bg-red-950/30 border-matrix-neonRed/40 hover:border-matrix-neonRed text-matrix-neonRed"
-                          }`}
-                        >
-                          <Swords className="w-3 h-3" />
-                          <span>{boss.name}</span>
-                        </Link>
-                      )}
-                    </div>
+              <div
+                id="command-palette-results"
+                role="listbox"
+                aria-label="Search results"
+                className="space-y-2"
+              >
+                {filteredRealms.length === 0 ? (
+                  <div className="p-6 text-center text-gray-400 font-mono text-xs">
+                    <p className="font-bold text-gray-300">No matching realms or quests found</p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      No results match your search &ldquo;{commandQuery}&rdquo;. Try another realm, quest, or boss name.
+                    </p>
                   </div>
-                );
-              }))}
+                ) : (
+                  filteredRealms.map((r) => {
+                    const quests = QUESTS[r.id] || [];
+                    const boss = BOSSES[r.id];
+                    return (
+                      <div
+                        key={r.id}
+                        role="option"
+                        aria-selected={false}
+                        aria-label={r.title}
+                        className="p-3 rounded-xl bg-matrix-dark/70 border border-matrix-border space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white">
+                            {String(r.order).padStart(2, "0")}. {r.title}
+                          </span>
+                          <Link
+                            href={`/curriculum?file=${r.fileRef}`}
+                            onClick={() => {
+                              soundEngine.playSfx("click");
+                              setCommandOpen(false);
+                            }}
+                            className="text-[11px] text-matrix-neonCyan hover:underline flex items-center gap-1"
+                          >
+                            <BookOpen className="w-3 h-3" />
+                            Guide
+                          </Link>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {quests.map((q) => (
+                            <Link
+                              key={q.id}
+                              href={`/quest/${r.id}/${q.id}`}
+                              onClick={() => {
+                                soundEngine.playSfx("click");
+                                setCommandOpen(false);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
+                                completedQuests.includes(q.id)
+                                  ? "bg-matrix-accent/15 border-matrix-accent/50 text-matrix-accent"
+                                  : "bg-matrix-card border-matrix-border hover:border-matrix-neonCyan text-gray-200"
+                              }`}
+                            >
+                              <Code className="w-3 h-3" />
+                              <span>{q.title}</span>
+                            </Link>
+                          ))}
+
+                          {boss && (
+                            <Link
+                              href={`/boss/${r.id}`}
+                              onClick={() => {
+                                soundEngine.playSfx("click");
+                                setCommandOpen(false);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg border text-[11px] flex items-center gap-1 transition-colors ${
+                                completedBosses.includes(r.id)
+                                  ? "bg-matrix-neonGold/15 border-matrix-neonGold/50 text-matrix-neonGold"
+                                  : "bg-red-950/30 border-matrix-neonRed/40 hover:border-matrix-neonRed text-matrix-neonRed"
+                              }`}
+                            >
+                              <Swords className="w-3 h-3" />
+                              <span>{boss.name}</span>
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -646,6 +665,7 @@ export function NavigationHud() {
       >
         <Link
           href="/"
+          aria-label="Mobile World Map"
           onClick={() => {
             soundEngine.playSfx("click");
             if (typeof window !== "undefined" && window.location.pathname === "/") {
@@ -662,6 +682,7 @@ export function NavigationHud() {
 
         <Link
           href="/curriculum"
+          aria-label="Mobile Curriculum Vault"
           onClick={() => soundEngine.playSfx("click")}
           className={`flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] transition-all ${
             isCurriculumActive ? "text-matrix-neonCyan font-bold" : "text-gray-400 hover:text-white"
@@ -673,6 +694,7 @@ export function NavigationHud() {
 
         <Link
           href="/ide"
+          aria-label="Mobile Matrix IDE"
           onClick={() => soundEngine.playSfx("click")}
           className={`flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] transition-all ${
             isIdeActive
@@ -686,6 +708,7 @@ export function NavigationHud() {
 
         <button
           type="button"
+          aria-label="Mobile Skill Tree"
           onClick={() => {
             soundEngine.playSfx("click");
             setSkillTreeOpen(true);
@@ -698,6 +721,7 @@ export function NavigationHud() {
 
         <button
           type="button"
+          aria-label="Mobile Trophies & Badges"
           onClick={() => {
             soundEngine.playSfx("click");
             setInventoryOpen(true);
@@ -713,6 +737,7 @@ export function NavigationHud() {
 
         <button
           type="button"
+          aria-label="Mobile Global Matrix Leaderboards"
           onClick={() => {
             soundEngine.playSfx("click");
             setLeaderboardOpen(true);
@@ -725,6 +750,7 @@ export function NavigationHud() {
 
         <button
           type="button"
+          aria-label={isAuthenticated ? "Mobile Operative Profile" : "Mobile Sign In"}
           onClick={() => {
             soundEngine.playSfx("click");
             setProfileOpen(true);
@@ -750,6 +776,7 @@ export function NavigationHud() {
 
         <button
           type="button"
+          aria-label="Mobile Quick Jump Search"
           onClick={() => {
             soundEngine.playSfx("click");
             setCommandOpen(true);
