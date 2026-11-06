@@ -12,9 +12,14 @@ describe("NetworkStatusIndicator", () => {
 
   beforeEach(() => {
     originalOnLine = window.navigator.onLine;
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
+    vi.useRealTimers();
     Object.defineProperty(window.navigator, "onLine", {
       value: originalOnLine,
       configurable: true,
@@ -62,6 +67,15 @@ describe("NetworkStatusIndicator", () => {
     // Trigger online event
     act(() => {
       window.dispatchEvent(new Event("online"));
+    });
+
+    // Polite reconnection banner is shown
+    expect(screen.getByText("Connection restored. Back online.")).toBeDefined();
+    expect(screen.getByRole("status")).toBeDefined();
+
+    // Auto-dismisses after 3000ms timeout
+    act(() => {
+      vi.advanceTimersByTime(3000);
     });
 
     expect(container.firstChild).toBeNull();
@@ -115,6 +129,7 @@ describe("NetworkStatusIndicator", () => {
 
       act(() => {
         window.dispatchEvent(new Event("online"));
+        vi.advanceTimersByTime(3000);
       });
       expect(container.firstChild).toBeNull();
     }
@@ -199,5 +214,219 @@ describe("NetworkStatusIndicator", () => {
     render(<NetworkStatusIndicator enableManualRetry={false} />);
     expect(screen.getByTestId("network-status-indicator")).toBeDefined();
     expect(screen.queryByLabelText("Check connection")).toBeNull();
+  });
+
+  it("displays transient polite reconnection banner with role='status' and aria-live='polite' after offline to online transition", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator />);
+
+    // Go offline first
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    expect(screen.getByRole("alert")).toBeDefined();
+    expect(screen.queryByRole("status")).toBeNull();
+
+    // Come back online
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    // Assertive alert is gone; polite status announcement is visible
+    expect(screen.queryByRole("alert")).toBeNull();
+    const statusEl = screen.getByRole("status");
+    expect(statusEl).toBeDefined();
+    expect(statusEl.getAttribute("aria-live")).toBe("polite");
+    expect(statusEl.getAttribute("data-testid")).toBe("network-reconnected-indicator");
+    expect(statusEl.textContent).toContain("Connection restored. Back online.");
+    expect(statusEl.className).toContain("bg-emerald-950/90");
+    expect(statusEl.className).toContain("border-emerald-800/50");
+  });
+
+  it("auto-dismisses the polite reconnection status banner after 3000ms timeout", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const { container } = render(<NetworkStatusIndicator />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    // Advance 2999ms -> still displayed
+    act(() => {
+      vi.advanceTimersByTime(2999);
+    });
+    expect(screen.getByRole("status")).toBeDefined();
+
+    // Advance remaining 1ms (total 3000ms) -> auto-dismissed
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("cleans up reconnection banner and pending timer when offline event fires before timeout", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    // Offline event fires again before 3000ms timeout
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    // Reconnection banner should immediately disappear, replaced by offline alert
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("alert")).toBeDefined();
+    expect(screen.getByText("Network disconnected. Offline mode active.")).toBeDefined();
+
+    // Advancing timers should not dismiss the offline alert
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(screen.getByRole("alert")).toBeDefined();
+  });
+
+  it("cleans up reconnection timer upon component unmount", () => {
+    const clearTimeoutSpy = vi.spyOn(window, "clearTimeout");
+
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const { unmount } = render(<NetworkStatusIndicator />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    unmount();
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+  });
+
+  it("allows manually dismissing reconnection banner before timeout", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    render(<NetworkStatusIndicator />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    const dismissBtn = screen.getByLabelText("Dismiss online notification");
+    act(() => {
+      dismissBtn.click();
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("does not display reconnection banner on initial online mount", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const { container } = render(<NetworkStatusIndicator />);
+
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("supports custom reconnectionTimeout prop", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const { container } = render(<NetworkStatusIndicator reconnectionTimeout={1500} />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    expect(screen.getByRole("status")).toBeDefined();
+
+    act(() => {
+      vi.advanceTimersByTime(1499);
+    });
+    expect(screen.getByRole("status")).toBeDefined();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("respects showReconnectedStatus=false to disable polite reconnection announcement", () => {
+    Object.defineProperty(window.navigator, "onLine", {
+      value: true,
+      configurable: true,
+    });
+
+    const { container } = render(<NetworkStatusIndicator showReconnectedStatus={false} />);
+
+    act(() => {
+      window.dispatchEvent(new Event("offline"));
+    });
+    expect(screen.getByRole("alert")).toBeDefined();
+
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+
+    // Should immediately return null without showing status banner
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
