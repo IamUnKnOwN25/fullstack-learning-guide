@@ -21,7 +21,9 @@ export interface Bookmark {
 
 function slugifyHeading(text: string): string {
   if (!text) return "";
-  return text
+
+  if (!text) return "";
+  return text.replace(/\r/g, "")
     .toLowerCase()
     .replace(/[`*_~[\]()]/g, "")
     .replace(/[^a-z0-9\s-]/g, "")
@@ -36,9 +38,9 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
   for (const doc of docs) {
     if (!doc || typeof doc.content !== "string") continue;
     // Basic markdown heading parser
-    const lines = doc.content.split("\n");
+    const lines = doc.content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
     let currentHeadingId = "";
-    let currentHeadingTitle = doc.title || "";
+    let currentHeadingTitle = (doc.title || "").replace(/\r/g, "").trim();
     let currentContent: string[] = [];
     let inCodeBlock = false;
 
@@ -46,9 +48,9 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
       const snippet = currentContent.join("\n").trim();
       if (snippet || currentHeadingTitle) {
         index.push({
-          filename: doc.filename || "",
-          headingId: currentHeadingId,
-          headingTitle: currentHeadingTitle,
+          filename: (doc.filename || "").replace(/\r/g, ""),
+          headingId: currentHeadingId.replace(/\r/g, ""),
+          headingTitle: currentHeadingTitle.replace(/\r/g, "").trim(),
           contentSnippet: snippet,
         });
       }
@@ -66,8 +68,8 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
         const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
         if (headingMatch) {
           flushSection();
-          currentHeadingTitle = headingMatch[2].replace(/[`*_~]/g, ""); // clean basic markdown inline
-          currentHeadingId = slugifyHeading(headingMatch[2]);
+          const cleanHeading = headingMatch[2].replace(/\r/g, "").trim(); currentHeadingTitle = cleanHeading.replace(/[`*_~]/g, "");
+          currentHeadingId = slugifyHeading(cleanHeading);
           currentContent = [];
           continue;
         }
@@ -114,7 +116,14 @@ export function searchCurriculum(query: string, index: SearchIndexEntry[]): Sear
     }
   }
 
-  return results.sort((a, b) => b.score - a.score);
+  return results.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const fileComp = (a.filename || "").localeCompare(b.filename || "");
+    if (fileComp !== 0) return fileComp;
+    const titleComp = (a.headingTitle || "").localeCompare(b.headingTitle || "");
+    if (titleComp !== 0) return titleComp;
+    return (a.headingId || "").localeCompare(b.headingId || "");
+  });
 }
 
 /**
@@ -137,7 +146,11 @@ export function extractMatchedSnippet(
   if (idx === -1) {
     return content.length > maxLength ? content.slice(0, maxLength).trim() + "..." : content.trim();
   }
-  const start = Math.max(0, idx - 30);
+  const leadContext = Math.max(0, Math.min(30, Math.floor((maxLength - termLower.length) / 2)));
+  let start = Math.max(0, idx - leadContext);
+  if (start > idx) {
+    start = idx;
+  }
   const end = Math.min(content.length, start + maxLength);
   let snippet = content.slice(start, end).trim();
   if (start > 0) snippet = "..." + snippet;

@@ -10,6 +10,7 @@ import {
   serializeBookmarks,
   deserializeBookmarks,
   Bookmark,
+  SearchIndexEntry,
 } from "../lib/curriculumSearch";
 import { DocFile } from "../components/CurriculumViewer";
 
@@ -158,6 +159,36 @@ Final remarks.
       expect(subheadingEntry?.contentSnippet).toContain("# Bash comment");
       expect(subheadingEntry?.contentSnippet).toContain("export PORT=3000");
     });
+
+    it("normalizes CRLF line breaks and strips carriage returns from headings, IDs, and snippets", () => {
+      const crlfDoc: DocFile[] = [
+        {
+          filename: "crlf-guide.md\r",
+          title: "Windows Doc\r",
+          content: "# Windows Architecture\r\nLine 1\r\nLine 2\r\n\r\n## File System Internals\r\nNTFS and FAT32 details.\r\n",
+        },
+      ];
+
+      const index = buildSearchIndex(crlfDoc);
+      expect(index.length).toBeGreaterThanOrEqual(2);
+
+      for (const entry of index) {
+        expect(entry.filename).not.toContain("\r");
+        expect(entry.headingId).not.toContain("\r");
+        expect(entry.headingTitle).not.toContain("\r");
+        expect(entry.contentSnippet).not.toContain("\r");
+      }
+
+      const winArch = index.find(e => e.headingId === "windows-architecture");
+      expect(winArch).toBeDefined();
+      expect(winArch?.headingTitle).toBe("Windows Architecture");
+      expect(winArch?.contentSnippet).toBe("Line 1\nLine 2");
+
+      const fsEntry = index.find(e => e.headingId === "file-system-internals");
+      expect(fsEntry).toBeDefined();
+      expect(fsEntry?.headingTitle).toBe("File System Internals");
+      expect(fsEntry?.contentSnippet).toBe("NTFS and FAT32 details.");
+    });
   });
 
   describe("searchCurriculum", () => {
@@ -220,6 +251,23 @@ Final remarks.
       const index = buildSearchIndex(sampleDocs);
       expect(() => searchCurriculum("[.*+?^${}()|[\\]\\]", index)).not.toThrow();
       expect(() => searchCurriculum("(React|State)?", index)).not.toThrow();
+    });
+
+    it("breaks ties deterministically by chapter filename and heading title when scores match", () => {
+      const tieIndex: SearchIndexEntry[] = [
+        { filename: "02-beta.md", headingId: "alpha", headingTitle: "Alpha Section", contentSnippet: "keyword here" },
+        { filename: "01-alpha.md", headingId: "beta", headingTitle: "Beta Section", contentSnippet: "keyword here" },
+        { filename: "01-alpha.md", headingId: "alpha", headingTitle: "Alpha Section", contentSnippet: "keyword here" },
+      ];
+
+      const results = searchCurriculum("keyword", tieIndex);
+      expect(results.length).toBe(3);
+      expect(results[0].filename).toBe("01-alpha.md");
+      expect(results[0].headingTitle).toBe("Alpha Section");
+      expect(results[1].filename).toBe("01-alpha.md");
+      expect(results[1].headingTitle).toBe("Beta Section");
+      expect(results[2].filename).toBe("02-beta.md");
+      expect(results[2].headingTitle).toBe("Alpha Section");
     });
   });
 
@@ -399,6 +447,29 @@ Final remarks.
       expect(extractMatchedSnippet(text, "not-found", 0)).toBe("");
       expect(extractMatchedSnippet(text, "not-found", -5)).toBe("");
     });
+
+    it("guarantees matched term is included in snippet when maxLength is small", () => {
+      const longText = "Prefix introductory words that extend for quite a while before reaching the secret word located here and continuing.";
+      // Term at index 76 in 117-char string. When maxLength is 15, blind (idx - 30) would set start=46, end=61, completely missing index 76!
+      const snippet15 = extractMatchedSnippet(longText, "secret", 15);
+      expect(snippet15).toContain("secret");
+
+      // Exactly equal to term length
+      const snippetExact = extractMatchedSnippet(longText, "secret", 6);
+      expect(snippetExact).toContain("secret");
+
+      // Smaller than term length: start is clamped to idx, match begins inside returned window
+      const snippetSmall = extractMatchedSnippet(longText, "secret", 4);
+      expect(snippetSmall).toContain("secr");
+
+      // Match near start with small window
+      const startMatch = extractMatchedSnippet(longText, "Prefix", 10);
+      expect(startMatch).toContain("Prefix");
+
+      // Match near end with small window
+      const endMatch = extractMatchedSnippet(longText, "continuing", 12);
+      expect(endMatch).toContain("continuing");
+    });
   });
 
   describe("Defensive Guard Tests", () => {
@@ -408,6 +479,11 @@ Final remarks.
       expect(searchCurriculum(null as any, [])).toEqual([]);
       expect(searchCurriculum("react", null as any)).toEqual([]);
       expect(searchCurriculum("   ", [])).toEqual([]);
+      expect(searchCurriculum(undefined as any, [])).toEqual([]);
+      expect(searchCurriculum(12345 as any, [])).toEqual([]);
+      expect(searchCurriculum({} as any, [])).toEqual([]);
+      expect(searchCurriculum(true as any, [])).toEqual([]);
+      expect(searchCurriculum(Symbol("q") as any, [])).toEqual([]);
     });
   });
 });
