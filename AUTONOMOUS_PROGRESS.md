@@ -12,6 +12,81 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-11-06 11:47] Cycle 236: Network Status Indicator Polite Reconnection Announcements (Tests: PASS)**
+  - Enhanced `src/components/NetworkStatusIndicator.tsx` adding a transient polite `role="status"` (`aria-live="polite"`) reconnection banner ("Connection restored. Back online.") with automatic 3-second dismissal and clean timer disposal on unmount or subsequent disconnect.
+  - Expanded unit test suite in `src/__tests__/networkStatus.test.tsx` to 18 tests verifying offline->online announcements and fake-timer cleanup.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:43] Cycle 235: Quest Filter Bar Search Landmark & Active Filter Live Status (Tests: PASS)**
+  - Enhanced `src/components/QuestFilterBar.tsx` adding `role="search"` and `aria-label="Quest filter controls"` on the outer filter bar container, plus a polite `role="status"` live region announcing active search, realm, and difficulty filters or full reset state.
+  - Expanded unit test suite in `src/__tests__/questFilterBarComponent.test.tsx` verifying landmark semantics and dynamic filter status updates.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:36] Cycle 234: Realm Concept Visualizer WAI-ARIA Tablist & Simulator Tabpanel Linkage (Tests: PASS)**
+  - Enhanced `src/components/RealmConceptVisualizer.tsx` upgrading the 12-realm lab selector to `role="tablist"` (`aria-label="Concept labs"`) with `role="tab"`, `aria-selected`, `id`, and `aria-controls="concept-lab-panel"`, linked `role="tabpanel"` via `aria-labelledby`, and added polite `role="status"` lab announcements.
+  - Expanded unit test suite in `src/__tests__/realmConceptVisualizer.test.tsx` verifying tablist navigation, tabpanel linkage, and live status updates.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:33] Cycle 233: Level Up Modal Dialog Labelledby, Reward List Roles & Ascension Status (Tests: PASS)**
+  - Enhanced `src/components/LevelUpModal.tsx` linking `role="dialog"` via `aria-labelledby="levelup-modal-title"` to the modal heading, adding `role="list"` / `role="listitem"` semantics to unlocked reward cards, and adding a polite `role="status"` ascension announcement.
+  - Expanded unit test suite in `src/__tests__/levelUpModal.test.tsx` verifying heading association, reward list items, and ascension status output.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:36] Cycle 232: Leaderboard Modal Tabpanel Linkage, Operative List Semantics & Search Status (Tests: PASS)**
+  - Enhanced `src/components/LeaderboardModal.tsx` linking tier filter tabs via deterministic `id` and `aria-controls="leaderboard-standings-panel"` to `role="tabpanel"`, wrapping operative rows in `role="list"` / `role="listitem"`, and adding a polite `role="status"` live region announcing filtered operative counts.
+  - Expanded unit test suite in `src/__tests__/leaderboardModal.test.tsx` verifying tab-to-tabpanel attributes, listitem roles, and live search counts.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:32] Cycle 231: Keyboard Shortcuts Modal Category Lists & Live Filter Announcements (Tests: PASS)**
+  - Enhanced `src/components/KeyboardShortcutsModal.tsx` adding `role="list"` with category `aria-label`s and `role="listitem"` on shortcut entries, dialog `aria-labelledby` title linkage, and a polite `role="status"` live region announcing matching shortcut counts.
+  - Expanded unit test suite in `src/__tests__/keyboardShortcutsModal.test.tsx` verifying shortcut list roles and live search feedback.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:37] Cycle 230: Online Matrix IDE Dead JSX Cleanup & Mobile Switcher Regression Guards (Tests: PASS)**
+  - Cleaned `src/components/OnlineMatrixIde.tsx` removing unreachable `{false && (...)}` fallback JSX blocks and dangling hidden buttons while preserving active mobile and bottom-panel `tablist`/`tab`/`tabpanel` semantics.
+  - Expanded unit test suite in `src/__tests__/onlineMatrixIdeComponent.test.tsx` verifying mobile view switching and preventing duplicate hidden tab controls.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:21] Cycle 229: Sound Engine SFX Type Guard, BGM Status Getter & Ramp Timing Clamping (Tests: PASS)**
+  - Enhanced `src/lib/soundEngine.ts` exporting `isValidSfxType`, guarding `playSfx` against invalid runtime SFX inputs while keeping its `void` contract, adding `getIsBgmPlaying()`, and clamping `safeExponentialRamp` `endTime` strictly past `ctx.currentTime`.
+  - Expanded unit test suite in `src/__tests__/soundEngine.test.ts` verifying SFX validation, BGM playback state, and ramp timing bounds.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:26] Cycle 228: Quest Task Evaluator Inline Comment Stripping & Flexible Attribute Matching (Tests: PASS)**
+  - Enhanced `src/lib/questTaskEvaluator.ts` stripping trailing inline SQL (`-- ...`) and hash (`# ...`) comments outside quotes while preserving CSS custom properties (`--var`) and hex colors (`#00f0ff`), supporting order-independent HTML `<input>` attributes in `html_2_forms`, and exporting `getQuestTaskRuleCount`.
+  - Expanded unit test suite in `src/__tests__/questTaskEvaluator.test.ts` verifying inline comment stripping, CSS token preservation, attribute permutations, and rule counts.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:20] Cycle 227: Speedrun Timer Hour-Scale Formatting, Paused State Cleanup & Active Queries (Tests: PASS)**
+  - Enhanced `src/lib/speedrunTimer.ts` formatting durations >= 1 hour as `HH:MM:SS` / `HH:MM:SS.cc`, cleaning stale `pausedRuns` entries on `resumeRun`/`completeRun`/`resetRun`, and adding `hasActiveRun` and `getTotalCompletions` store helpers.
+  - Expanded unit test suite in `src/__tests__/speedrunTimer.test.ts` verifying multi-hour formatting, pause/resume cleanup, and completion counters.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-04 16:19] Cycle 226: Snippet Reset Guard Nullish Input Safety & Backup Inspection Helpers (Tests: PASS)**
+  - Enhanced `src/lib/snippetResetGuard.ts` guarding `isSafeToReset`, `backupSnippet`, `restoreSnippet`, and `clearBackup` against non-string/nullish inputs, and adding SSR-safe `hasBackup`, `listBackups`, and `clearAllBackups` methods.
+  - Expanded unit test suite in `src/__tests__/snippetResetGuard.test.ts` verifying nullish type safety and backup lifecycle helpers.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-04 16:24] Cycle 225: Level System Notification Factory & XP Delta Utilities (Tests: PASS)**
+  - Enhanced `src/lib/levelSystem.ts` implementing `createLevelUpNotification` and `getXpDifference` with finite/sub-1 clamping for rank upgrades, skill point awards, and HP/Mana stat bonuses.
+  - Expanded unit test suite in `src/__tests__/levelSystem.test.ts` with 17 new tests covering `evaluateLevelUp`, multi-level jumps, rank boundaries, and NaN inputs.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:11] Cycle 224: Streak System Calendar Rollover Validation & Next Milestone Countdown (Tests: PASS)**
+  - Enhanced `src/lib/streakSystem.ts` validating UTC year/month/day round-trips in `parseDateUtc` to reject silent calendar rollovers (e.g. `2023-02-29`, `2023-02-30`, `2023-04-31`), and adding `getNextStreakMilestone` plus `nextMilestone` in `getStreakSummary`.
+  - Expanded unit test suite in `src/__tests__/streakSystem.test.ts` verifying invalid calendar date rejection and milestone countdowns.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-04 16:22] Cycle 223: Markdown Formatter Internal Link Routing, Tilde Fences & Parenthesized URLs (Tests: PASS)**
+  - Enhanced `src/lib/markdownFormatter.ts` using `isExternalLink` in `getLinkAttributes` so internal app paths omit `target="_blank"`, recognizing CommonMark `~~~` fences in `extractHeadings`, and supporting balanced parentheses in inline markdown link URLs.
+  - Expanded unit test suite in `src/__tests__/markdownFormatter.test.ts` to 40 passing tests covering internal vs external links, tilde code blocks, and Wikipedia-style URLs.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 11:11] Cycle 222: Curriculum Search Snippet Window Clamping & CRLF Heading Normalization (Tests: PASS)**
+  - Enhanced `src/lib/curriculumSearch.ts` clamping `extractMatchedSnippet` so matched terms stay inside small `maxLength` windows, normalizing CRLF (`\r\n`) in `buildSearchIndex` headings/IDs, and adding deterministic tie-breaking in `searchCurriculum`.
+  - Expanded unit test suite in `src/__tests__/curriculumSearch.test.ts` verifying short snippet bounds, CRLF markdown indexing, and nullish/special queries.
+  - Verified with `npm run validate` (57 test files, 980 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-11-04 15:50] Cycle 221: Level Journey Modal Progressbar & Career Ladder List Semantics (Tests: PASS)**
   - Enhanced `src/components/LevelJourneyModal.tsx` adding `role="progressbar"` with `aria-valuenow`, `aria-valuemin`, and `aria-valuemax` to the XP progression bar, plus `role="list"` and `role="listitem"` semantics on the Career Rank Ladder and XP earning guide.
   - Expanded unit test suite in `src/__tests__/levelJourneyModal.test.tsx` verifying accessible progress metrics and semantic rank list items.
