@@ -52,6 +52,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
   );
 
   const categories = Array.from(new Set(filteredShortcuts.map((item) => item.category)));
+  const statusMessage =
+    filteredShortcuts.length === 0
+      ? `No keyboard shortcuts match "${searchQuery}"`
+      : `${filteredShortcuts.length} keyboard shortcut${filteredShortcuts.length === 1 ? "" : "s"} available`;
 
   return (
     <div
@@ -123,6 +127,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
           </div>
         </div>
 
+        <div role="status" aria-live="polite" className="sr-only">
+          {statusMessage}
+        </div>
+
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6 text-sm relative z-10">
           {filteredShortcuts.length === 0 ? (
             <div className="text-center py-8 text-gray-400 font-mono text-xs">
@@ -134,12 +142,13 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
                 <h3 className="text-matrix-neonCyan font-bold mb-3">
                   {category}
                 </h3>
-                <div className="space-y-2">
+                <div role="list" aria-label={category} className="space-y-2">
                   {filteredShortcuts
                     .filter((item) => item.category === category)
                     .map((item, idx) => (
                       <div
                         key={idx}
+                        role="listitem"
                         className="flex justify-between items-center bg-matrix-dark/40 p-2.5 rounded-lg border border-matrix-border"
                       >
                         <span className="text-gray-300">{item.label}</span>

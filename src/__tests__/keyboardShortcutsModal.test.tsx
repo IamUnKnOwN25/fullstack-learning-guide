@@ -23,7 +23,9 @@ describe("KeyboardShortcutsModal", () => {
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-labelledby")).toBe("keyboard-shortcuts-title");
 
-    expect(screen.getByRole("heading", { name: /keyboard shortcuts/i, level: 2 })).toBeDefined();
+    const heading = screen.getByRole("heading", { name: /keyboard shortcuts/i, level: 2 });
+    expect(heading).toBeDefined();
+    expect(dialog.getAttribute("aria-labelledby")).toBe(heading.getAttribute("id"));
     expect(screen.getByText("Master the terminal hotkeys")).toBeDefined();
     expect(screen.getByText("Global Commands")).toBeDefined();
     expect(screen.getByText("Matrix IDE / Quest Workspace")).toBeDefined();
@@ -125,5 +127,59 @@ describe("KeyboardShortcutsModal", () => {
     expect(screen.getByText("Combat & Navigation")).toBeDefined();
     expect(screen.getByText("Execute Spell Strike")).toBeDefined();
     expect(screen.getByText("Advance Familiar Intel")).toBeDefined();
+  });
+
+  it("renders semantic shortcut lists with category aria-labels and listitems", () => {
+    render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+    const lists = screen.getAllByRole("list");
+    expect(lists).toHaveLength(3);
+
+    const globalList = screen.getByRole("list", { name: "Global Commands" });
+    const ideList = screen.getByRole("list", { name: "Matrix IDE / Quest Workspace" });
+    const combatList = screen.getByRole("list", { name: "Combat & Navigation" });
+
+    expect(globalList).toBeDefined();
+    expect(ideList).toBeDefined();
+    expect(combatList).toBeDefined();
+
+    const allItems = screen.getAllByRole("listitem");
+    expect(allItems).toHaveLength(7);
+  });
+
+  it("announces matching shortcut count in a polite live status region on open and when filtering", () => {
+    render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent).toBe("7 keyboard shortcuts available");
+
+    const searchInput = screen.getByPlaceholderText(/Search hotkeys/i);
+
+    // Filter to single match
+    fireEvent.change(searchInput, { target: { value: "Sidebar" } });
+    expect(statusRegion.textContent).toBe("1 keyboard shortcut available");
+    expect(screen.getAllByRole("list")).toHaveLength(1);
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+
+    // Filter to multiple matches (Ctrl matches Command Palette, Run & Verify Code, Toggle Sidebar)
+    fireEvent.change(searchInput, { target: { value: "Ctrl" } });
+    expect(statusRegion.textContent).toBe("3 keyboard shortcuts available");
+    expect(screen.getAllByRole("list")).toHaveLength(2);
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+
+    // Filter to zero matches
+    fireEvent.change(searchInput, { target: { value: "nonexistent_hotkey_query" } });
+    expect(statusRegion.textContent).toBe('No keyboard shortcuts match "nonexistent_hotkey_query"');
+    expect(screen.queryAllByRole("list")).toHaveLength(0);
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+
+    // Clear search restores all
+    const clearBtn = screen.getByRole("button", { name: /clear shortcut search/i });
+    fireEvent.click(clearBtn);
+    expect(statusRegion.textContent).toBe("7 keyboard shortcuts available");
+    expect(screen.getAllByRole("list")).toHaveLength(3);
+    expect(screen.getAllByRole("listitem")).toHaveLength(7);
   });
 });
