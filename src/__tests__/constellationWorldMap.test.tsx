@@ -306,4 +306,101 @@ describe("ConstellationWorldMap Component", () => {
     fireEvent.click(guideLink);
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
   });
+
+  it("provides role='region' with an accessible name on the outer map container", () => {
+    const onSelectRealm = vi.fn();
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    const region = screen.getByRole("region", {
+      name: "Interactive Realm Constellation Map",
+    });
+    expect(region).toBeDefined();
+  });
+
+  it("marks decorative background grid and conduit SVG as aria-hidden", () => {
+    const onSelectRealm = vi.fn();
+
+    const { container } = render(
+      <ConstellationWorldMap
+        selectedRealm={null}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    const conduitsSvg = container.querySelector("svg");
+    expect(conduitsSvg).toBeDefined();
+    expect(conduitsSvg?.getAttribute("aria-hidden")).toBe("true");
+
+    const gridOverlay = container.querySelector('div[style*="background-image"]');
+    expect(gridOverlay).toBeDefined();
+    expect(gridOverlay?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("sets aria-pressed and aria-disabled attributes according to selection and unlock status", () => {
+    const onSelectRealm = vi.fn();
+    const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={htmlRealm}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    // Selected and unlocked node
+    const htmlNode = screen.getByRole("button", { name: /html/i });
+    expect(htmlNode.getAttribute("aria-pressed")).toBe("true");
+    expect(htmlNode.getAttribute("aria-disabled")).toBe("false");
+
+    // Unselected and locked node
+    const capstoneNode = screen.getByRole("button", { name: /capstone/i });
+    expect(capstoneNode.getAttribute("aria-pressed")).toBe("false");
+    expect(capstoneNode.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("renders status legend with role='group' and quick-launch actions with navigation/toolbar landmarks", () => {
+    const onSelectRealm = vi.fn();
+    const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+    render(
+      <ConstellationWorldMap
+        selectedRealm={htmlRealm}
+        onSelectRealm={onSelectRealm}
+        unlockedRealms={["html"]}
+        completedBosses={[]}
+        completedQuests={[]}
+        level={1}
+      />
+    );
+
+    // Legend container has role="group" with accessible name
+    const legendGroup = screen.getByRole("group", { name: "Realm status legend" });
+    expect(legendGroup).toBeDefined();
+
+    // Selected realm actions landmark navigation
+    const actionNav = screen.getByRole("navigation", { name: "Selected realm actions" });
+    expect(actionNav).toBeDefined();
+
+    // Selected realm actions toolbar
+    const actionToolbar = screen.getByRole("toolbar", { name: "Realm launch actions" });
+    expect(actionToolbar).toBeDefined();
+  });
 });

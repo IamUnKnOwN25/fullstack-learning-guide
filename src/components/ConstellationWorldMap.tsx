@@ -84,9 +84,14 @@ export function ConstellationWorldMap({
   };
 
   return (
-    <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] md:min-h-[560px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none">
+    <div
+      role="region"
+      aria-label="Interactive Realm Constellation Map"
+      className="relative w-full aspect-[16/10] sm:aspect-[16/9] min-h-[460px] md:min-h-[560px] rounded-2xl bg-matrix-dark border border-matrix-border overflow-hidden shadow-2xl p-4 sm:p-6 select-none"
+    >
       {/* Background Cyber Grid */}
       <div
+        aria-hidden="true"
         className="absolute inset-0 opacity-20 pointer-events-none"
         style={{
           backgroundImage:
@@ -94,10 +99,14 @@ export function ConstellationWorldMap({
           backgroundSize: "40px 40px",
         }}
       />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-matrix-neonCyan/5 rounded-full blur-3xl pointer-events-none" />
+      <div
+        aria-hidden="true"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-matrix-neonCyan/5 rounded-full blur-3xl pointer-events-none"
+      />
 
       {/* SVG Conduits & Pathways (Synchronized 800x500 coordinate system) */}
       <svg
+        aria-hidden="true"
         viewBox="0 0 800 500"
         preserveAspectRatio="none"
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -178,6 +187,8 @@ export function ConstellationWorldMap({
             key={realm.id}
             role="button"
             tabIndex={0}
+            aria-pressed={isSelected}
+            aria-disabled={!isUnlocked}
             aria-label={`${realm.title} (${isBossDefeated ? "Mastered" : isUnlocked ? "Unlocked" : "Sealed"})`}
             title={`${realm.title} — Click to inspect, Double-click to launch trial`}
             style={{
@@ -269,7 +280,11 @@ export function ConstellationWorldMap({
 
       {/* Map Legend & Selected Realm Quick-Launch Bar */}
       <div className="absolute bottom-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-auto">
-        <div className="flex flex-wrap items-center gap-3 bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400">
+        <div
+          role="group"
+          aria-label="Realm status legend"
+          className="flex flex-wrap items-center gap-3 bg-black/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-matrix-border text-[10px] font-mono text-gray-400"
+        >
           <span className="flex items-center gap-1 text-matrix-accent font-bold">
             <span className="w-2 h-2 rounded-full bg-matrix-accent" /> Mastered
           </span>
@@ -282,43 +297,49 @@ export function ConstellationWorldMap({
         </div>
 
         {selectedRealm && (
-          <div className="flex flex-wrap items-center gap-1.5 bg-matrix-card/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-matrix-neonCyan/50 shadow-lg font-mono text-[11px]">
-            <span className="text-white font-bold mr-1">
-              {String(selectedRealm.order).padStart(2, "0")}. {selectedRealm.realmName}:
-            </span>
-            {(QUESTS[selectedRealm.id] || []).map((q) => (
-              <Link
-                key={q.id}
-                href={`/quest/${selectedRealm.id}/${q.id}`}
-                aria-label={`Launch Trial ${q.order} for ${selectedRealm.realmName}`}
-                onClick={() => soundEngine.playSfx("click")}
-                className="px-2 py-0.5 rounded bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-bold flex items-center gap-1 transition-all"
-              >
-                <Play className="w-2.5 h-2.5 fill-matrix-dark" />
-                <span>Trial {q.order}</span>
-              </Link>
-            ))}
-            {BOSSES[selectedRealm.id] && (
-              <Link
-                href={`/boss/${selectedRealm.id}`}
-                aria-label={`Challenge Boss for ${selectedRealm.realmName}`}
-                onClick={() => soundEngine.playSfx("attack")}
-                className="px-2 py-0.5 rounded bg-matrix-neonRed hover:bg-red-600 text-white font-bold flex items-center gap-1 transition-all"
-              >
-                <Swords className="w-2.5 h-2.5" />
-                <span>Boss</span>
-              </Link>
-            )}
-            <Link
-              href={`/curriculum?file=${selectedRealm.fileRef}`}
-              aria-label={`View Curriculum Guide for ${selectedRealm.realmName}`}
-              onClick={() => soundEngine.playSfx("click")}
-              className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan font-bold flex items-center gap-1 transition-all"
+          <nav aria-label="Selected realm actions">
+            <div
+              role="toolbar"
+              aria-label="Realm launch actions"
+              className="flex flex-wrap items-center gap-1.5 bg-matrix-card/95 backdrop-blur-md px-3 py-1.5 rounded-lg border border-matrix-neonCyan/50 shadow-lg font-mono text-[11px]"
             >
-              <BookOpen className="w-2.5 h-2.5" />
-              <span>Guide</span>
-            </Link>
-          </div>
+              <span className="text-white font-bold mr-1">
+                {String(selectedRealm.order).padStart(2, "0")}. {selectedRealm.realmName}:
+              </span>
+              {(QUESTS[selectedRealm.id] || []).map((q) => (
+                <Link
+                  key={q.id}
+                  href={`/quest/${selectedRealm.id}/${q.id}`}
+                  aria-label={`Launch Trial ${q.order} for ${selectedRealm.realmName}`}
+                  onClick={() => soundEngine.playSfx("click")}
+                  className="px-2 py-0.5 rounded bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-bold flex items-center gap-1 transition-all"
+                >
+                  <Play className="w-2.5 h-2.5 fill-matrix-dark" />
+                  <span>Trial {q.order}</span>
+                </Link>
+              ))}
+              {BOSSES[selectedRealm.id] && (
+                <Link
+                  href={`/boss/${selectedRealm.id}`}
+                  aria-label={`Challenge Boss for ${selectedRealm.realmName}`}
+                  onClick={() => soundEngine.playSfx("attack")}
+                  className="px-2 py-0.5 rounded bg-matrix-neonRed hover:bg-red-600 text-white font-bold flex items-center gap-1 transition-all"
+                >
+                  <Swords className="w-2.5 h-2.5" />
+                  <span>Boss</span>
+                </Link>
+              )}
+              <Link
+                href={`/curriculum?file=${selectedRealm.fileRef}`}
+                aria-label={`View Curriculum Guide for ${selectedRealm.realmName}`}
+                onClick={() => soundEngine.playSfx("click")}
+                className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan font-bold flex items-center gap-1 transition-all"
+              >
+                <BookOpen className="w-2.5 h-2.5" />
+                <span>Guide</span>
+              </Link>
+            </div>
+          </nav>
         )}
       </div>
     </div>
