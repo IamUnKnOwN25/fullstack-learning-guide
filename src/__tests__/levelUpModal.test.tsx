@@ -4,7 +4,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
 import { LevelUpModal } from "../components/LevelUpModal";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -68,6 +68,15 @@ describe("LevelUpModal Component", () => {
     expect(dialog).toBeDefined();
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-label")).toBe("Level Up Ascension");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("levelup-modal-title");
+    expect(screen.getByRole("heading", { name: "Level Up!" }).id).toBe("levelup-modal-title");
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent).toBe("Ascended to Level 4! Rank: Script Adept");
+    const rewardsList = screen.getByRole("list", { name: "Unlocked level rewards" });
+    expect(rewardsList).toBeDefined();
+    expect(within(rewardsList).getAllByRole("listitem")).toHaveLength(4);
 
     expect(soundEngine.playSfx).toHaveBeenCalledWith("level-up");
     expect(confetti).toHaveBeenCalled();
@@ -270,6 +279,38 @@ describe("LevelUpModal Component", () => {
 
     expect(screen.getByText("30-Day Study Streak Active")).toBeDefined();
     expect(screen.getByText("+30% Bonus XP")).toBeDefined();
+  });
+
+  it("provides dialog aria-labelledby, reward listitem semantics, and status live region for screen readers", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 1,
+        newLevel: 2,
+        newRankTitle: "Novice Byte",
+        isNewRank: false,
+        unlockedSkillPoints: 1,
+        maxHp: 110,
+        maxMana: 55,
+      },
+      streak: 1,
+    });
+
+    render(<LevelUpModal />);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("levelup-modal-title");
+    const heading = screen.getByRole("heading", { name: "Level Up!" });
+    expect(heading.id).toBe("levelup-modal-title");
+
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent).toBe("Ascended to Level 2! Rank: Novice Byte");
+
+    const rewardsList = screen.getByRole("list", { name: "Unlocked level rewards" });
+    expect(rewardsList).toBeDefined();
+    const items = within(rewardsList).getAllByRole("listitem");
+    expect(items.length).toBe(3);
   });
 
   it("gracefully catches and tolerates confetti throwing an exception", () => {

@@ -72,6 +72,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
       role="dialog"
       aria-modal="true"
       aria-label="Level Up Ascension"
+      aria-labelledby="levelup-modal-title"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           soundEngine.playSfx("click");
@@ -98,6 +99,11 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           <X className="w-5 h-5" />
         </button>
 
+        {/* Live status announcement for screen readers */}
+        <div role="status" aria-live="polite" className="sr-only">
+          Ascended to Level {newLevel}! Rank: {newRankTitle}
+        </div>
+
         {/* Modal Header */}
         <div className="pt-8 pb-4 px-6 text-center relative">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-matrix-neonGold/20 border-2 border-matrix-neonGold shadow-lg shadow-matrix-neonGold/30 text-matrix-neonGold mb-3.5 animate-bounce">
@@ -110,7 +116,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
             <Sparkles className="w-3.5 h-3.5" />
           </div>
 
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <h2 id="levelup-modal-title" className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Level Up!
           </h2>
 
@@ -143,12 +149,12 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
         )}
 
         {/* Rewards & Stat Bonuses Grid */}
-        <div className="px-6 py-2 space-y-2.5">
+        <div role="list" aria-label="Unlocked level rewards" className="px-6 py-2 space-y-2.5">
           <div className="text-[11px] font-mono uppercase font-bold text-gray-400 tracking-wider">
             Upgrades & Perks Acquired:
           </div>
 
-          <div className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
+          <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple">
                 <Shield className="w-4 h-4" />
@@ -165,7 +171,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
+          <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonRed/20 border border-matrix-neonRed/40 flex items-center justify-center text-matrix-neonRed">
                 <Heart className="w-4 h-4" />
@@ -182,7 +188,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
+          <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 flex items-center justify-center text-matrix-neonCyan">
                 <Zap className="w-4 h-4" />
@@ -200,7 +206,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           </div>
 
           {streak > 1 && (
-            <div className="p-2.5 rounded-xl bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center justify-between text-xs font-mono">
+            <div role="listitem" className="p-2.5 rounded-xl bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center justify-between text-xs font-mono">
               <div className="flex items-center gap-1.5 text-matrix-neonGold">
                 <Flame className="w-4 h-4 fill-matrix-neonGold" />
                 <span className="font-bold">{streak}-Day Study Streak Active</span>
