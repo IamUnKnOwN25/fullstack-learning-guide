@@ -6,6 +6,10 @@ import {
   REALM_WARMUP_DRILLS,
   generateQuestAssertions,
   BOSS_INCIDENT_POST_MORTEMS,
+  getQuestDeepDive,
+  getWarmUpDrill,
+  getBossPostMortem,
+  evaluateQuizAnswer,
 } from "../data/questPedagogy";
 
 describe("Pedagogical Deep Dives & Concept Checks", () => {
@@ -103,8 +107,8 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
 
   it("returns fallback invariants for other quests gracefully", () => {
     const fallbackAssertions = generateQuestAssertions(
-      "css_1_flexbox",
-      ".container { display: flex; justify-content: center; align-items: center; }"
+      "ts_1_interfaces",
+      "interface MatrixNode { id: string; active: boolean; }"
     );
     expect(fallbackAssertions.length).toBeGreaterThanOrEqual(2);
     expect(fallbackAssertions[0].name).toBe("Syntax Integrity Check");
@@ -126,5 +130,123 @@ describe("Pedagogical Deep Dives & Concept Checks", () => {
       severities.add(postMortem.incidentSeverity);
     }
     expect(severities.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it("generates senior invariant assertions for CSS flexbox and grid quests", () => {
+    const flexAssertions = generateQuestAssertions(
+      "css_1_flexbox",
+      ".container { display: flex; justify-content: space-between; align-items: center; }"
+    );
+    expect(flexAssertions.length).toBe(3);
+    expect(flexAssertions[0].name).toBe("Flex Container Context");
+    expect(flexAssertions[0].passed).toBe(true);
+    expect(flexAssertions[1].name).toBe("Main-Axis Alignment");
+    expect(flexAssertions[1].passed).toBe(true);
+    expect(flexAssertions[2].name).toBe("Cross-Axis Alignment");
+    expect(flexAssertions[2].passed).toBe(true);
+
+    const gridAssertions = generateQuestAssertions(
+      "css_2_grid",
+      ".grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }"
+    );
+    expect(gridAssertions.length).toBe(3);
+    expect(gridAssertions[0].name).toBe("Grid Container Context");
+    expect(gridAssertions[0].passed).toBe(true);
+    expect(gridAssertions[1].name).toBe("Responsive Track Sizing");
+    expect(gridAssertions[1].passed).toBe(true);
+    expect(gridAssertions[2].name).toBe("Grid Cell Separation");
+    expect(gridAssertions[2].passed).toBe(true);
+
+    // Negative invariant failures
+    const failedFlex = generateQuestAssertions("css_1_flexbox", "div { display: block; }");
+    expect(failedFlex.some((a) => !a.passed)).toBe(true);
+    expect(failedFlex[0].passed).toBe(false);
+
+    const failedGrid = generateQuestAssertions("css_2_grid", "div { display: block; }");
+    expect(failedGrid.some((a) => !a.passed)).toBe(true);
+    expect(failedGrid[0].passed).toBe(false);
+  });
+
+  it("guards generateQuestAssertions safely against nullish or non-string inputs", () => {
+    expect(() => generateQuestAssertions(null as any, null as any)).not.toThrow();
+    expect(() => generateQuestAssertions(undefined as any, undefined as any)).not.toThrow();
+    expect(() => generateQuestAssertions(123 as any, true as any)).not.toThrow();
+    expect(() => generateQuestAssertions({} as any, [] as any)).not.toThrow();
+
+    const nullResult = generateQuestAssertions(null as any, null as any);
+    expect(nullResult.length).toBeGreaterThanOrEqual(2);
+    expect(nullResult[0].name).toBe("Syntax Integrity Check");
+    expect(nullResult[0].passed).toBe(false);
+
+    const nullHtml = generateQuestAssertions("html_1_skeleton", null as any);
+    expect(nullHtml.length).toBe(4);
+    expect(nullHtml.every((a) => !a.passed)).toBe(true);
+
+    const nullFlex = generateQuestAssertions("css_1_flexbox", undefined as any);
+    expect(nullFlex.length).toBe(3);
+    expect(nullFlex.every((a) => !a.passed)).toBe(true);
+
+    const nullGrid = generateQuestAssertions("css_2_grid", null as any);
+    expect(nullGrid.length).toBe(3);
+    expect(nullGrid.every((a) => !a.passed)).toBe(true);
+  });
+
+  it("normalizes and retrieves pedagogy items via lookup helpers safely", () => {
+    // getQuestDeepDive
+    const htmlDeepDive = getQuestDeepDive("html_1_skeleton");
+    expect(htmlDeepDive).toBeDefined();
+    expect(htmlDeepDive?.quiz.question.length).toBeGreaterThan(10);
+    // Case-insensitivity & whitespace trimming
+    expect(getQuestDeepDive("  HTML_1_SKELETON  ")).toEqual(htmlDeepDive);
+    expect(getQuestDeepDive("non_existent_quest")).toBeUndefined();
+    expect(getQuestDeepDive(null as any)).toBeUndefined();
+    expect(getQuestDeepDive(undefined as any)).toBeUndefined();
+    expect(getQuestDeepDive(42 as any)).toBeUndefined();
+
+    // getWarmUpDrill
+    const cssDrill = getWarmUpDrill("css");
+    expect(cssDrill).toBeDefined();
+    expect(cssDrill?.id).toBe("warmup_css_centering");
+    // Case-insensitivity & whitespace trimming
+    expect(getWarmUpDrill("  CSS  ")).toEqual(cssDrill);
+    expect(getWarmUpDrill("unknown_realm")).toBeUndefined();
+    expect(getWarmUpDrill(null as any)).toBeUndefined();
+    expect(getWarmUpDrill(undefined as any)).toBeUndefined();
+
+    // getBossPostMortem
+    const jsPostMortem = getBossPostMortem("javascript");
+    expect(jsPostMortem).toBeDefined();
+    expect(jsPostMortem?.incidentId).toBe("INC-JS-500");
+    // Case-insensitivity & whitespace trimming
+    expect(getBossPostMortem("  JavaScript  ")).toEqual(jsPostMortem);
+    expect(getBossPostMortem("nonexistent_realm")).toBeUndefined();
+    expect(getBossPostMortem(null as any)).toBeUndefined();
+    expect(getBossPostMortem(undefined as any)).toBeUndefined();
+  });
+
+  it("evaluates quiz answers safely and handles edge cases gracefully", () => {
+    // html_1_skeleton correctIndex is 1
+    expect(evaluateQuizAnswer("html_1_skeleton", 1)).toBe(true);
+    expect(evaluateQuizAnswer("  HTML_1_SKELETON  ", 1)).toBe(true);
+    expect(evaluateQuizAnswer("html_1_skeleton", 0)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", 2)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", 3)).toBe(false);
+
+    // Out-of-range indices
+    expect(evaluateQuizAnswer("html_1_skeleton", -1)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", 4)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", 100)).toBe(false);
+
+    // Non-integers / NaN / non-numbers
+    expect(evaluateQuizAnswer("html_1_skeleton", NaN)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", 1.5)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", null as any)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", undefined as any)).toBe(false);
+    expect(evaluateQuizAnswer("html_1_skeleton", "1" as any)).toBe(false);
+
+    // Unknown quests or non-string questId
+    expect(evaluateQuizAnswer("unknown_quest", 0)).toBe(false);
+    expect(evaluateQuizAnswer(null as any, 1)).toBe(false);
+    expect(evaluateQuizAnswer(undefined as any, 0)).toBe(false);
   });
 });

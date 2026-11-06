@@ -853,9 +853,11 @@ db.query(
  * Generate Senior-Grade Invariant Assertions for any given Quest & Code
  */
 export function generateQuestAssertions(questId: string, code: string): InvariantAssertion[] {
-  const clean = code.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const safeCode = typeof code === "string" ? code : "";
+  const safeQuestId = typeof questId === "string" ? questId.trim().toLowerCase() : "";
+  const clean = safeCode.replace(/<!--[\s\S]*?-->/g, "").replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
 
-  switch (questId) {
+  switch (safeQuestId) {
     case "html_1_skeleton": {
       const hasDoctype = /<!doctype html>/i.test(clean);
       const hasCharset = /<meta\s+charset=["']utf-8["']/i.test(clean);
@@ -917,6 +919,62 @@ export function generateQuestAssertions(questId: string, code: string): Invarian
           actual: hasBtn ? "Submit Button Configured" : "Missing or Untyped Submit Button",
           passed: hasBtn,
           notes: "Allows Enter-key submission and programmatic form dispatch.",
+        },
+      ];
+    }
+    case "css_1_flexbox": {
+      const hasFlex = /display\s*:\s*flex/i.test(clean);
+      const hasJustify = /justify-content\s*:\s*(space-between|space-around|space-evenly|center|flex-start|flex-end)/i.test(clean);
+      const hasAlign = /align-items\s*:\s*(center|flex-start|flex-end|stretch|baseline)/i.test(clean);
+      return [
+        {
+          name: "Flex Container Context",
+          expected: "display: flex",
+          actual: hasFlex ? "Flex Formatting Context Active" : "Missing display: flex",
+          passed: hasFlex,
+          notes: "Establishes a 1D flex formatting context on the container.",
+        },
+        {
+          name: "Main-Axis Alignment",
+          expected: "justify-content defined",
+          actual: hasJustify ? "Main-Axis Distribution Configured" : "Default Main-Axis Spacing",
+          passed: hasJustify,
+          notes: "Controls distribution of space between and around flex items along the main axis.",
+        },
+        {
+          name: "Cross-Axis Alignment",
+          expected: "align-items defined",
+          actual: hasAlign ? "Cross-Axis Alignment Configured" : "Default Cross-Axis Alignment",
+          passed: hasAlign,
+          notes: "Aligns flex items along the perpendicular cross axis.",
+        },
+      ];
+    }
+    case "css_2_grid": {
+      const hasGrid = /display\s*:\s*grid/i.test(clean);
+      const hasColumns = /grid-template-columns\s*:\s*repeat\s*\(\s*auto-fit/i.test(clean);
+      const hasGap = /gap\s*:\s*\S+/i.test(clean);
+      return [
+        {
+          name: "Grid Container Context",
+          expected: "display: grid",
+          actual: hasGrid ? "CSS Grid Formatting Context Active" : "Missing display: grid",
+          passed: hasGrid,
+          notes: "Activates 2D layout calculation across rows and columns.",
+        },
+        {
+          name: "Responsive Track Sizing",
+          expected: "grid-template-columns: repeat(auto-fit, ...)",
+          actual: hasColumns ? "Responsive Auto-Fit Columns Configured" : "Missing repeat(auto-fit, ...)",
+          passed: hasColumns,
+          notes: "Defines responsive column tracks without requiring media queries.",
+        },
+        {
+          name: "Grid Cell Separation",
+          expected: "gap property specified",
+          actual: hasGap ? "Grid Gutter Specified" : "Missing Grid Gap",
+          passed: hasGap,
+          notes: "Enforces clean gutter separation between adjacent grid tracks.",
         },
       ];
     }
@@ -1121,5 +1179,50 @@ export const BOSS_INCIDENT_POST_MORTEMS: Record<string, BossIncidentPostMortem> 
     seniorMitigation:
       "Implement circuit breakers (e.g. Cockatiel or Opossum) with exponential backoff and fast fallbacks. Isolate critical user paths from downstream third parties.",
     metricAlert: "Circuit breaker state transition alerts when error rate exceeds 50% over a 10-second rolling window.",
+  },
+};
+
+/**
+ * Safe pedagogy lookup and evaluation helpers
+ */
+export function getQuestDeepDive(questId: string): QuestDeepDive | undefined {
+  if (typeof questId !== "string") return undefined;
+  const normalized = questId.trim().toLowerCase();
+  return QUEST_DEEP_DIVES[normalized];
+}
+
+export function getWarmUpDrill(realmId: string): RealmWarmUpDrill | undefined {
+  if (typeof realmId !== "string") return undefined;
+  const normalized = realmId.trim().toLowerCase();
+  return REALM_WARMUP_DRILLS[normalized];
+}
+
+export function getBossPostMortem(realmId: string): BossIncidentPostMortem | undefined {
+  if (typeof realmId !== "string") return undefined;
+  const normalized = realmId.trim().toLowerCase();
+  return BOSS_INCIDENT_POST_MORTEMS[normalized];
+}
+
+export function evaluateQuizAnswer(questId: string, selectedIndex: number): boolean {
+  if (
+    typeof questId !== "string" ||
+    typeof selectedIndex !== "number" ||
+    Number.isNaN(selectedIndex) ||
+    !Number.isInteger(selectedIndex)
+  ) {
+    return false;
+  }
+  const deepDive = getQuestDeepDive(questId);
+  if (!deepDive || !deepDive.quiz) {
+    return false;
+  }
+  if (selectedIndex < 0 || selectedIndex >= deepDive.quiz.options.length) {
+    return false;
+  }
+  return deepDive.quiz.correctIndex === selectedIndex;
+}
+
+// Registry anchor
+export const _PEDAGOGY_REGISTRY_ANCHOR: Record<string, unknown> = { capstone: {
   },
 };
