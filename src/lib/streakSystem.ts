@@ -20,6 +20,10 @@ function parseDateUtc(dateStr: string | null | undefined): number | null {
   if (!Number.isFinite(timestamp)) {
     return null;
   }
+  const d = new Date(timestamp);
+  if (d.getUTCFullYear() !== year || d.getUTCMonth() !== month - 1 || d.getUTCDate() !== day) {
+    return null;
+  }
   return timestamp;
 }
 
@@ -60,6 +64,34 @@ export function getStreakMilestone(streakDays: number): StreakMilestone {
     }
   }
   return earned;
+}
+
+export function getNextStreakMilestone(streakDays: number): {
+  milestone: StreakMilestone;
+  daysRemaining: number;
+} | null {
+  if (typeof streakDays === "number" && streakDays >= 100) {
+    return null;
+  }
+  const safeDays =
+    Number.isFinite(streakDays) && streakDays > 0
+      ? Math.floor(streakDays)
+      : 1;
+
+  if (safeDays >= 100) {
+    return null;
+  }
+
+  for (const m of STREAK_MILESTONES) {
+    if (m.days > safeDays) {
+      return {
+        milestone: m,
+        daysRemaining: m.days - safeDays,
+      };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -249,6 +281,7 @@ export function getStreakSummary(
   const safeDays = Number.isFinite(streakDays) ? Math.max(1, Math.floor(streakDays)) : 1;
   const bonus = calculateStreakBonus(safeDays);
   const milestone = getStreakMilestone(safeDays);
+  const nextMilestone = getNextStreakMilestone(safeDays);
   const atRisk = isStreakAtRisk(lastLoginDate, todayDateStr);
 
   return {
@@ -257,6 +290,7 @@ export function getStreakSummary(
     multiplier: bonus.multiplier,
     bonusPercent: bonus.bonusPercent,
     milestone,
+    nextMilestone,
     isAtRisk: atRisk,
     freezesAvailable: Math.max(0, Math.floor(freezesAvailable || 0)),
   };

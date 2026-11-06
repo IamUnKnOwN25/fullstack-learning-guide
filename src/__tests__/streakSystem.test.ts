@@ -4,6 +4,7 @@ import {
   updateStreak,
   updateStreakWithFreeze,
   getStreakMilestone,
+  getNextStreakMilestone,
   isStreakAtRisk,
   getStreakSummary,
   StreakState,
@@ -111,6 +112,35 @@ describe("streakSystem", () => {
       expect(streakReset).toBe(true);
     });
 
+    it("should reject calendar rollover dates like non-leap Feb 29, Feb 30, and Apr 31", () => {
+      const currentStreak: StreakState = { streakDays: 5, lastLoginDate: "2023-02-28" };
+
+      // Non-leap Feb 29 (2023 is not a leap year)
+      const resNonLeapFeb29 = updateStreak(currentStreak, "2023-02-29");
+      expect(resNonLeapFeb29.streakReset).toBe(true);
+      expect(resNonLeapFeb29.streak.streakDays).toBe(1);
+
+      // Feb 30 does not exist
+      const resFeb30 = updateStreak({ streakDays: 5, lastLoginDate: "2024-02-29" }, "2024-02-30");
+      expect(resFeb30.streakReset).toBe(true);
+      expect(resFeb30.streak.streakDays).toBe(1);
+
+      // Apr 31 does not exist (April has 30 days)
+      const resApr31 = updateStreak({ streakDays: 5, lastLoginDate: "2023-04-30" }, "2023-04-31");
+      expect(resApr31.streakReset).toBe(true);
+      expect(resApr31.streak.streakDays).toBe(1);
+
+      // When invalid date is used as lastLoginDate
+      const resInvalidLast = updateStreak({ streakDays: 5, lastLoginDate: "2023-02-29" }, "2023-03-01");
+      expect(resInvalidLast.streakReset).toBe(true);
+      expect(resInvalidLast.streak.streakDays).toBe(1);
+
+      // Calendar rollovers in isStreakAtRisk should return false
+      expect(isStreakAtRisk("2023-02-29", "2023-03-01")).toBe(false);
+      expect(isStreakAtRisk("2023-04-30", "2023-04-31")).toBe(false);
+      expect(isStreakAtRisk("2024-02-30", "2024-03-01")).toBe(false);
+    });
+
     it("should sanitize non-finite or corrupted streak days", () => {
       const corruptedStreak: StreakState = { streakDays: NaN, lastLoginDate: "2024-01-01" };
       const resSameDay = updateStreak(corruptedStreak, "2024-01-01");
@@ -138,6 +168,95 @@ describe("streakSystem", () => {
       expect(getStreakMilestone(30).title).toBe("Monthly Grandmaster");
       expect(getStreakMilestone(150).title).toBe("Century Legend");
       expect(getStreakMilestone(NaN).title).toBe("Initiate");
+    });
+
+    it("returns next streak milestone and days remaining across progression tiers", () => {
+      // Tier 1 (1 day): Next is Consistent Hacker (3 days)
+      const next1 = getNextStreakMilestone(1);
+      expect(next1).toEqual({
+        milestone: STREAK_MILESTONES[1],
+        daysRemaining: 2,
+      });
+
+      // Mid-tier 1->2 (2 days): Next is Consistent Hacker (3 days)
+      const next2 = getNextStreakMilestone(2);
+      expect(next2?.milestone.title).toBe("Consistent Hacker");
+      expect(next2?.daysRemaining).toBe(1);
+
+      // Tier 2 (3 days): Next is Weekly Sentinel (7 days)
+      const next3 = getNextStreakMilestone(3);
+      expect(next3).toEqual({
+        milestone: STREAK_MILESTONES[2],
+        daysRemaining: 4,
+      });
+
+      // Mid-tier 2->3 (5 days): Next is Weekly Sentinel (7 days)
+      const next5 = getNextStreakMilestone(5);
+      expect(next5?.milestone.title).toBe("Weekly Sentinel");
+      expect(next5?.daysRemaining).toBe(2);
+
+      // Tier 3 (7 days): Next is Fortnight Champion (14 days)
+      const next7 = getNextStreakMilestone(7);
+      expect(next7).toEqual({
+        milestone: STREAK_MILESTONES[3],
+        daysRemaining: 7,
+      });
+
+      // Mid-tier 3->4 (10 days): Next is Fortnight Champion (14 days)
+      const next10 = getNextStreakMilestone(10);
+      expect(next10?.milestone.title).toBe("Fortnight Champion");
+      expect(next10?.daysRemaining).toBe(4);
+
+      // Tier 4 (14 days): Next is Monthly Grandmaster (30 days)
+      const next14 = getNextStreakMilestone(14);
+      expect(next14).toEqual({
+        milestone: STREAK_MILESTONES[4],
+        daysRemaining: 16,
+      });
+
+      // Mid-tier 4->5 (20 days): Next is Monthly Grandmaster (30 days)
+      const next20 = getNextStreakMilestone(20);
+      expect(next20?.milestone.title).toBe("Monthly Grandmaster");
+      expect(next20?.daysRemaining).toBe(10);
+
+      // Tier 5 (30 days): Next is Century Legend (100 days)
+      const next30 = getNextStreakMilestone(30);
+      expect(next30).toEqual({
+        milestone: STREAK_MILESTONES[5],
+        daysRemaining: 70,
+      });
+
+      // Near max (99 days): Next is Century Legend (100 days)
+      const next99 = getNextStreakMilestone(99);
+      expect(next99).toEqual({
+        milestone: STREAK_MILESTONES[5],
+        daysRemaining: 1,
+      });
+
+      // Max tier and beyond (>= 100 days): returns null
+      expect(getNextStreakMilestone(100)).toBeNull();
+      expect(getNextStreakMilestone(150)).toBeNull();
+      expect(getNextStreakMilestone(Infinity)).toBeNull();
+    });
+
+    it("sanitizes non-finite or non-positive streak days safely in getNextStreakMilestone", () => {
+      // Non-positive (0 or negative) and non-finite fall back safely to 1-day baseline
+      expect(getNextStreakMilestone(0)).toEqual({
+        milestone: STREAK_MILESTONES[1],
+        daysRemaining: 2,
+      });
+      expect(getNextStreakMilestone(-5)).toEqual({
+        milestone: STREAK_MILESTONES[1],
+        daysRemaining: 2,
+      });
+      expect(getNextStreakMilestone(NaN)).toEqual({
+        milestone: STREAK_MILESTONES[1],
+        daysRemaining: 2,
+      });
+      expect(getNextStreakMilestone(null as unknown as number)).toEqual({
+        milestone: STREAK_MILESTONES[1],
+        daysRemaining: 2,
+      });
     });
 
     it("evaluates whether a streak is at risk of breaking", () => {
@@ -228,8 +347,13 @@ describe("streakSystem", () => {
       expect(summary.multiplier).toBe(1.30);
       expect(summary.bonusPercent).toBe(30);
       expect(summary.milestone.title).toBe("Weekly Sentinel");
+      expect(summary.nextMilestone?.milestone.title).toBe("Fortnight Champion");
+      expect(summary.nextMilestone?.daysRemaining).toBe(7);
       expect(summary.isAtRisk).toBe(true);
       expect(summary.freezesAvailable).toBe(2);
+
+      const maxSummary = getStreakSummary(100, "2024-03-01", "2024-03-02", 2);
+      expect(maxSummary.nextMilestone).toBeNull();
     });
   });
 });
