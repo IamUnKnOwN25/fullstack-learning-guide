@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { QUESTS } from "../data/quests";
+import { QUESTS, getQuestsForRealm, getQuestById, findQuestGlobal, getNextQuestId, getAllQuests, getTotalAvailableXp } from "../data/quests";
 import { REALMS } from "../data/realms";
 
 describe("DevQuest Quests Matrix", () => {
@@ -606,6 +606,202 @@ describe("DevQuest Quests Matrix", () => {
       const cacheOk = await cache.ping();
       return { status: "healthy" };`;
       expect(healthQuest.testRunner(missingPromiseAllHealth).passed).toBe(false);
+    });
+  });
+});
+
+describe("Quest Helper Utilities & Safe Lookups", () => {
+  describe("getQuestsForRealm", () => {
+    it("returns quests for canonical realm IDs", () => {
+      const htmlQuests = getQuestsForRealm("html");
+      expect(htmlQuests.length).toBeGreaterThanOrEqual(2);
+      expect(htmlQuests[0].realmId).toBe("html");
+    });
+
+    it("normalizes case and surrounding whitespace", () => {
+      const quests = getQuestsForRealm("  HTML  ");
+      expect(quests.length).toBeGreaterThanOrEqual(2);
+      expect(quests[0].realmId).toBe("html");
+    });
+
+    it("resolves common realm aliases", () => {
+      const jsQuests = getQuestsForRealm("js");
+      expect(jsQuests.length).toBeGreaterThanOrEqual(2);
+      expect(jsQuests[0].realmId).toBe("javascript");
+
+      const tsQuests = getQuestsForRealm("ts");
+      expect(tsQuests.length).toBeGreaterThanOrEqual(2);
+      expect(tsQuests[0].realmId).toBe("typescript");
+
+      const dbQuests = getQuestsForRealm("db");
+      expect(dbQuests.length).toBeGreaterThanOrEqual(2);
+      expect(dbQuests[0].realmId).toBe("databases");
+
+      const databaseQuests = getQuestsForRealm("database");
+      expect(databaseQuests.length).toBeGreaterThanOrEqual(2);
+      expect(databaseQuests[0].realmId).toBe("databases");
+    });
+
+    it("returns empty array for unknown or nullish inputs safely", () => {
+      expect(getQuestsForRealm("unknown-realm")).toEqual([]);
+      expect(getQuestsForRealm("")).toEqual([]);
+      expect(getQuestsForRealm(null as unknown as string)).toEqual([]);
+      expect(getQuestsForRealm(undefined as unknown as string)).toEqual([]);
+    });
+  });
+
+  describe("getQuestById", () => {
+    it("matches exact quest id case-insensitively", () => {
+      const exact = getQuestById("html", "html_1_skeleton");
+      expect(exact).toBeDefined();
+      expect(exact?.order).toBe(1);
+
+      const upper = getQuestById("html", "HTML_1_SKELETON");
+      expect(upper).toBeDefined();
+      expect(upper?.id).toBe("html_1_skeleton");
+    });
+
+    it("decodes URL-encoded and whitespace-padded quest IDs", () => {
+      const decoded = getQuestById("html", "  html_1_skeleton  ");
+      expect(decoded).toBeDefined();
+      expect(decoded?.id).toBe("html_1_skeleton");
+
+      const uriEncoded = getQuestById("html", "%68tml_1_skeleton");
+      expect(uriEncoded).toBeDefined();
+      expect(uriEncoded?.id).toBe("html_1_skeleton");
+    });
+
+    it("matches by hyphen-normalized ID", () => {
+      const hyphenated = getQuestById("html", "html-1-skeleton");
+      expect(hyphenated).toBeDefined();
+      expect(hyphenated?.id).toBe("html_1_skeleton");
+    });
+
+    it("falls back to numeric order suffix matching within the realm", () => {
+      const byHyphenOrder = getQuestById("html", "html-1");
+      expect(byHyphenOrder).toBeDefined();
+      expect(byHyphenOrder?.order).toBe(1);
+
+      const byRawNumber = getQuestById("html", "1");
+      expect(byRawNumber).toBeDefined();
+      expect(byRawNumber?.order).toBe(1);
+
+      const secondQuest = getQuestById("html", "html-2");
+      expect(secondQuest).toBeDefined();
+      expect(secondQuest?.order).toBe(2);
+
+      const secondRaw = getQuestById("html", "2");
+      expect(secondRaw).toBeDefined();
+      expect(secondRaw?.order).toBe(2);
+    });
+
+    it("works with alias realms and numeric suffix matching", () => {
+      const jsFirst = getQuestById("js", "1");
+      expect(jsFirst).toBeDefined();
+      expect(jsFirst?.realmId).toBe("javascript");
+      expect(jsFirst?.order).toBe(1);
+
+      const dbSecond = getQuestById("db", "db-2");
+      expect(dbSecond).toBeDefined();
+      expect(dbSecond?.realmId).toBe("databases");
+      expect(dbSecond?.order).toBe(2);
+    });
+
+    it("returns undefined for non-existent order or unknown quest ID", () => {
+      expect(getQuestById("html", "99")).toBeUndefined();
+      expect(getQuestById("html", "non_existent_quest")).toBeUndefined();
+    });
+
+    it("returns undefined safely for empty, nullish, or invalid inputs", () => {
+      expect(getQuestById("", "")).toBeUndefined();
+      expect(getQuestById("html", "")).toBeUndefined();
+      expect(getQuestById("html", null as unknown as string)).toBeUndefined();
+      expect(getQuestById("unknown_realm", "html_1_skeleton")).toBeUndefined();
+    });
+  });
+
+  describe("findQuestGlobal", () => {
+    it("finds quests across realms by exact or case-insensitive ID", () => {
+      const quest = findQuestGlobal("html_1_skeleton");
+      expect(quest).toBeDefined();
+      expect(quest?.realmId).toBe("html");
+
+      const upper = findQuestGlobal("HTML_1_SKELETON");
+      expect(upper).toBeDefined();
+      expect(upper?.realmId).toBe("html");
+    });
+
+    it("finds quests with normalized separators", () => {
+      const quest = findQuestGlobal("html-1-skeleton");
+      expect(quest).toBeDefined();
+      expect(quest?.id).toBe("html_1_skeleton");
+    });
+
+    it("finds quests by realm prefix and numeric order", () => {
+      const html1 = findQuestGlobal("html-1");
+      expect(html1).toBeDefined();
+      expect(html1?.realmId).toBe("html");
+      expect(html1?.order).toBe(1);
+
+      const js2 = findQuestGlobal("js-2");
+      expect(js2).toBeDefined();
+      expect(js2?.realmId).toBe("javascript");
+      expect(js2?.order).toBe(2);
+    });
+
+    it("returns undefined for unknown or nullish queries", () => {
+      expect(findQuestGlobal("nonexistent-quest-99")).toBeUndefined();
+      expect(findQuestGlobal("")).toBeUndefined();
+      expect(findQuestGlobal(null as unknown as string)).toBeUndefined();
+    });
+  });
+
+  describe("getNextQuestId", () => {
+    it("returns the next quest ID in sequence within the same realm", () => {
+      const nextId = getNextQuestId("html", "html_1_skeleton");
+      expect(nextId).toBe("html_2_forms");
+    });
+
+    it("works when current quest is referenced by fuzzy order or alias realm", () => {
+      const nextFromOrder = getNextQuestId("html", "1");
+      expect(nextFromOrder).toBe("html_2_forms");
+
+      const nextFromAlias = getNextQuestId("js", "js_1_dom");
+      expect(nextFromAlias).toBe("js_2_async");
+    });
+
+    it("handles sequence boundary by returning null on the last quest of a realm", () => {
+      const lastInHtml = getNextQuestId("html", "html_2_forms");
+      expect(lastInHtml).toBeNull();
+
+      const lastByOrder = getNextQuestId("html", "2");
+      expect(lastByOrder).toBeNull();
+    });
+
+    it("returns null for unknown realm or invalid quest ID", () => {
+      expect(getNextQuestId("html", "nonexistent")).toBeNull();
+      expect(getNextQuestId("unknown_realm", "html_1_skeleton")).toBeNull();
+    });
+  });
+
+  describe("getAllQuests and getTotalAvailableXp", () => {
+    it("flattens all quests across all registered realms", () => {
+      const all = getAllQuests();
+      expect(all.length).toBeGreaterThanOrEqual(24);
+      for (const q of all) {
+        expect(q.id).toBeDefined();
+        expect(q.title).toBeDefined();
+        expect(q.xpReward).toBeGreaterThanOrEqual(50);
+        expect(q.order).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it("aggregates total available XP correctly", () => {
+      const totalXp = getTotalAvailableXp();
+      expect(totalXp).toBeGreaterThan(0);
+
+      const manualSum = getAllQuests().reduce((sum, q) => sum + (q.xpReward || 0), 0);
+      expect(totalXp).toBe(manualSum);
     });
   });
 });

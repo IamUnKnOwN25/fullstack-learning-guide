@@ -1143,3 +1143,155 @@ export function validateTask(task: Partial<TeamTask>): boolean {
     },
   ],
 };
+
+const REALM_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  db: "databases",
+  database: "databases",
+};
+
+/**
+ * Returns all quests for a specified realm ID, normalizing input (trim, lowercase, aliases).
+ * Returns an empty array for unknown or nullish inputs.
+ */
+export function getQuestsForRealm(realmId: string): Quest[] {
+  if (!realmId || typeof realmId !== "string") {
+    return [];
+  }
+  const trimmed = realmId.trim().toLowerCase();
+  const normalized = REALM_ALIASES[trimmed] || trimmed;
+  return QUESTS[normalized] || [];
+}
+
+/**
+ * Returns a specific quest by ID or numeric order within a realm.
+ * Decodes and trims questId, matches exact ID case-insensitively first,
+ * and falls back to numeric order suffix matching (e.g. 'html-1' or '1' matching order === 1).
+ */
+export function getQuestById(realmId: string, questId: string): Quest | undefined {
+  if (!questId || typeof questId !== "string") {
+    return undefined;
+  }
+  const realmQuests = getQuestsForRealm(realmId);
+  if (!realmQuests || realmQuests.length === 0) {
+    return undefined;
+  }
+
+  let cleanQuestId = "";
+  try {
+    cleanQuestId = decodeURIComponent(questId).trim();
+  } catch {
+    cleanQuestId = questId.trim();
+  }
+
+  if (!cleanQuestId) {
+    return undefined;
+  }
+
+  const lowerQuestId = cleanQuestId.toLowerCase();
+
+  // 1. Exact q.id matching case-insensitively first
+  const exactMatch = realmQuests.find(
+    (q) => q.id.toLowerCase() === lowerQuestId
+  );
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // 2. Normalized separator match (e.g., html-1-skeleton vs html_1_skeleton)
+  const separatorMatch = realmQuests.find(
+    (q) => q.id.replace(/_/g, "-").toLowerCase() === lowerQuestId.replace(/_/g, "-")
+  );
+  if (separatorMatch) {
+    return separatorMatch;
+  }
+
+  // 3. Falling back to numeric order suffix matching (e.g. html-1 or 1 matching q.order === 1)
+  const numMatch = cleanQuestId.match(/(\d+)$/);
+  if (numMatch) {
+    const orderNum = parseInt(numMatch[1], 10);
+    const orderMatch = realmQuests.find((q) => q.order === orderNum);
+    if (orderMatch) {
+      return orderMatch;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Flattens all quests across all realms into a single array.
+ */
+export function getAllQuests(): Quest[] {
+  return Object.values(QUESTS).flat();
+}
+
+/**
+ * Searches for a quest globally across all realms.
+ * Supports exact ID, normalized separators, or prefix-order lookup (e.g. 'html-1', 'js-2').
+ */
+export function findQuestGlobal(questId: string): Quest | undefined {
+  if (!questId || typeof questId !== "string") {
+    return undefined;
+  }
+  let cleanQuestId = "";
+  try {
+    cleanQuestId = decodeURIComponent(questId).trim();
+  } catch {
+    cleanQuestId = questId.trim();
+  }
+  if (!cleanQuestId) {
+    return undefined;
+  }
+
+  const all = getAllQuests();
+  const lower = cleanQuestId.toLowerCase();
+
+  // 1. Exact match case-insensitively
+  const exact = all.find((q) => q.id.toLowerCase() === lower);
+  if (exact) return exact;
+
+  // 2. Normalized separator match
+  const normalized = all.find(
+    (q) => q.id.replace(/_/g, "-").toLowerCase() === lower.replace(/_/g, "-")
+  );
+  if (normalized) return normalized;
+
+  // 3. Prefix + order matching (e.g. "html-1", "js-2", "databases-1")
+  const match = cleanQuestId.match(/^([a-zA-Z]+)[-_.]?(\d+)$/);
+  if (match) {
+    const realmCandidate = match[1];
+    const q = getQuestById(realmCandidate, cleanQuestId);
+    if (q) return q;
+  }
+
+  return undefined;
+}
+
+/**
+ * Returns the next quest ID in sequence within a realm, or null if on the last quest or unknown.
+ */
+export function getNextQuestId(realmId: string, currentQuestId: string): string | null {
+  const currentQuest = getQuestById(realmId, currentQuestId);
+  if (!currentQuest) {
+    return null;
+  }
+
+  const quests = getQuestsForRealm(realmId);
+  const sortedQuests = [...quests].sort((a, b) => a.order - b.order);
+  const currentIndex = sortedQuests.findIndex((q) => q.id === currentQuest.id);
+
+  if (currentIndex >= 0 && currentIndex < sortedQuests.length - 1) {
+    return sortedQuests[currentIndex + 1].id;
+  }
+
+  return null;
+}
+
+/**
+ * Calculates total XP available across all quests in the game.
+ */
+export function getTotalAvailableXp(): number {
+  return getAllQuests().reduce((sum, q) => sum + (q.xpReward || 0), 0);
+}
