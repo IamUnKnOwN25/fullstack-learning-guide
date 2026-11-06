@@ -25,6 +25,11 @@ export interface XpGainEvent {
   timestamp: number;
 }
 
+export interface StatBonuses {
+  maxHp: number;
+  maxMana: number;
+}
+
 export interface LevelUpNotification {
   previousLevel: number;
   newLevel: number;
@@ -33,6 +38,9 @@ export interface LevelUpNotification {
   unlockedSkillPoints: number;
   maxHp: number;
   maxMana: number;
+  rankTitle?: string;
+  isRankUpgrade?: boolean;
+  statBonuses?: StatBonuses;
 }
 
 export const RANKS: RankTier[] = [
@@ -259,4 +267,68 @@ export function evaluateLevelUp(
     newRank,
     isNewRank,
   };
+}
+
+/**
+ * Creates a structured level-up notification with sanitized level parameters.
+ * Returns null if clamped newLevel <= clamped previousLevel.
+ */
+export function createLevelUpNotification(
+  previousLevel: number,
+  newLevel: number
+): LevelUpNotification | null {
+  const safePreviousLevel = Number.isFinite(previousLevel)
+    ? Math.max(1, Math.floor(previousLevel))
+    : 1;
+  const safeNewLevel = Number.isFinite(newLevel)
+    ? Math.max(1, Math.floor(newLevel))
+    : 1;
+
+  if (safeNewLevel <= safePreviousLevel) {
+    return null;
+  }
+
+  const previousRank = calculateRank(safePreviousLevel);
+  const newRank = calculateRank(safeNewLevel);
+  const isRankUpgrade = newRank !== previousRank;
+  const unlockedSkillPoints = safeNewLevel - safePreviousLevel;
+  const maxHp = calculateHpForLevel(safeNewLevel);
+  const maxMana = calculateManaForLevel(safeNewLevel);
+
+  return {
+    previousLevel: safePreviousLevel,
+    newLevel: safeNewLevel,
+    newRankTitle: newRank,
+    rankTitle: newRank,
+    isNewRank: isRankUpgrade,
+    isRankUpgrade,
+    unlockedSkillPoints,
+    maxHp,
+    maxMana,
+    statBonuses: {
+      maxHp,
+      maxMana,
+    },
+  };
+}
+
+/**
+ * Calculates the non-negative XP delta required to advance from fromLevel to toLevel.
+ * Returns 0 when toLevel <= fromLevel or when either input is invalid.
+ */
+export function getXpDifference(fromLevel: number, toLevel: number): number {
+  if (
+    !Number.isFinite(fromLevel) ||
+    !Number.isFinite(toLevel) ||
+    fromLevel < 1 ||
+    toLevel < 1
+  ) {
+    return 0;
+  }
+  const safeFrom = Math.floor(fromLevel);
+  const safeTo = Math.floor(toLevel);
+  if (safeTo <= safeFrom) {
+    return 0;
+  }
+  return Math.max(0, getXpForLevel(safeTo) - getXpForLevel(safeFrom));
 }

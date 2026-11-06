@@ -9,6 +9,9 @@ import {
   calculateStreakBonus,
   calculateHpForLevel,
   calculateManaForLevel,
+  evaluateLevelUp,
+  createLevelUpNotification,
+  getXpDifference,
   RANKS,
 } from "../lib/levelSystem";
 import { useGameStore } from "../lib/gameStore";
@@ -192,6 +195,228 @@ describe("Leveling & EXP System Architecture", () => {
       expect(state.xp).toBe(110);
       expect(state.recentXpGain?.amount).toBe(110);
       expect(state.recentXpGain?.streakBonus).toBe(10);
+    });
+  });
+
+  describe("evaluateLevelUp Progression & Multi-Level Logic", () => {
+    it("returns didLevelUp: false when earned XP does not cross level threshold", () => {
+      const result = evaluateLevelUp(0, 10);
+      expect(result.didLevelUp).toBe(false);
+      expect(result.previousLevel).toBe(1);
+      expect(result.newLevel).toBe(1);
+      expect(result.levelsGained).toBe(0);
+      expect(result.previousRank).toBe("Novice Byte");
+      expect(result.newRank).toBe("Novice Byte");
+      expect(result.isNewRank).toBe(false);
+    });
+
+    it("evaluates single-level gain without crossing rank boundary", () => {
+      // 0 XP (Level 1) + 25 XP = 25 XP (Level 2, both Novice Byte)
+      const result = evaluateLevelUp(0, 25);
+      expect(result.didLevelUp).toBe(true);
+      expect(result.previousLevel).toBe(1);
+      expect(result.newLevel).toBe(2);
+      expect(result.levelsGained).toBe(1);
+      expect(result.previousRank).toBe("Novice Byte");
+      expect(result.newRank).toBe("Novice Byte");
+      expect(result.isNewRank).toBe(false);
+    });
+
+    it("evaluates single-level gain that crosses rank boundary", () => {
+      // 25 XP (Level 2, Novice Byte) + 75 XP = 100 XP (Level 3, Markup Apprentice)
+      const result = evaluateLevelUp(25, 75);
+      expect(result.didLevelUp).toBe(true);
+      expect(result.previousLevel).toBe(2);
+      expect(result.newLevel).toBe(3);
+      expect(result.levelsGained).toBe(1);
+      expect(result.previousRank).toBe("Novice Byte");
+      expect(result.newRank).toBe("Markup Apprentice");
+      expect(result.isNewRank).toBe(true);
+    });
+
+    it("handles multi-level leaps and multiple rank boundary crossings", () => {
+      // 0 XP (Level 1, Novice Byte) + 625 XP = 625 XP (Level 6, Style Weaver)
+      const result = evaluateLevelUp(0, 625);
+      expect(result.didLevelUp).toBe(true);
+      expect(result.previousLevel).toBe(1);
+      expect(result.newLevel).toBe(6);
+      expect(result.levelsGained).toBe(5);
+      expect(result.previousRank).toBe("Novice Byte");
+      expect(result.newRank).toBe("Style Weaver");
+      expect(result.isNewRank).toBe(true);
+    });
+
+    it("evaluates massive XP surge reaching capstone level 50", () => {
+      const result = evaluateLevelUp(0, 60025);
+      expect(result.didLevelUp).toBe(true);
+      expect(result.previousLevel).toBe(1);
+      expect(result.newLevel).toBe(50);
+      expect(result.levelsGained).toBe(49);
+      expect(result.previousRank).toBe("Novice Byte");
+      expect(result.newRank).toBe("Full-Stack Grandmaster");
+      expect(result.isNewRank).toBe(true);
+    });
+
+    it("handles non-finite, negative, and NaN inputs gracefully", () => {
+      const nanCurrent = evaluateLevelUp(NaN, 100);
+      expect(nanCurrent.previousLevel).toBe(1);
+      expect(nanCurrent.newLevel).toBe(3);
+      expect(nanCurrent.didLevelUp).toBe(true);
+
+      const nanEarned = evaluateLevelUp(100, NaN);
+      expect(nanEarned.previousLevel).toBe(3);
+      expect(nanEarned.newLevel).toBe(3);
+      expect(nanEarned.didLevelUp).toBe(false);
+
+      const negativeBoth = evaluateLevelUp(-100, -50);
+      expect(negativeBoth.previousLevel).toBe(1);
+      expect(negativeBoth.newLevel).toBe(1);
+      expect(negativeBoth.didLevelUp).toBe(false);
+
+      const infinityInput = evaluateLevelUp(Infinity, 100);
+      expect(infinityInput.previousLevel).toBe(1);
+      expect(infinityInput.newLevel).toBe(3);
+    });
+  });
+
+  describe("createLevelUpNotification Factory & Sanitization", () => {
+    it("returns null when newLevel is less than or equal to previousLevel", () => {
+      expect(createLevelUpNotification(1, 1)).toBeNull();
+      expect(createLevelUpNotification(5, 5)).toBeNull();
+      expect(createLevelUpNotification(10, 4)).toBeNull();
+      expect(createLevelUpNotification(50, 1)).toBeNull();
+    });
+
+    it("sanitizes non-finite and sub-1 inputs to minimum level 1", () => {
+      expect(createLevelUpNotification(NaN, 1)).toBeNull();
+      expect(createLevelUpNotification(1, NaN)).toBeNull();
+      expect(createLevelUpNotification(NaN, NaN)).toBeNull();
+      expect(createLevelUpNotification(-10, -5)).toBeNull();
+      expect(createLevelUpNotification(0, 0)).toBeNull();
+
+      // -5 clamps to 1; 3 remains 3 -> valid level up from 1 to 3
+      const clampedFrom = createLevelUpNotification(-5, 3);
+      expect(clampedFrom).not.toBeNull();
+      expect(clampedFrom?.previousLevel).toBe(1);
+      expect(clampedFrom?.newLevel).toBe(3);
+      expect(clampedFrom?.unlockedSkillPoints).toBe(2);
+
+      // Infinity clamps to 1
+      const infFrom = createLevelUpNotification(Infinity, 4);
+      expect(infFrom).not.toBeNull();
+      expect(infFrom?.previousLevel).toBe(1);
+      expect(infFrom?.newLevel).toBe(4);
+    });
+
+    it("floors decimal / floating point level inputs", () => {
+      const result = createLevelUpNotification(1.9, 4.2);
+      expect(result).not.toBeNull();
+      expect(result?.previousLevel).toBe(1);
+      expect(result?.newLevel).toBe(4);
+      expect(result?.unlockedSkillPoints).toBe(3);
+    });
+
+    it("creates complete notification payload for single-level increase without rank change", () => {
+      const notif = createLevelUpNotification(1, 2);
+      expect(notif).not.toBeNull();
+      expect(notif?.previousLevel).toBe(1);
+      expect(notif?.newLevel).toBe(2);
+      expect(notif?.rankTitle).toBe("Novice Byte");
+      expect(notif?.newRankTitle).toBe("Novice Byte");
+      expect(notif?.isRankUpgrade).toBe(false);
+      expect(notif?.isNewRank).toBe(false);
+      expect(notif?.unlockedSkillPoints).toBe(1);
+      expect(notif?.maxHp).toBe(110);
+      expect(notif?.maxMana).toBe(55);
+      expect(notif?.statBonuses).toEqual({ maxHp: 110, maxMana: 55 });
+    });
+
+    it("creates complete notification payload across rank boundary transitions", () => {
+      // Level 2 -> 3 transition (Novice Byte -> Markup Apprentice)
+      const notifL3 = createLevelUpNotification(2, 3);
+      expect(notifL3).not.toBeNull();
+      expect(notifL3?.previousLevel).toBe(2);
+      expect(notifL3?.newLevel).toBe(3);
+      expect(notifL3?.rankTitle).toBe("Markup Apprentice");
+      expect(notifL3?.isRankUpgrade).toBe(true);
+      expect(notifL3?.unlockedSkillPoints).toBe(1);
+      expect(notifL3?.statBonuses).toEqual({ maxHp: 120, maxMana: 60 });
+
+      // Level 5 -> 6 transition (Markup Apprentice -> Style Weaver)
+      const notifL6 = createLevelUpNotification(5, 6);
+      expect(notifL6?.rankTitle).toBe("Style Weaver");
+      expect(notifL6?.isRankUpgrade).toBe(true);
+      expect(notifL6?.statBonuses).toEqual({ maxHp: 150, maxMana: 75 });
+
+      // Level 49 -> 50 transition (Aegis Sentinel -> Full-Stack Grandmaster)
+      const notifL50 = createLevelUpNotification(49, 50);
+      expect(notifL50?.rankTitle).toBe("Full-Stack Grandmaster");
+      expect(notifL50?.isRankUpgrade).toBe(true);
+      expect(notifL50?.statBonuses).toEqual({ maxHp: 590, maxMana: 295 });
+    });
+
+    it("creates complete notification payload for multi-level jumps", () => {
+      const notif = createLevelUpNotification(1, 10);
+      expect(notif).not.toBeNull();
+      expect(notif?.previousLevel).toBe(1);
+      expect(notif?.newLevel).toBe(10);
+      expect(notif?.rankTitle).toBe("DOM Enchanter");
+      expect(notif?.isRankUpgrade).toBe(true);
+      expect(notif?.unlockedSkillPoints).toBe(9);
+      expect(notif?.statBonuses).toEqual({ maxHp: 190, maxMana: 95 });
+    });
+  });
+
+  describe("getXpDifference Delta Calculations", () => {
+    it("calculates exact XP delta between sequential levels", () => {
+      // L1 -> L2: 25 - 0 = 25
+      expect(getXpDifference(1, 2)).toBe(25);
+      // L2 -> L3: 100 - 25 = 75
+      expect(getXpDifference(2, 3)).toBe(75);
+      // L3 -> L4: 225 - 100 = 125
+      expect(getXpDifference(3, 4)).toBe(125);
+      // L4 -> L5: 400 - 225 = 175
+      expect(getXpDifference(4, 5)).toBe(175);
+    });
+
+    it("calculates multi-level XP delta accurately", () => {
+      // L1 -> L5: 400 - 0 = 400
+      expect(getXpDifference(1, 5)).toBe(400);
+      // L1 -> L10: 2025 - 0 = 2025
+      expect(getXpDifference(1, 10)).toBe(2025);
+      // L5 -> L10: 2025 - 400 = 1625
+      expect(getXpDifference(5, 10)).toBe(1625);
+      // L1 -> L50: 60025 - 0 = 60025
+      expect(getXpDifference(1, 50)).toBe(60025);
+    });
+
+    it("returns 0 when toLevel is less than or equal to fromLevel", () => {
+      expect(getXpDifference(1, 1)).toBe(0);
+      expect(getXpDifference(10, 10)).toBe(0);
+      expect(getXpDifference(5, 4)).toBe(0);
+      expect(getXpDifference(50, 1)).toBe(0);
+    });
+
+    it("returns 0 when inputs are invalid, non-finite, sub-1, or NaN", () => {
+      expect(getXpDifference(0, 5)).toBe(0);
+      expect(getXpDifference(-5, 5)).toBe(0);
+      expect(getXpDifference(1, 0)).toBe(0);
+      expect(getXpDifference(1, -10)).toBe(0);
+      expect(getXpDifference(NaN, 5)).toBe(0);
+      expect(getXpDifference(1, NaN)).toBe(0);
+      expect(getXpDifference(NaN, NaN)).toBe(0);
+      expect(getXpDifference(Infinity, 5)).toBe(0);
+      expect(getXpDifference(1, Infinity)).toBe(0);
+      expect(getXpDifference(-Infinity, 10)).toBe(0);
+    });
+
+    it("floors decimal inputs and returns correct XP difference", () => {
+      // 1.8 floors to 1 (0 XP), 3.9 floors to 3 (100 XP) -> delta 100
+      expect(getXpDifference(1.8, 3.9)).toBe(100);
+      // 2.2 floors to 2 (25 XP), 4.7 floors to 4 (225 XP) -> delta 200
+      expect(getXpDifference(2.2, 4.7)).toBe(200);
+      // 2.1 floors to 2, 2.9 floors to 2 -> toLevel <= fromLevel -> 0
+      expect(getXpDifference(2.1, 2.9)).toBe(0);
     });
   });
 });
