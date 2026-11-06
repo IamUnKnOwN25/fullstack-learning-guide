@@ -88,3 +88,9 @@ When operating in continuous development mode:
 - **Root Cause**: Git worktrees on Windows check out files with CRLF (\r\n) line endings, causing multi-line string matches in JSON payloads using \n to fail
 - **Mandatory Pattern**: `Use single-line unique targets or normalize CRLF when invoking file edit tools on Windows worktrees`
 - **Anti-Pattern**: `Avoid repeating the root cause above.`
+
+### [Learned: 2026-11-06] Void-Typed Singleton Method Spy Compatibility
+- **Symptom**: tsc --noEmit fails across component tests with Type '() => void' is not assignable to non-void return type
+- **Root Cause**: Component test suites stub shared singleton methods like soundEngine.playSfx with mockImplementation(() => {}) under strict TypeScript
+- **Mandatory Pattern**: `Keep shared void-typed singleton methods (e.g. soundEngine.playSfx) returning void and expose validation or status queries via dedicated helpers (isValidSfxType, getIsBgmPlaying)`
+- **Anti-Pattern**: `Changing void return signatures on shared singletons mocked with empty arrow functions across test suites`
