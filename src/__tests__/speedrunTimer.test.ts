@@ -28,9 +28,16 @@ describe("speedrunTimer", () => {
       expect(formatSpeedrunTime(600000)).toBe("10:00");
     });
 
-    it("formats large elapsed times over 60 minutes correctly", () => {
-      expect(formatSpeedrunTime(3661000)).toBe("61:01");
-      expect(formatSpeedrunTime(7200000)).toBe("120:00");
+    it("formats durations just below 1 hour with MM:SS format", () => {
+      expect(formatSpeedrunTime(3599000)).toBe("59:59");
+      expect(formatSpeedrunTime(3599999)).toBe("59:59");
+    });
+
+    it("formats large elapsed times over 60 minutes correctly with HH:MM:SS format", () => {
+      expect(formatSpeedrunTime(3600000)).toBe("01:00:00");
+      expect(formatSpeedrunTime(3661000)).toBe("01:01:01");
+      expect(formatSpeedrunTime(7200000)).toBe("02:00:00");
+      expect(formatSpeedrunTime(36000000)).toBe("10:00:00");
     });
 
     it("handles negative, NaN, and non-finite numbers safely", () => {
@@ -47,7 +54,13 @@ describe("speedrunTimer", () => {
       expect(formatSpeedrunTimeWithMs(500)).toBe("00:00.500");
       expect(formatSpeedrunTimeWithMs(1500)).toBe("00:01.500");
       expect(formatSpeedrunTimeWithMs(65123)).toBe("01:05.123");
-      expect(formatSpeedrunTimeWithMs(3661042)).toBe("61:01.042");
+      expect(formatSpeedrunTimeWithMs(3599999)).toBe("59:59.999");
+    });
+
+    it("formats large elapsed times over 60 minutes with HH:MM:SS.ms format", () => {
+      expect(formatSpeedrunTimeWithMs(3600000)).toBe("01:00:00.000");
+      expect(formatSpeedrunTimeWithMs(3661042)).toBe("01:01:01.042");
+      expect(formatSpeedrunTimeWithMs(7200050)).toBe("02:00:00.050");
     });
 
     it("handles negative and invalid values for formatSpeedrunTimeWithMs", () => {
@@ -248,6 +261,39 @@ describe("speedrunTimer", () => {
         expect(finishResult?.timeMs).toBe(7000);
       });
 
+      it("cleans up pausedRuns on resumeRun and preserves accurate elapsed time", () => {
+        const store = useSpeedrunTimer.getState();
+        vi.setSystemTime(100000);
+
+        store.startRun("quest-cleanup-resume");
+        vi.advanceTimersByTime(3000);
+        store.pauseRun("quest-cleanup-resume");
+
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-cleanup-resume"]).toBe(3000);
+        expect(store.isPaused("quest-cleanup-resume")).toBe(true);
+        expect(store.hasActiveRun("quest-cleanup-resume")).toBe(false);
+
+        // Resume run
+        const resumed = store.resumeRun("quest-cleanup-resume");
+        expect(resumed).toBe(true);
+
+        // pausedRuns entry must be cleaned up
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-cleanup-resume"]).toBeUndefined();
+        expect(store.isPaused("quest-cleanup-resume")).toBe(false);
+        expect(store.hasActiveRun("quest-cleanup-resume")).toBe(true);
+
+        // Check elapsed time continues from 3000ms
+        expect(store.getElapsedMs("quest-cleanup-resume")).toBe(3000);
+        vi.advanceTimersByTime(2500);
+        expect(store.getElapsedMs("quest-cleanup-resume")).toBe(5500);
+
+        // Can pause again safely after resume
+        store.pauseRun("quest-cleanup-resume");
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-cleanup-resume"]).toBe(5500);
+        expect(store.isPaused("quest-cleanup-resume")).toBe(true);
+        expect(store.hasActiveRun("quest-cleanup-resume")).toBe(false);
+      });
+
       it("handles pausing when already paused or unstarted gracefully", () => {
         const store = useSpeedrunTimer.getState();
         expect(store.pauseRun("unstarted-quest")).toBe(false);
@@ -391,6 +437,117 @@ describe("speedrunTimer", () => {
         expect(store.isPaused("quest-cleanup")).toBe(false);
         expect(store.getSplits("quest-cleanup")).toEqual([]);
         expect(store.getElapsedMs("quest-cleanup")).toBeNull();
+      });
+    });
+
+    describe("Active-run helper (hasActiveRun)", () => {
+      it("reports active run status correctly through lifecycle", () => {
+        const store = useSpeedrunTimer.getState();
+        expect(store.hasActiveRun("quest-life")).toBe(false);
+
+        store.startRun("quest-life");
+        expect(store.hasActiveRun("quest-life")).toBe(true);
+
+        store.pauseRun("quest-life");
+        expect(store.hasActiveRun("quest-life")).toBe(false);
+
+        store.resumeRun("quest-life");
+        expect(store.hasActiveRun("quest-life")).toBe(true);
+
+        store.finishRun("quest-life");
+        expect(store.hasActiveRun("quest-life")).toBe(false);
+      });
+
+      it("guards against nullish and invalid questId inputs", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("valid-quest");
+
+        expect(store.hasActiveRun("")).toBe(false);
+        expect(store.hasActiveRun(null as any)).toBe(false);
+        expect(store.hasActiveRun(undefined as any)).toBe(false);
+        expect(store.hasActiveRun(123 as any)).toBe(false);
+        expect(store.hasActiveRun({} as any)).toBe(false);
+      });
+    });
+
+    describe("completeRun and resetRun aliases with pausedRuns cleanup", () => {
+      it("completeRun finishes run, cleans up pausedRuns, and saves record", () => {
+        const store = useSpeedrunTimer.getState();
+        vi.setSystemTime(100000);
+
+        store.startRun("quest-comp");
+        vi.advanceTimersByTime(4000);
+        store.pauseRun("quest-comp");
+
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-comp"]).toBe(4000);
+
+        const result = store.completeRun("quest-comp");
+        expect(result).toEqual({ timeMs: 4000, isNewRecord: true });
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-comp"]).toBeUndefined();
+        expect(useSpeedrunTimer.getState().activeRuns["quest-comp"]).toBeUndefined();
+        expect(store.getRecord("quest-comp")?.bestTimeMs).toBe(4000);
+      });
+
+      it("resetRun cancels run and cleans up pausedRuns and splits", () => {
+        const store = useSpeedrunTimer.getState();
+        store.startRun("quest-reset");
+        store.pauseRun("quest-reset");
+        store.recordSplit("quest-reset", "Checkpoint");
+
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-reset"]).toBeDefined();
+        expect(store.getSplits("quest-reset")).toHaveLength(1);
+
+        store.resetRun("quest-reset");
+
+        expect(useSpeedrunTimer.getState().pausedRuns["quest-reset"]).toBeUndefined();
+        expect(useSpeedrunTimer.getState().activeRuns["quest-reset"]).toBeUndefined();
+        expect(store.getSplits("quest-reset")).toEqual([]);
+      });
+
+      it("completeRun and resetRun guard against nullish questId inputs", () => {
+        const store = useSpeedrunTimer.getState();
+        expect(store.completeRun("")).toBeNull();
+        expect(store.completeRun(null as any)).toBeNull();
+        expect(store.completeRun(undefined as any)).toBeNull();
+
+        expect(() => store.resetRun("")).not.toThrow();
+        expect(() => store.resetRun(null as any)).not.toThrow();
+        expect(() => store.resetRun(undefined as any)).not.toThrow();
+      });
+    });
+
+    describe("getTotalCompletions helper", () => {
+      it("returns 0 when there are no completion records", () => {
+        const store = useSpeedrunTimer.getState();
+        expect(store.getTotalCompletions()).toBe(0);
+      });
+
+      it("aggregates completionCount across all finished quests", () => {
+        const store = useSpeedrunTimer.getState();
+
+        // Quest 1 completed 2 times
+        store.startRun("quest-alpha");
+        store.finishRun("quest-alpha");
+        store.startRun("quest-alpha");
+        store.finishRun("quest-alpha");
+
+        // Quest 2 completed 1 time
+        store.startRun("quest-beta");
+        store.finishRun("quest-beta");
+
+        // Quest 3 completed 3 times
+        store.startRun("quest-gamma");
+        store.completeRun("quest-gamma");
+        store.startRun("quest-gamma");
+        store.completeRun("quest-gamma");
+        store.startRun("quest-gamma");
+        store.completeRun("quest-gamma");
+
+        expect(store.getTotalCompletions()).toBe(6);
+
+        // Clearing all records resets to 0
+        store.clearAllRecords();
+        expect(store.getTotalCompletions()).toBe(0);
       });
     });
   });
