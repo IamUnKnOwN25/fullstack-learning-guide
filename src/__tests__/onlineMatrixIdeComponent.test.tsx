@@ -327,4 +327,64 @@ describe("OnlineMatrixIde Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(editor.value).toBe(defaultTemplate.files[0].content);
   });
+
+  it("ensures mobile workspace view switcher and bottom panel have no duplicate hidden or dead tab buttons", () => {
+    const { container } = render(<OnlineMatrixIde />);
+
+    const mobileTablist = screen.getByRole("tablist", {
+      name: /mobile mode switcher|mobile workspace views/i,
+    });
+    const bottomTablist = screen.getByRole("tablist", {
+      name: /bottom panel tabs|bottom panel views/i,
+    });
+
+    // Mobile switcher must contain exactly 4 tabs (Code, Preview, Files, Shell) and 0 dead/hidden buttons
+    const mobileTabs = mobileTablist.querySelectorAll("button");
+    expect(mobileTabs).toHaveLength(4);
+    expect(Array.from(mobileTabs).every((btn) => btn.getAttribute("role") === "tab")).toBe(true);
+
+    // Bottom panel switcher must contain exactly 3 tabs (Console, Terminal, Problems) and 0 dead/hidden buttons
+    const bottomTabs = bottomTablist.querySelectorAll("button");
+    expect(bottomTabs).toHaveLength(3);
+    expect(Array.from(bottomTabs).every((btn) => btn.getAttribute("role") === "tab")).toBe(true);
+
+    // No leftover empty or dead fallback buttons anywhere in DOM
+    const emptyButtons = container.querySelectorAll("button:empty");
+    expect(emptyButtons).toHaveLength(0);
+
+    // No non-tab button leaks inside either tablist
+    expect(mobileTablist.querySelectorAll("button:not([role='tab'])")).toHaveLength(0);
+    expect(bottomTablist.querySelectorAll("button:not([role='tab'])")).toHaveLength(0);
+
+    // Verify comprehensive mobile view tab switching across all tabs
+    const codeTab = screen.getByRole("tab", { name: /code/i });
+    const previewTab = screen.getByRole("tab", { name: /preview/i });
+    const filesTab = screen.getByRole("tab", { name: /files/i });
+    const shellTab = screen.getByRole("tab", { name: /shell/i });
+
+    // Initial state: Code tab is active
+    expect(codeTab.getAttribute("aria-selected")).toBe("true");
+
+    // Switch to Preview
+    fireEvent.click(previewTab);
+    expect(previewTab.getAttribute("aria-selected")).toBe("true");
+    expect(codeTab.getAttribute("aria-selected")).toBe("false");
+    expect(filesTab.getAttribute("aria-selected")).toBe("false");
+    expect(shellTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to Files
+    fireEvent.click(filesTab);
+    expect(filesTab.getAttribute("aria-selected")).toBe("true");
+    expect(previewTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch to Shell
+    fireEvent.click(shellTab);
+    expect(shellTab.getAttribute("aria-selected")).toBe("true");
+    expect(filesTab.getAttribute("aria-selected")).toBe("false");
+
+    // Switch back to Code
+    fireEvent.click(codeTab);
+    expect(codeTab.getAttribute("aria-selected")).toBe("true");
+    expect(shellTab.getAttribute("aria-selected")).toBe("false");
+  });
 });
