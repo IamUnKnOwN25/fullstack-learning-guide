@@ -12,6 +12,56 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-11-06 16:54] Cycle 246: Next.js App Router Case/Alias Route Normalization & Query Fallbacks (Tests: PASS)**
+  - Enhanced `src/app/boss/[realmId]/page.tsx`, `src/app/quest/[realmId]/[questId]/page.tsx`, `src/app/ide/page.tsx`, and `src/app/curriculum/page.tsx` resolving uppercase/shorthand realm aliases (`js`, `ts`, `db`), decoding/trimming `questId`, safely unwrapping `string[]` query parameters, and falling back to default curriculum chapters on unrecognized `?file=` values while satisfying Next.js 15 `PageProps` route typegen.
+  - Expanded unit test suite in `src/__tests__/appPages.test.tsx` with 10 new route resilience tests.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:50] Cycle 245: XP Gain Floatie Atomic Live Region & Spoken Voice Label (Tests: PASS)**
+  - Enhanced `src/components/XpGainFloatie.tsx` guarding against non-finite or non-positive XP amounts, adding `aria-atomic="true"` and a synthesized spoken `aria-label` incorporating XP, streak bonus, and source, and marking decorative Lucide icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/xpGainFloatie.test.tsx` verifying atomic live announcements and non-positive XP suppression.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:52] Cycle 244: Boss Monster Sprite Realm Alias Resolution & Accessible Combat Status (Tests: PASS)**
+  - Enhanced `src/components/BossMonsterSprite.tsx` resolving shorthand realm aliases (`js`, `ts`, `db`/`database`) to their dedicated boss SVGs instead of capstone fallback, marking decorative SVG text/badges `aria-hidden="true"`, and enriching the outer `role="img"` `aria-label` with Enraged/Calm state and clamped HP percentage.
+  - Expanded unit test suite in `src/__tests__/bossMonsterSprite.test.tsx` to 14 passing tests covering alias sprites, 40% enrage threshold, and hidden inner SVGs.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:52] Cycle 243: Constellation World Map Landmarks, Node Pressed States & Hidden Conduits (Tests: PASS)**
+  - Enhanced `src/components/ConstellationWorldMap.tsx` adding `role="region"` (`aria-label="Interactive Realm Constellation Map"`), `aria-hidden="true"` on decorative grid and conduit SVGs, `aria-pressed` / `aria-disabled` states on realm node buttons, and semantic legend/action landmarks.
+  - Expanded unit test suite in `src/__tests__/constellationWorldMap.test.tsx` verifying landmarks, node states, and hidden vector conduits.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:50] Cycle 242: Theme Store WCAG Contrast Calculator, Sanitizer & Document Sync Action (Tests: PASS)**
+  - Enhanced `src/lib/themeStore.ts` adding `sanitizeTheme`, WCAG 2.1 relative luminance `getContrastRatio`, `isHighContrastTheme`, and an SSR-safe `syncWithDocument` store action.
+  - Expanded unit test suite in `src/__tests__/themeStore.test.ts` to 33 passing tests covering hex luminance contrast, theme normalization, and DOM synchronization.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:43] Cycle 241: Skills Tier Input Validation, Unlock Feasibility Guard & Bonus Aggregators (Tests: PASS)**
+  - Enhanced `src/data/skills.ts` hardening `getSkillsByTier` against invalid tiers and exporting `getSkillById`, `canUnlockSkill`, `calculateActiveStatBonuses`, and `getSkillPointsSpent` with duplicate/null-safe array handling.
+  - Expanded unit test suite in `src/__tests__/skills.test.ts` verifying tier guards, prerequisite/level/cost unlock checks, and stat bonus totals.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:38] Cycle 240: Quest Pedagogy Null-Safe Assertions, CSS Invariants & Quiz Evaluators (Tests: PASS)**
+  - Enhanced `src/data/questPedagogy.ts` guarding `generateQuestAssertions` against nullish/non-string inputs, adding `css_1_flexbox` and `css_2_grid` layout invariants, and exporting `getQuestDeepDive`, `getWarmUpDrill`, `getBossPostMortem`, and `evaluateQuizAnswer`.
+  - Expanded unit test suite in `src/__tests__/questPedagogy.test.ts` verifying nullish input safety, CSS assertions, and quiz index validation.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:40] Cycle 239: Bosses Alias Lookup Utilities & Phase Keyword Diagnostics (Tests: PASS)**
+  - Enhanced `src/data/bosses.ts` exporting `getBossByRealmId` (with case/alias normalization), `getBossById`, `getAllBosses`, `getTotalBossXp`, and `validateBossPhaseAttempt` keyword diagnostics.
+  - Expanded unit test suite in `src/__tests__/bosses.test.ts` verifying alias lookups, XP totals, and phase keyword matching.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:37] Cycle 238: Quests Realm Lookup, Fuzzy Order Matching & XP Aggregators (Tests: PASS)**
+  - Enhanced `src/data/quests.ts` exporting `getQuestsForRealm`, `getQuestById` (with case-insensitive exact ID and numeric order suffix fallback), `findQuestGlobal`, `getNextQuestId`, `getAllQuests`, and `getTotalAvailableXp`.
+  - Expanded unit test suite in `src/__tests__/quests.test.ts` with 21 new tests covering alias realms, fuzzy order matching, and sequence bounds.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-06 16:35] Cycle 237: Realms Alias Resolution, Progression Navigation & Unlock Guards (Tests: PASS)**
+  - Enhanced `src/data/realms.ts` exporting `resolveRealmAlias`, `getRealmById`, `getRealmByOrder`, `getNextRealm`, `getPreviousRealm`, and `isRealmUnlocked` with NaN and boundary safety.
+  - Expanded unit test suite in `src/__tests__/realms.test.ts` to 30 passing tests verifying alias normalization, campaign boundaries, and unlock checks.
+  - Verified with `npm run validate` (57 test files, 1096 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-11-06 11:47] Cycle 236: Network Status Indicator Polite Reconnection Announcements (Tests: PASS)**
   - Enhanced `src/components/NetworkStatusIndicator.tsx` adding a transient polite `role="status"` (`aria-live="polite"`) reconnection banner ("Connection restored. Back online.") with automatic 3-second dismissal and clean timer disposal on unmount or subsequent disconnect.
   - Expanded unit test suite in `src/__tests__/networkStatus.test.tsx` to 18 tests verifying offline->online announcements and fake-timer cleanup.
