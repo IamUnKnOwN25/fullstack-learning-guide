@@ -36,7 +36,7 @@ interface PageProps {
 
 export default async function CurriculumPage({
   searchParams,
-}: PageProps = {}) {
+}: PageProps) {
   const params = searchParams ? await searchParams : undefined;
   const rawFile = params?.file;
   const fileCandidate = Array.isArray(rawFile) ? rawFile[0] : rawFile;

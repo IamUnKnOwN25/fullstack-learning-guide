@@ -7,7 +7,7 @@ interface PageProps {
   }>;
 }
 
-export default async function IdePage({ searchParams }: PageProps = {}) {
+export default async function IdePage({ searchParams }: PageProps) {
   const params = searchParams ? await searchParams : undefined;
   const rawQuest = params?.quest;
   const questCandidate = Array.isArray(rawQuest) ? rawQuest[0] : rawQuest;
