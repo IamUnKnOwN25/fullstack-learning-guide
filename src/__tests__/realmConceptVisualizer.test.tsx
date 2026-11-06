@@ -31,7 +31,7 @@ describe("RealmConceptVisualizer Component", () => {
   it("switches to CSS Flexbox lab and updates layout properties and computed code", () => {
     render(<RealmConceptVisualizer realmId="html" />);
 
-    const cssLabBtn = screen.getByRole("button", {
+    const cssLabBtn = screen.getByRole("tab", {
       name: /switch concept lab to css/i,
     });
     fireEvent.click(cssLabBtn);
@@ -78,7 +78,8 @@ describe("RealmConceptVisualizer Component", () => {
   it("switches to Computer Science lab and animates binary search halving steps", () => {
     render(<RealmConceptVisualizer realmId="cs" />);
 
-    expect(screen.getByText(/Binary Search Step-by-Step Animator/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: /Binary Search Step-by-Step Animator/i })).toBeDefined();
+    expect(screen.getByRole("status").textContent).toContain("Binary Search Step-by-Step Animator");
     expect(screen.getByText(/in a sorted array of 12 elements/i)).toBeDefined();
 
     const nextStepBtn = screen.getByRole("button", { name: /next halving step/i });
@@ -99,7 +100,8 @@ describe("RealmConceptVisualizer Component", () => {
   it("switches to TypeScript lab and tests discriminated union type narrowing", () => {
     render(<RealmConceptVisualizer realmId="typescript" />);
 
-    expect(screen.getByText(/Discriminated Union & Type Narrowing Lab/i)).toBeDefined();
+    expect(screen.getByRole("heading", { name: /Discriminated Union & Type Narrowing Lab/i })).toBeDefined();
+    expect(screen.getByRole("status").textContent).toContain("Discriminated Union & Type Narrowing Lab");
 
     // Toggle to "loading" status
     const loadingBtn = screen.getByRole("button", { name: /"loading"/i });
@@ -221,5 +223,58 @@ describe("RealmConceptVisualizer Component", () => {
       screen.getByText("CUSTOM-UNKNOWN-REALM Interactive Concept Simulator")
     ).toBeDefined();
     expect(screen.getByText("Interactive Playground Ready")).toBeDefined();
+  });
+
+  it("provides accessible WAI-ARIA tablist, tabs, and tabpanel linkage", () => {
+    render(<RealmConceptVisualizer realmId="html" />);
+
+    const tablist = screen.getByRole("tablist", { name: "Concept labs" });
+    expect(tablist).toBeDefined();
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(12);
+
+    const htmlTab = screen.getByRole("tab", { name: /switch concept lab to html/i });
+    const reactTab = screen.getByRole("tab", { name: /switch concept lab to react/i });
+
+    expect(htmlTab.id).toBe("concept-tab-html");
+    expect(htmlTab.getAttribute("aria-controls")).toBe("concept-lab-panel");
+    expect(htmlTab.getAttribute("aria-selected")).toBe("true");
+
+    expect(reactTab.id).toBe("concept-tab-react");
+    expect(reactTab.getAttribute("aria-controls")).toBe("concept-lab-panel");
+    expect(reactTab.getAttribute("aria-selected")).toBe("false");
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel.id).toBe("concept-lab-panel");
+    expect(panel.getAttribute("aria-labelledby")).toBe("concept-tab-html");
+
+    // Switch to React
+    fireEvent.click(reactTab);
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(htmlTab.getAttribute("aria-selected")).toBe("false");
+    expect(reactTab.getAttribute("aria-selected")).toBe("true");
+    expect(panel.getAttribute("aria-labelledby")).toBe("concept-tab-react");
+  });
+
+  it("announces active concept lab title via polite role='status' live region", () => {
+    const { rerender } = render(<RealmConceptVisualizer realmId="html" />);
+
+    const liveRegion = screen.getByRole("status");
+    expect(liveRegion.getAttribute("aria-live")).toBe("polite");
+    expect(liveRegion.textContent).toBe("Active concept lab: Interactive Semantic DOM Tree Inspector");
+
+    // Switch to Security via tab click
+    const secTab = screen.getByRole("tab", { name: /switch concept lab to security/i });
+    fireEvent.click(secTab);
+    expect(liveRegion.textContent).toBe("Active concept lab: Interactive XSS Injection & Sanitization Lab");
+
+    // Dynamic prop update to databases
+    rerender(<RealmConceptVisualizer realmId="databases" />);
+    expect(liveRegion.textContent).toBe("Active concept lab: PostgreSQL Parameterized Queries & B-Tree Index Planner");
+
+    // Fallback unknown realm
+    rerender(<RealmConceptVisualizer realmId="docker-k8s" />);
+    expect(liveRegion.textContent).toBe("Active concept lab: DOCKER-K8S Interactive Concept Simulator");
   });
 });

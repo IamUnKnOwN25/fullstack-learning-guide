@@ -37,8 +37,31 @@ export const SUPPORTED_VISUALIZER_REALMS = [
   "capstone",
 ] as const;
 
+export const REALM_CONCEPT_TITLES: Record<string, string> = {
+  html: "Interactive Semantic DOM Tree Inspector",
+  css: "Interactive Flexbox & Flow Playground",
+  javascript: "JavaScript Event Loop & Microtask Simulator",
+  typescript: "Discriminated Union & Type Narrowing Lab",
+  react: "React Render Flamegraph & Memoization Lab",
+  backend: "Express Middleware & JWT Pipeline Simulator",
+  databases: "PostgreSQL Parameterized Queries & B-Tree Index Planner",
+  devops: "Multi-Stage Docker Image Size & Layer Optimizer",
+  testing: "TDD Red-Green-Refactor & Vitest Spy Lab",
+  cs: "Binary Search Step-by-Step Animator (O(log N))",
+  security: "Interactive XSS Injection & Sanitization Lab",
+  capstone: "Full-Stack Capstone System Architecture Simulator",
+};
+
+export function getRealmConceptTitle(realmId: string): string {
+  return (
+    REALM_CONCEPT_TITLES[realmId] ||
+    `${realmId.toUpperCase()} Interactive Concept Simulator`
+  );
+}
+
 export function RealmConceptVisualizer({ realmId }: Props) {
   const [selectedRealmId, setSelectedRealmId] = useState(realmId);
+  const currentTitle = getRealmConceptTitle(selectedRealmId);
 
   React.useEffect(() => {
     setSelectedRealmId(realmId);
@@ -1180,8 +1203,17 @@ export function RealmConceptVisualizer({ realmId }: Props) {
 
   return (
     <div className="flex flex-col">
+      {/* Polite live region for screen readers */}
+      <div role="status" aria-live="polite" className="sr-only">
+        Active concept lab: {currentTitle}
+      </div>
+
       {/* 12-Realm Concept Lab Switcher Bar */}
-      <div className="px-4 py-2 border-b border-matrix-border bg-matrix-card/40 flex items-center gap-1.5 overflow-x-auto font-mono text-[10px]">
+      <div
+        role="tablist"
+        aria-label="Concept labs"
+        className="px-4 py-2 border-b border-matrix-border bg-matrix-card/40 flex items-center gap-1.5 overflow-x-auto font-mono text-[10px]"
+      >
         <span className="text-gray-400 uppercase font-bold whitespace-nowrap shrink-0 mr-1">
           Lab:
         </span>
@@ -1192,7 +1224,10 @@ export function RealmConceptVisualizer({ realmId }: Props) {
               key={r}
               type="button"
               aria-label={`Switch concept lab to ${r}`}
-              aria-pressed={isCurrent}
+              role="tab"
+              id={`concept-tab-${r}`}
+              aria-controls="concept-lab-panel"
+              aria-selected={isCurrent}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setSelectedRealmId(r);
@@ -1208,7 +1243,13 @@ export function RealmConceptVisualizer({ realmId }: Props) {
           );
         })}
       </div>
-      {renderActiveRealmContent()}
+      <div
+        role="tabpanel"
+        id="concept-lab-panel"
+        aria-labelledby={`concept-tab-${selectedRealmId}`}
+      >
+        {renderActiveRealmContent()}
+      </div>
     </div>
   );
 }
