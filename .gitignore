@@ -41,3 +41,6 @@ next-env.d.ts
 
 # Autonomous loop stop signal
 .stop
+
+# Local walkthrough demo recordings
+/walkthrough_demo/
