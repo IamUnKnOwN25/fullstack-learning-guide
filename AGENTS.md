@@ -94,3 +94,9 @@ When operating in continuous development mode:
 - **Root Cause**: Component test suites stub shared singleton methods like soundEngine.playSfx with mockImplementation(() => {}) under strict TypeScript
 - **Mandatory Pattern**: `Keep shared void-typed singleton methods (e.g. soundEngine.playSfx) returning void and expose validation or status queries via dedicated helpers (isValidSfxType, getIsBgmPlaying)`
 - **Anti-Pattern**: `Changing void return signatures on shared singletons mocked with empty arrow functions across test suites`
+
+### [Learned: 2026-11-06] Next.js 15 App Router Page Non-Optional Props Constraint
+- **Symptom**: .next/types/app/**/page.ts fails tsc --noEmit with TS2344: Type 'PageProps | undefined' does not satisfy the constraint 'PageProps'
+- **Root Cause**: Clean Git worktrees lack .next/types until next build; Next.js 15 route typegen requires page.tsx default exports to accept non-optional props: PageProps
+- **Mandatory Pattern**: `Declare Next.js 15 page.tsx exports as function Page({ params, searchParams }: PageProps) with optionality only on inner fields (searchParams?: Promise<...>)`
+- **Anti-Pattern**: `Adding default = {} or optional ?: to the outer PageProps parameter on Next.js 15 App Router page.tsx exports`
