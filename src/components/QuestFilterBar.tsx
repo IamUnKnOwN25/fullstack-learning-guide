@@ -38,8 +38,36 @@ export function QuestFilterBar({
     }
   };
 
+  const activeFiltersSummary = React.useMemo(() => {
+    if (!hasActiveFilters) {
+      return "Showing all quests";
+    }
+
+    const details: string[] = [];
+    const query = searchQuery.trim();
+    if (query) {
+      details.push(`search: "${query}"`);
+    }
+    if (selectedRealm !== "All") {
+      const realm = REALMS.find((r) => r.id === selectedRealm);
+      details.push(`realm: ${realm ? realm.title : selectedRealm}`);
+    }
+    if (difficulty !== "All") {
+      details.push(`difficulty: ${difficulty}`);
+    }
+
+    return `Active filters: ${details.join(", ")}`;
+  }, [hasActiveFilters, searchQuery, selectedRealm, difficulty]);
+
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-center w-full bg-matrix-dark/80 backdrop-blur-md border border-matrix-border rounded-xl p-3 sm:p-4 shadow-lg shadow-black/40">
+    <div
+      role="search"
+      aria-label="Quest filter controls"
+      className="flex flex-col sm:flex-row gap-3 items-center w-full bg-matrix-dark/80 backdrop-blur-md border border-matrix-border rounded-xl p-3 sm:p-4 shadow-lg shadow-black/40"
+    >
+      <div role="status" aria-live="polite" className="sr-only">
+        {activeFiltersSummary}
+      </div>
 
       {/* Search Input */}
       <div className="relative flex-1 w-full group">
