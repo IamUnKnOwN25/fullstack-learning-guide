@@ -5,6 +5,9 @@ import {
   THEMES,
   DEFAULT_THEME,
   isValidTheme,
+  sanitizeTheme,
+  getContrastRatio,
+  isHighContrastTheme,
   getThemeMeta,
   getNextTheme,
   applyThemeToDocument,
@@ -159,6 +162,150 @@ describe("Theme Store", () => {
       applyThemeToDocument("obsidian-high-contrast");
       expect(root.getAttribute("data-theme")).toBe("obsidian-high-contrast");
       expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FFFF00");
+    });
+  });
+
+  describe("Theme Sanitizer and Normalization", () => {
+    it("returns valid theme unchanged when input is exact match", () => {
+      expect(sanitizeTheme("matrix-emerald")).toBe("matrix-emerald");
+      expect(sanitizeTheme("cyber-neon")).toBe("cyber-neon");
+      expect(sanitizeTheme("obsidian-high-contrast")).toBe("obsidian-high-contrast");
+    });
+
+    it("normalizes case and trims whitespace around theme names", () => {
+      expect(sanitizeTheme("  CYBER-NEON  ")).toBe("cyber-neon");
+      expect(sanitizeTheme("Matrix-Emerald")).toBe("matrix-emerald");
+      expect(sanitizeTheme("\t obsidian-high-contrast \n")).toBe("obsidian-high-contrast");
+    });
+
+    it("falls back to DEFAULT_THEME on invalid or non-string inputs when no fallback is provided", () => {
+      expect(sanitizeTheme("matrix-dark")).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme("")).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme("   ")).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme(null)).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme(undefined)).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme(123)).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme({})).toBe(DEFAULT_THEME);
+      expect(sanitizeTheme(["cyber-neon"])).toBe(DEFAULT_THEME);
+    });
+
+    it("respects custom fallback when valid, or falls back to DEFAULT_THEME if fallback is invalid", () => {
+      expect(sanitizeTheme("matrix-dark", "cyber-neon")).toBe("cyber-neon");
+      expect(sanitizeTheme(null, "obsidian-high-contrast")).toBe("obsidian-high-contrast");
+      expect(sanitizeTheme("unknown", "invalid-fallback" as any)).toBe(DEFAULT_THEME);
+    });
+
+    it("setTheme applies case-normalized and trimmed theme strings", () => {
+      useThemeStore.getState().setTheme("  CYBER-NEON  ");
+      expect(useThemeStore.getState().theme).toBe("cyber-neon");
+
+      useThemeStore.getState().setTheme("  OBSIDIAN-HIGH-CONTRAST  ");
+      expect(useThemeStore.getState().theme).toBe("obsidian-high-contrast");
+
+      useThemeStore.getState().setTheme("  MATRIX-EMERALD  ");
+      expect(useThemeStore.getState().theme).toBe("matrix-emerald");
+    });
+  });
+
+  describe("WCAG 2.1 Contrast Ratio Calculator", () => {
+    it("calculates maximum 21:1 contrast ratio between pure black and pure white", () => {
+      expect(getContrastRatio("#000000", "#ffffff")).toBe(21);
+      expect(getContrastRatio("#ffffff", "#000000")).toBe(21);
+      expect(getContrastRatio("#000", "#fff")).toBe(21);
+      expect(getContrastRatio("#fff", "#000")).toBe(21);
+    });
+
+    it("supports hex strings with or without leading hash and mixed case", () => {
+      expect(getContrastRatio("000000", "ffffff")).toBe(21);
+      expect(getContrastRatio("#FFF", "#000")).toBe(21);
+      expect(getContrastRatio("fff", "000")).toBe(21);
+    });
+
+    it("returns 1 for identical colors", () => {
+      expect(getContrastRatio("#ffffff", "#ffffff")).toBe(1);
+      expect(getContrastRatio("#000000", "#000000")).toBe(1);
+      expect(getContrastRatio("#123456", "#123456")).toBe(1);
+      expect(getContrastRatio("#abc", "#abc")).toBe(1);
+    });
+
+    it("calculates correct contrast ratio for theme palettes meeting WCAG thresholds", () => {
+      // obsidian-high-contrast: primary #FFFF00 on darkBg #000000
+      const obsidianRatio = getContrastRatio("#FFFF00", "#000000");
+      expect(obsidianRatio).toBeGreaterThan(15);
+
+      // matrix-emerald: primary #00FF66 on darkBg #0f172a
+      const matrixRatio = getContrastRatio("#00FF66", "#0f172a");
+      expect(matrixRatio).toBeGreaterThan(7); // passes WCAG AAA (7:1)
+
+      // cyber-neon: primary #FF007F on darkBg #0a0a0f
+      const cyberRatio = getContrastRatio("#FF007F", "#0a0a0f");
+      expect(cyberRatio).toBeGreaterThan(4.5); // passes WCAG AA (4.5:1)
+    });
+
+    it("returns 1 safely on malformed inputs", () => {
+      expect(getContrastRatio("", "#ffffff")).toBe(1);
+      expect(getContrastRatio("#ffffff", "")).toBe(1);
+      expect(getContrastRatio("invalid", "#ffffff")).toBe(1);
+      expect(getContrastRatio("#12", "#ffffff")).toBe(1);
+      expect(getContrastRatio("#12345", "#ffffff")).toBe(1);
+      expect(getContrastRatio("#gggggg", "#ffffff")).toBe(1);
+      expect(getContrastRatio(null as any, "#ffffff")).toBe(1);
+      expect(getContrastRatio("#ffffff", undefined as any)).toBe(1);
+      expect(getContrastRatio(123 as any, {} as any)).toBe(1);
+    });
+  });
+
+  describe("High Contrast Theme Detection", () => {
+    it("identifies obsidian-high-contrast as high contrast theme", () => {
+      expect(isHighContrastTheme("obsidian-high-contrast")).toBe(true);
+      expect(isHighContrastTheme("OBSIDIAN-HIGH-CONTRAST")).toBe(true);
+      expect(isHighContrastTheme("  obsidian-high-contrast  ")).toBe(true);
+    });
+
+    it("identifies theme objects with obsidian-high-contrast id", () => {
+      expect(isHighContrastTheme({ id: "obsidian-high-contrast" })).toBe(true);
+      expect(isHighContrastTheme({ id: "  OBSIDIAN-HIGH-CONTRAST  " })).toBe(true);
+    });
+
+    it("returns false for non-high-contrast themes and invalid values", () => {
+      expect(isHighContrastTheme("matrix-emerald")).toBe(false);
+      expect(isHighContrastTheme("cyber-neon")).toBe(false);
+      expect(isHighContrastTheme("matrix-dark")).toBe(false);
+      expect(isHighContrastTheme("")).toBe(false);
+      expect(isHighContrastTheme(null)).toBe(false);
+      expect(isHighContrastTheme(undefined)).toBe(false);
+      expect(isHighContrastTheme(123)).toBe(false);
+      expect(isHighContrastTheme({})).toBe(false);
+      expect(isHighContrastTheme({ id: "cyber-neon" })).toBe(false);
+    });
+  });
+
+  describe("Document Synchronization (syncWithDocument)", () => {
+    it("synchronizes the current theme custom properties to documentElement", () => {
+      useThemeStore.getState().setTheme("obsidian-high-contrast");
+      useThemeStore.getState().syncWithDocument();
+
+      const root = document.documentElement;
+      expect(root.getAttribute("data-theme")).toBe("obsidian-high-contrast");
+      expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FFFF00");
+      expect(root.style.getPropertyValue("--matrix-accent")).toBe("#00E5FF");
+      expect(root.style.getPropertyValue("--matrix-bg")).toBe("#000000");
+
+      useThemeStore.getState().setTheme("cyber-neon");
+      useThemeStore.getState().syncWithDocument();
+      expect(root.getAttribute("data-theme")).toBe("cyber-neon");
+      expect(root.style.getPropertyValue("--matrix-primary")).toBe("#FF007F");
+    });
+
+    it("is SSR safe when document is unavailable", () => {
+      const originalDocument = globalThis.document;
+      try {
+        // @ts-expect-error Simulating SSR environment without document
+        delete globalThis.document;
+        expect(() => useThemeStore.getState().syncWithDocument()).not.toThrow();
+      } finally {
+        globalThis.document = originalDocument;
+      }
     });
   });
 
