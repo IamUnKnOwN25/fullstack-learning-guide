@@ -8,15 +8,33 @@ interface Props {
   bossHpPercent: number;
 }
 
+export function resolveBossRealmId(realmId: string): string {
+  const normalized = (realmId || "").trim().toLowerCase();
+  switch (normalized) {
+    case "js":
+      return "javascript";
+    case "ts":
+      return "typescript";
+    case "db":
+    case "database":
+      return "databases";
+    default:
+      return normalized;
+  }
+}
+
 export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
-  const isEnraged = bossHpPercent < 40;
+  const resolvedRealm = resolveBossRealmId(realmId);
+  const clampedHp = Math.max(0, Math.min(100, Math.round(Number.isFinite(bossHpPercent) ? bossHpPercent : 100)));
+  const isEnraged = clampedHp < 40;
+  const combatState = isEnraged ? "Enraged" : "Calm";
 
   // Render unique crafted SVG sprite based on realmId
   const renderMonster = () => {
-    switch (realmId) {
+    switch (resolvedRealm) {
       case "html":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
             {/* Core Body */}
             <circle cx="50" cy="50" r="28" fill="#1e1b4b" stroke={isEnraged ? "#ef4444" : "#f97316"} strokeWidth="3" />
             {/* Broken Angle Brackets */}
@@ -49,7 +67,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "css":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]">
             {/* Swirling Box Shields */}
             <rect
               x="22"
@@ -80,7 +98,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "javascript":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(234,179,8,0.6)]">
             {/* Kraken Body */}
             <ellipse cx="50" cy="44" rx="24" ry="22" fill="#1c1917" stroke="#eab308" strokeWidth="3" />
             {/* Glowing JS Glyph */}
@@ -124,7 +142,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "typescript":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(96,165,250,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(96,165,246,0.6)]">
             {/* Any-Demon Horns & Face */}
             <path d="M 24 28 Q 28 10 16 4 Q 28 20 34 32" fill="#1e3a8a" stroke="#60a5fa" strokeWidth="2" />
             <path d="M 76 28 Q 72 10 84 4 Q 72 20 66 32" fill="#1e3a8a" stroke="#60a5fa" strokeWidth="2" />
@@ -141,7 +159,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "react":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">
             {/* Infinite Loop Orbiting Rings */}
             <ellipse
               cx="50"
@@ -189,7 +207,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "backend":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">
             {/* Mechanical Steam Golem / Blocker */}
             <rect x="28" y="24" width="44" height="52" rx="8" fill="#14532d" stroke="#22c55e" strokeWidth="3" />
             {/* Frozen Event Loop Dial */}
@@ -208,7 +226,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "databases":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(249,115,22,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(249,115,22,0.6)]">
             {/* Database Injection Behemoth: Armored DB Cylinders */}
             <ellipse cx="50" cy="28" rx="28" ry="10" fill="#431407" stroke="#ea580c" strokeWidth="2.5" />
             <path d="M 22 28 V 50 C 22 56 78 56 78 50 V 28" fill="#271008" stroke="#ea580c" strokeWidth="2.5" />
@@ -224,7 +242,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "devops":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]">
             {/* Merge Conflict Chimera: Fractured Git Branches */}
             <circle cx="50" cy="50" r="24" fill="#3b0764" stroke="#a855f7" strokeWidth="3" />
             <circle cx="36" cy="32" r="7" fill="#1e1b4b" stroke="#ef4444" strokeWidth="2" />
@@ -241,7 +259,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "testing":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(236,72,153,0.6)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(236,72,153,0.6)]">
             {/* Flaky Test Spectre: Phasing Ghost */}
             <path
               d="M 30 76 C 26 44 32 20 50 20 C 68 20 74 44 70 76 C 65 72 60 76 56 72 C 52 76 48 72 44 76 C 40 72 35 76 30 76 Z"
@@ -262,7 +280,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "cs":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(239,68,68,0.7)]">
             {/* O(N!) Goliath Titan */}
             <polygon points="50,16 82,34 82,72 50,90 18,72 18,34" fill="#18181b" stroke="#ef4444" strokeWidth="3" />
             {/* Factorial Tree Grid */}
@@ -281,7 +299,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
       case "security":
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(244,63,94,0.7)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(244,63,94,0.7)]">
             {/* The XSS Phantom: Shrouded Mask with Injected Script */}
             <path
               d="M 28 32 C 34 16 66 16 72 32 C 80 50 74 78 50 86 C 26 78 20 50 28 32 Z"
@@ -301,7 +319,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
       case "capstone":
       default:
         return (
-          <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(168,85,247,0.8)]">
+          <svg aria-hidden="true" viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(168,85,247,0.8)]">
             {/* The Null Void: Swirling Black Hole Singularity */}
             <circle cx="50" cy="50" r="32" fill="#020617" stroke="#a855f7" strokeWidth="3" className="animate-spin" style={{ animationDuration: "12s" }} />
             <circle cx="50" cy="50" r="22" fill="#000000" stroke="#f43f5e" strokeWidth="2" strokeDasharray="5 3" className="animate-spin" style={{ animationDuration: "6s", animationDirection: "reverse" }} />
@@ -319,7 +337,10 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
 
   return (
     <div
-      data-testid="boss-monster-sprite" role="img" aria-label={`Boss Guardian (${realmId})`} className={`relative w-36 h-36 rounded-2xl bg-gradient-to-br from-red-950/60 via-matrix-card to-black border-2 transition-all p-3 flex items-center justify-center ${
+      data-testid="boss-monster-sprite"
+      role="img"
+      aria-label={`Boss Guardian (${realmId}) - ${combatState} (${clampedHp}% HP)`}
+      className={`relative w-36 h-36 rounded-2xl bg-gradient-to-br from-red-950/60 via-matrix-card to-black border-2 transition-all p-3 flex items-center justify-center ${
         isHit
           ? "border-matrix-accent scale-105 brightness-200 animate-shake"
           : isEnraged
@@ -329,6 +350,7 @@ export function BossMonsterSprite({ realmId, isHit, bossHpPercent }: Props) {
     >
       {renderMonster()}
       <div
+        aria-hidden="true"
         className={`absolute -top-2.5 -right-2.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shadow-md ${
           isEnraged
             ? "bg-matrix-neonRed text-white animate-bounce"
