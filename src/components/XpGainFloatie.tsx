@@ -9,7 +9,7 @@ export function XpGainFloatie() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!recentXpGain) {
+    if (!recentXpGain || !Number.isFinite(recentXpGain.amount) || recentXpGain.amount <= 0) {
       setVisible(false);
       return;
     }
@@ -23,22 +23,34 @@ export function XpGainFloatie() {
     return () => clearTimeout(timer);
   }, [recentXpGain, dismissRecentXpGain]);
 
-  if (!visible || !recentXpGain) return null;
+  if (!visible || !recentXpGain || !Number.isFinite(recentXpGain.amount) || recentXpGain.amount <= 0) {
+    return null;
+  }
+
+  let spokenLabel = `Awarded ${recentXpGain.amount} XP`;
+  if (recentXpGain.streakBonus > 0) {
+    spokenLabel += `, plus ${recentXpGain.streakBonus} streak bonus`;
+  }
+  if (recentXpGain.source && recentXpGain.source.trim().length > 0) {
+    spokenLabel += ` from ${recentXpGain.source.trim()}`;
+  }
 
   return (
     <div
       role="status"
       aria-live="polite"
+      aria-atomic="true"
+      aria-label={spokenLabel}
       data-testid="xp-gain-floatie"
       className="fixed top-14 sm:top-16 right-4 z-40 pointer-events-none animate-bounce"
     >
       <div className="px-3.5 py-1.5 rounded-full bg-matrix-dark/95 border border-matrix-neonGold/80 shadow-lg shadow-matrix-neonGold/30 flex items-center gap-2 font-mono text-xs text-matrix-neonGold backdrop-blur-md">
-        <Sparkles className="w-3.5 h-3.5 animate-spin" />
+        <Sparkles className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
         <span className="font-bold">+{recentXpGain.amount} XP</span>
 
         {recentXpGain.streakBonus > 0 && (
           <span className="flex items-center gap-0.5 text-[10px] text-matrix-accent bg-matrix-accent/10 px-1.5 py-0.5 rounded border border-matrix-accent/30">
-            <Flame className="w-3 h-3 fill-matrix-accent" />
+            <Flame className="w-3 h-3 fill-matrix-accent" aria-hidden="true" />
             <span>+{recentXpGain.streakBonus} Streak</span>
           </span>
         )}

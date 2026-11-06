@@ -42,6 +42,8 @@ describe("XpGainFloatie Component", () => {
     expect(floatie).toBeDefined();
     expect(floatie.getAttribute("role")).toBe("status");
     expect(floatie.getAttribute("aria-live")).toBe("polite");
+    expect(floatie.getAttribute("aria-atomic")).toBe("true");
+    expect(floatie.getAttribute("aria-label")).toBe("Awarded 250 XP");
     expect(screen.getByText("+250 XP")).toBeDefined();
     expect(screen.queryByText(/Streak/)).toBeNull();
   });
@@ -58,6 +60,8 @@ describe("XpGainFloatie Component", () => {
 
     render(<XpGainFloatie />);
 
+    const floatie = screen.getByTestId("xp-gain-floatie");
+    expect(floatie.getAttribute("aria-label")).toBe("Awarded 100 XP, plus 25 streak bonus");
     expect(screen.getByText("+100 XP")).toBeDefined();
     expect(screen.getByText("+25 Streak")).toBeDefined();
   });
@@ -74,7 +78,64 @@ describe("XpGainFloatie Component", () => {
 
     render(<XpGainFloatie />);
 
+    const floatie = screen.getByTestId("xp-gain-floatie");
+    expect(floatie.getAttribute("aria-label")).toBe("Awarded 300 XP from CSS Flexbox Mastery");
     expect(screen.getByText("(CSS Flexbox Mastery)")).toBeDefined();
+  });
+
+  it("renders spoken aria-label combining both streak bonus and source", () => {
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 450,
+        streakBonus: 50,
+        source: "Boss Battle",
+        timestamp: Date.now(),
+      },
+    });
+
+    render(<XpGainFloatie />);
+
+    const floatie = screen.getByTestId("xp-gain-floatie");
+    expect(floatie.getAttribute("aria-label")).toBe(
+      "Awarded 450 XP, plus 50 streak bonus from Boss Battle"
+    );
+    expect(screen.getByText("+450 XP")).toBeDefined();
+    expect(screen.getByText("+50 Streak")).toBeDefined();
+    expect(screen.getByText("(Boss Battle)")).toBeDefined();
+  });
+
+  it("marks decorative Sparkles and Flame icons with aria-hidden='true'", () => {
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 150,
+        streakBonus: 30,
+        source: "Trial Execution",
+        timestamp: Date.now(),
+      },
+    });
+
+    const { container } = render(<XpGainFloatie />);
+    const icons = container.querySelectorAll("svg");
+    expect(icons.length).toBeGreaterThanOrEqual(2);
+    icons.forEach((icon) => {
+      expect(icon.getAttribute("aria-hidden")).toBe("true");
+    });
+  });
+
+  it("marks decorative Sparkles icon with aria-hidden='true' when no streak bonus", () => {
+    useGameStore.setState({
+      recentXpGain: {
+        amount: 150,
+        streakBonus: 0,
+        source: "",
+        timestamp: Date.now(),
+      },
+    });
+
+    const { container } = render(<XpGainFloatie />);
+    const icons = container.querySelectorAll("svg");
+    expect(icons.length).toBe(1);
+    expect(icons[0].getAttribute("aria-hidden")).toBe("true");
   });
 
   it("automatically dismisses and cleans up after 2400ms timer", () => {
@@ -195,7 +256,7 @@ describe("XpGainFloatie Component", () => {
     expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
   });
 
-  it("renders with 0 XP without crashing", () => {
+  it("suppresses floatie rendering when XP amount is zero, negative, or non-finite", () => {
     useGameStore.setState({
       recentXpGain: {
         amount: 0,
@@ -205,8 +266,50 @@ describe("XpGainFloatie Component", () => {
       },
     });
 
-    render(<XpGainFloatie />);
-    expect(screen.getByText("+0 XP")).toBeDefined();
-    expect(screen.getByText("(Zero XP Event)")).toBeDefined();
+    const { container, rerender } = render(<XpGainFloatie />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
+
+    act(() => {
+      useGameStore.setState({
+        recentXpGain: {
+          amount: -50,
+          streakBonus: 0,
+          source: "Negative XP Event",
+          timestamp: Date.now(),
+        },
+      });
+    });
+    rerender(<XpGainFloatie />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
+
+    act(() => {
+      useGameStore.setState({
+        recentXpGain: {
+          amount: NaN,
+          streakBonus: 0,
+          source: "NaN XP Event",
+          timestamp: Date.now(),
+        },
+      });
+    });
+    rerender(<XpGainFloatie />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
+
+    act(() => {
+      useGameStore.setState({
+        recentXpGain: {
+          amount: Infinity,
+          streakBonus: 0,
+          source: "Infinity XP Event",
+          timestamp: Date.now(),
+        },
+      });
+    });
+    rerender(<XpGainFloatie />);
+    expect(container.firstChild).toBeNull();
+    expect(screen.queryByTestId("xp-gain-floatie")).toBeNull();
   });
 });
