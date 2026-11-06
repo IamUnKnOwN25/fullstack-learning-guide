@@ -1,5 +1,24 @@
 // Client-side Web Audio API Sound Synthesizer (Zero asset dependencies)
 
+export const VALID_SFX_TYPES = [
+  "click",
+  "correct",
+  "error",
+  "attack",
+  "boss-hit",
+  "level-up",
+  "victory",
+  "skill-unlock",
+  "badge-inspect",
+  "heal",
+] as const;
+
+export type SfxType = (typeof VALID_SFX_TYPES)[number];
+
+export function isValidSfxType(type: unknown): type is SfxType {
+  return typeof type === "string" && (VALID_SFX_TYPES as readonly string[]).includes(type);
+}
+
 export class SoundEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
@@ -39,6 +58,10 @@ export class SoundEngine {
     return this.isMuted;
   }
 
+  public getIsBgmPlaying(): boolean {
+    return Boolean(this.isBgmPlaying && !this.isMuted && this.volume > 0);
+  }
+
   public toggleMute(): boolean {
     this.setMuted(!this.isMuted);
     return this.isMuted;
@@ -69,30 +92,24 @@ export class SoundEngine {
 
   private safeExponentialRamp(param: AudioParam, targetValue: number, endTime: number) {
     const safeTarget = this.clampRampValue(targetValue);
+    const currentTime = this.ctx?.currentTime ?? 0;
+    const safeEndTime = Math.max(
+      currentTime + 0.001,
+      Number.isFinite(endTime) ? endTime : currentTime + 0.01
+    );
     try {
-      param.exponentialRampToValueAtTime(safeTarget, endTime);
+      param.exponentialRampToValueAtTime(safeTarget, safeEndTime);
     } catch {
       try {
-        param.linearRampToValueAtTime(safeTarget, endTime);
+        param.linearRampToValueAtTime(safeTarget, safeEndTime);
       } catch {
         // Safe no-op
       }
     }
   }
 
-  public playSfx(
-    type:
-      | "click"
-      | "correct"
-      | "error"
-      | "attack"
-      | "boss-hit"
-      | "level-up"
-      | "victory"
-      | "skill-unlock"
-      | "badge-inspect"
-      | "heal"
-  ) {
+  public playSfx(type: SfxType): void {
+    if (!isValidSfxType(type)) return;
     if (this.isMuted || this.volume <= 0) return;
     this.init();
     if (!this.ctx) return;

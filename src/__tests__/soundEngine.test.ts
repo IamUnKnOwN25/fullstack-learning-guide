@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { soundEngine, SoundEngine } from '../lib/soundEngine';
+import { soundEngine, SoundEngine, isValidSfxType, VALID_SFX_TYPES } from '../lib/soundEngine';
 import { soundEngine as audioSoundEngine } from '../lib/audio';
 
 describe('SoundEngine', () => {
@@ -290,6 +290,195 @@ describe('SoundEngine', () => {
       const started = soundEngine.toggleBgm(true);
       expect(started).toBe(false);
       expect(window.setInterval).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('isValidSfxType and playSfx type safety', () => {
+    it('returns true for all valid SFX literals', () => {
+      const validTypes = [
+        'click',
+        'correct',
+        'error',
+        'attack',
+        'boss-hit',
+        'level-up',
+        'victory',
+        'skill-unlock',
+        'badge-inspect',
+        'heal',
+      ];
+      for (const t of validTypes) {
+        expect(isValidSfxType(t)).toBe(true);
+      }
+      expect(VALID_SFX_TYPES).toEqual(validTypes);
+    });
+
+    it('returns false for invalid strings, unknown literals, and non-string inputs', () => {
+      expect(isValidSfxType('invalid-type')).toBe(false);
+      expect(isValidSfxType('jump')).toBe(false);
+      expect(isValidSfxType('')).toBe(false);
+      expect(isValidSfxType('CLICK')).toBe(false);
+      expect(isValidSfxType(null)).toBe(false);
+      expect(isValidSfxType(undefined)).toBe(false);
+      expect(isValidSfxType(123)).toBe(false);
+      expect(isValidSfxType({})).toBe(false);
+      expect(isValidSfxType([])).toBe(false);
+      expect(isValidSfxType(true)).toBe(false);
+    });
+
+    it('safely handles unknown or nullish sfx types in playSfx without throwing', () => {
+      mockOscillator.start.mockClear();
+      expect(() => (soundEngine.playSfx as any)('invalid-sound')).not.toThrow();
+      expect(mockOscillator.start).not.toHaveBeenCalled();
+
+      expect(() => (soundEngine.playSfx as any)(null)).not.toThrow();
+      expect(mockOscillator.start).not.toHaveBeenCalled();
+
+      expect(() => (soundEngine.playSfx as any)(undefined)).not.toThrow();
+      expect(mockOscillator.start).not.toHaveBeenCalled();
+
+      expect(() => (soundEngine.playSfx as any)({})).not.toThrow();
+      expect(mockOscillator.start).not.toHaveBeenCalled();
+    });
+
+    it('retains void return type on playSfx ensuring spy mock compatibility', () => {
+      const spy = vi.spyOn(soundEngine, 'playSfx').mockImplementation(() => {});
+      soundEngine.playSfx('click');
+      expect(spy).toHaveBeenCalledWith('click');
+      spy.mockRestore();
+    });
+  });
+
+  describe('getIsBgmPlaying lifecycle', () => {
+    let engine: SoundEngine;
+
+    beforeEach(() => {
+      engine = new SoundEngine();
+      engine.setMuted(false);
+      engine.setVolume(0.5);
+    });
+
+    it('returns false initially and tracks active playing state correctly', () => {
+      expect(engine.getIsBgmPlaying()).toBe(false);
+      expect(soundEngine.getIsBgmPlaying()).toBe(false);
+
+      const playing = engine.toggleBgm(true);
+      expect(playing).toBe(true);
+      expect(engine.getIsBgmPlaying()).toBe(true);
+
+      engine.toggleBgm(false);
+      expect(engine.getIsBgmPlaying()).toBe(false);
+    });
+
+    it('returns false when muted even if previously started', () => {
+      engine.toggleBgm(true);
+      expect(engine.getIsBgmPlaying()).toBe(true);
+
+      engine.setMuted(true);
+      expect(engine.getIsBgmPlaying()).toBe(false);
+    });
+
+    it('returns false when volume drops to 0', () => {
+      engine.toggleBgm(true);
+      expect(engine.getIsBgmPlaying()).toBe(true);
+
+      engine.setVolume(0);
+      expect(engine.getIsBgmPlaying()).toBe(false);
+    });
+
+    it('returns false when disposed', () => {
+      engine.toggleBgm(true);
+      expect(engine.getIsBgmPlaying()).toBe(true);
+
+      engine.dispose();
+      expect(engine.getIsBgmPlaying()).toBe(false);
+    });
+  });
+
+  describe('safeExponentialRamp endTime clamping', () => {
+    let engine: SoundEngine;
+
+    beforeEach(() => {
+      engine = new SoundEngine();
+      (engine as any).init();
+    });
+
+    it('clamps endTime in the past to strictly greater than currentTime', () => {
+      mockAudioContext.currentTime = 5.0;
+
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, 3.0);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        5.001
+      );
+    });
+
+    it('clamps endTime equal to currentTime to strictly greater than currentTime', () => {
+      mockAudioContext.currentTime = 10.0;
+
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, 10.0);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        10.001
+      );
+    });
+
+    it('clamps non-finite endTime (NaN, Infinity, -Infinity) to strictly greater than currentTime', () => {
+      mockAudioContext.currentTime = 2.0;
+
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, NaN);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        2.01
+      );
+
+      mockGain.gain.exponentialRampToValueAtTime.mockClear();
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, Infinity);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        2.01
+      );
+
+      mockGain.gain.exponentialRampToValueAtTime.mockClear();
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, -Infinity);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        2.01
+      );
+    });
+
+    it('preserves valid future endTime', () => {
+      mockAudioContext.currentTime = 1.0;
+
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, 1.5);
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        1.5
+      );
+    });
+
+    it('passes clamped safeEndTime to linear fallback when exponential ramp throws', () => {
+      mockGain.gain.exponentialRampToValueAtTime.mockImplementationOnce(() => {
+        throw new Error('RangeError: The float value provided must be greater than 0');
+      });
+      mockAudioContext.currentTime = 4.0;
+
+      (engine as any).safeExponentialRamp(mockGain.gain, 0.05, 2.0);
+      expect(mockGain.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        4.001
+      );
+    });
+
+    it('safely handles clamping when AudioContext is null', () => {
+      const detachedEngine = new SoundEngine();
+      expect(() => {
+        (detachedEngine as any).safeExponentialRamp(mockGain.gain, 0.05, -5);
+      }).not.toThrow();
+      expect(mockGain.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(
+        0.05,
+        0.001
+      );
     });
   });
 });
