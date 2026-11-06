@@ -8,6 +8,10 @@ import {
   getSkillPrerequisites,
   detectSkillTreeCycles,
   getTotalSkillTreeCost,
+  SKILLS,
+  canUnlockSkill,
+  calculateActiveStatBonuses,
+  getSkillPointsSpent,
 } from "../data/skills";
 
 describe("Skill Tree Data Integrity & Hierarchy", () => {
@@ -158,6 +162,151 @@ describe("Skill Tree Data Integrity & Hierarchy", () => {
       const expectedSum = SKILL_TREE.reduce((sum, s) => sum + s.cost, 0);
       expect(totalCost).toBe(expectedSum);
       expect(totalCost).toBeGreaterThan(30);
+    });
+
+    it("verifies SKILLS alias points to SKILL_TREE", () => {
+      expect(SKILLS).toBe(SKILL_TREE);
+      expect(SKILLS.length).toBe(15);
+    });
+
+    it("getSkillsByTier safely returns empty array for invalid, non-integer, or out-of-range tiers", () => {
+      expect(getSkillsByTier(0)).toEqual([]);
+      expect(getSkillsByTier(4)).toEqual([]);
+      expect(getSkillsByTier(-1)).toEqual([]);
+      expect(getSkillsByTier(99)).toEqual([]);
+      expect(getSkillsByTier(NaN)).toEqual([]);
+      expect(getSkillsByTier(1.5)).toEqual([]);
+      expect(getSkillsByTier(2.99)).toEqual([]);
+      expect(getSkillsByTier(Infinity)).toEqual([]);
+      expect(getSkillsByTier(-Infinity)).toEqual([]);
+      expect(getSkillsByTier(null as any)).toEqual([]);
+      expect(getSkillsByTier(undefined as any)).toEqual([]);
+      expect(getSkillsByTier("1" as any)).toEqual([]);
+    });
+
+    it("getSkillById performs trimmed and safe lookups", () => {
+      expect(getSkillById("  syntax_sense  ")).toBeDefined();
+      expect(getSkillById("  syntax_sense  ")?.id).toBe("syntax_sense");
+      expect(getSkillById("\tlint_shield\n")).toBeDefined();
+      expect(getSkillById("   ")).toBeUndefined();
+      expect(getSkillById(null as any)).toBeUndefined();
+      expect(getSkillById(undefined as any)).toBeUndefined();
+      expect(getSkillById(123 as any)).toBeUndefined();
+    });
+  });
+
+  describe("canUnlockSkill Guard Logic", () => {
+    it("rejects unknown or invalid skill IDs", () => {
+      expect(canUnlockSkill("", [], 5).allowed).toBe(false);
+      expect(canUnlockSkill("   ", [], 5).allowed).toBe(false);
+      expect(canUnlockSkill("unknown_skill", [], 5).allowed).toBe(false);
+      expect(canUnlockSkill(null as any, [], 5).allowed).toBe(false);
+    });
+
+    it("rejects already unlocked skills and default unlocked skills", () => {
+      // syntax_sense is unlockedByDefault: true
+      const defaultRes = canUnlockSkill("syntax_sense", [], 1);
+      expect(defaultRes.allowed).toBe(false);
+      expect(defaultRes.reason).toContain("already unlocked");
+
+      // lint_shield already in unlocked list
+      const unlockedRes = canUnlockSkill("lint_shield", ["lint_shield"], 1);
+      expect(unlockedRes.allowed).toBe(false);
+      expect(unlockedRes.reason).toContain("already unlocked");
+    });
+
+    it("rejects invalid, negative, or non-finite player levels", () => {
+      expect(canUnlockSkill("lint_shield", [], NaN).allowed).toBe(false);
+      expect(canUnlockSkill("lint_shield", [], Infinity).allowed).toBe(false);
+      expect(canUnlockSkill("lint_shield", [], -Infinity).allowed).toBe(false);
+      expect(canUnlockSkill("lint_shield", [], -1).allowed).toBe(false);
+      expect(canUnlockSkill("lint_shield", [], 0).allowed).toBe(false);
+    });
+
+    it("enforces prerequisite requirements across dependency chains", () => {
+      // state_synchronizer requires reactive_flow
+      const missingPrereq = canUnlockSkill("state_synchronizer", [], 5);
+      expect(missingPrereq.allowed).toBe(false);
+      expect(missingPrereq.reason).toContain("reactive_flow");
+
+      // allowed when immediate prerequisite is present
+      const hasPrereq = canUnlockSkill("state_synchronizer", ["reactive_flow"], 5);
+      expect(hasPrereq.allowed).toBe(true);
+
+      // server_action_warp requires reactive_flow AND state_synchronizer
+      const partialPrereq = canUnlockSkill("server_action_warp", ["state_synchronizer"], 5);
+      expect(partialPrereq.allowed).toBe(false);
+      expect(partialPrereq.reason).toContain("reactive_flow");
+
+      const fullChainPrereq = canUnlockSkill(
+        "server_action_warp",
+        ["reactive_flow", "state_synchronizer"],
+        5
+      );
+      expect(fullChainPrereq.allowed).toBe(true);
+    });
+
+    it("enforces availablePoints check when provided and allows when omitted", () => {
+      // lint_shield costs 2 points
+      const withoutPoints = canUnlockSkill("lint_shield", [], 1);
+      expect(withoutPoints.allowed).toBe(true);
+
+      const deficit = canUnlockSkill("lint_shield", [], 1, 1);
+      expect(deficit.allowed).toBe(false);
+      expect(deficit.reason).toContain("Not enough skill points");
+
+      const exact = canUnlockSkill("lint_shield", [], 1, 2);
+      expect(exact.allowed).toBe(true);
+
+      const surplus = canUnlockSkill("lint_shield", [], 1, 10);
+      expect(surplus.allowed).toBe(true);
+
+      const invalidPoints = canUnlockSkill("lint_shield", [], 1, NaN);
+      expect(invalidPoints.allowed).toBe(false);
+
+      const negativePoints = canUnlockSkill("lint_shield", [], 1, -2);
+      expect(negativePoints.allowed).toBe(false);
+    });
+  });
+
+  describe("calculateActiveStatBonuses & getSkillPointsSpent", () => {
+    it("aggregates active stat bonuses with null, empty, and duplicate resilience", () => {
+      expect(calculateActiveStatBonuses([])).toEqual([]);
+      expect(calculateActiveStatBonuses(null as any)).toEqual([]);
+      expect(calculateActiveStatBonuses(undefined as any)).toEqual([]);
+
+      const single = calculateActiveStatBonuses(["lint_shield"]);
+      expect(single).toEqual(["+1 Free Boss Strike Absorption"]);
+
+      // Duplicates must be deduplicated
+      const duplicates = calculateActiveStatBonuses(["lint_shield", "lint_shield", "  lint_shield  "]);
+      expect(duplicates).toEqual(["+1 Free Boss Strike Absorption"]);
+
+      // Multiple skills
+      const multiple = calculateActiveStatBonuses(["lint_shield", "reactive_flow"]);
+      expect(multiple).toEqual(["+1 Free Boss Strike Absorption", "+25% React Quest XP"]);
+
+      // Ignores unknown IDs and empty strings
+      const withUnknown = calculateActiveStatBonuses(["lint_shield", "fake_perk", "", "   "]);
+      expect(withUnknown).toEqual(["+1 Free Boss Strike Absorption"]);
+    });
+
+    it("calculates spent skill points with null, empty, and duplicate resilience", () => {
+      expect(getSkillPointsSpent([])).toBe(0);
+      expect(getSkillPointsSpent(null as any)).toBe(0);
+      expect(getSkillPointsSpent(undefined as any)).toBe(0);
+
+      // lint_shield costs 2
+      expect(getSkillPointsSpent(["lint_shield"])).toBe(2);
+
+      // Duplicate skill IDs must be charged only once
+      expect(getSkillPointsSpent(["lint_shield", "lint_shield", "lint_shield"])).toBe(2);
+
+      // Multiple skills: lint_shield (2) + reactive_flow (3) = 5
+      expect(getSkillPointsSpent(["lint_shield", "reactive_flow"])).toBe(5);
+
+      // Ignores unknown IDs, nulls, and whitespace entries
+      expect(getSkillPointsSpent(["lint_shield", "unknown_skill", "", "   ", null as any])).toBe(2);
     });
   });
 });

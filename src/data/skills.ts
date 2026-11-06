@@ -16,6 +16,8 @@ export interface SkillNode {
   prerequisiteId?: string;
   unlockedByDefault?: boolean;
   statBonus?: string;
+  prerequisites?: string[];
+  requiredLevel?: number;
 }
 
 export const SKILL_CATEGORIES: { id: SkillCategory; label: string; icon: string; color: string }[] = [
@@ -201,9 +203,13 @@ export const SKILL_TREE: SkillNode[] = [
 /**
  * Retrieve a skill node by its identifier.
  */
-export function getSkillById(id: string): SkillNode | undefined {
-  if (!id) return undefined;
-  return SKILL_TREE.find((s) => s.id === id);
+export const SKILLS = SKILL_TREE;
+
+export function getSkillById(skillId: string): SkillNode | undefined {
+  if (typeof skillId !== "string") return undefined;
+  const trimmed = skillId.trim();
+  if (!trimmed) return undefined;
+  return SKILL_TREE.find((s) => s.id === trimmed);
 }
 
 /**
@@ -216,7 +222,10 @@ export function getSkillsByCategory(category: SkillCategory): SkillNode[] {
 /**
  * Retrieve all skills belonging to a specific tier (1, 2, or 3).
  */
-export function getSkillsByTier(tier: 1 | 2 | 3): SkillNode[] {
+export function getSkillsByTier(tier: number): SkillNode[] {
+  if (typeof tier !== "number" || !Number.isInteger(tier) || tier < 1 || tier > 3) {
+    return [];
+  }
   return SKILL_TREE.filter((s) => s.tier === tier);
 }
 
@@ -283,4 +292,141 @@ export function detectSkillTreeCycles(): boolean {
  */
 export function getTotalSkillTreeCost(): number {
   return SKILL_TREE.reduce((acc, skill) => acc + skill.cost, 0);
+}
+
+/**
+ * Result of a skill unlock feasibility check.
+ */
+export interface SkillUnlockResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+/**
+ * Checks whether a skill can be unlocked given the player's level, currently
+ * unlocked skills, and optionally available skill points.
+ */
+export function canUnlockSkill(
+  skillId: string,
+  unlockedSkillIds: string[],
+  playerLevel: number,
+  availablePoints?: number
+): { allowed: boolean; reason?: string } {
+  if (typeof skillId !== "string" || !skillId.trim()) {
+    return { allowed: false, reason: "Skill not found." };
+  }
+
+  const skill = getSkillById(skillId);
+  if (!skill) {
+    return { allowed: false, reason: "Skill not found." };
+  }
+
+  const safeUnlocked = Array.isArray(unlockedSkillIds)
+    ? unlockedSkillIds
+        .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        .map((id) => id.trim())
+    : [];
+
+  if (safeUnlocked.includes(skill.id) || skill.unlockedByDefault) {
+    return { allowed: false, reason: "Skill is already unlocked." };
+  }
+
+  const requiredLevel =
+    typeof skill.requiredLevel === "number" && Number.isFinite(skill.requiredLevel)
+      ? skill.requiredLevel
+      : 1;
+
+  if (
+    typeof playerLevel !== "number" ||
+    !Number.isFinite(playerLevel) ||
+    playerLevel < requiredLevel
+  ) {
+    return {
+      allowed: false,
+      reason: `Player level must be at least ${requiredLevel}.`,
+    };
+  }
+
+  const prereqChain = getSkillPrerequisites(skill.id);
+  const allPrereqIds = new Set<string>();
+  for (const p of prereqChain) {
+    allPrereqIds.add(p.id);
+  }
+  if (skill.prerequisiteId) {
+    allPrereqIds.add(skill.prerequisiteId);
+  }
+  if (Array.isArray(skill.prerequisites)) {
+    for (const pid of skill.prerequisites) {
+      if (typeof pid === "string" && pid.trim()) {
+        allPrereqIds.add(pid.trim());
+      }
+    }
+  }
+
+  for (const prereqId of allPrereqIds) {
+    const isUnlocked =
+      safeUnlocked.includes(prereqId) || getSkillById(prereqId)?.unlockedByDefault === true;
+    if (!isUnlocked) {
+      return {
+        allowed: false,
+        reason: `Prerequisite skill '${prereqId}' is not unlocked.`,
+      };
+    }
+  }
+
+  if (availablePoints !== undefined) {
+    if (
+      typeof availablePoints !== "number" ||
+      !Number.isFinite(availablePoints) ||
+      availablePoints < skill.cost
+    ) {
+      return { allowed: false, reason: "Not enough skill points." };
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Aggregates all unique active stat bonus strings from the provided unlocked skill IDs.
+ * Safely ignores null/undefined values, duplicates, and invalid skill IDs.
+ */
+export function calculateActiveStatBonuses(unlockedSkillIds: string[]): string[] {
+  if (!Array.isArray(unlockedSkillIds)) return [];
+  const uniqueIds = new Set(
+    unlockedSkillIds
+      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      .map((id) => id.trim())
+  );
+
+  const bonuses: string[] = [];
+  for (const id of uniqueIds) {
+    const skill = getSkillById(id);
+    if (skill && skill.statBonus) {
+      bonuses.push(skill.statBonus);
+    }
+  }
+  return bonuses;
+}
+
+/**
+ * Calculates the total skill points spent on unlocked skills.
+ * Safely ignores null/undefined values, duplicates, and invalid skill IDs.
+ */
+export function getSkillPointsSpent(unlockedSkillIds: string[]): number {
+  if (!Array.isArray(unlockedSkillIds)) return 0;
+  const uniqueIds = new Set(
+    unlockedSkillIds
+      .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+      .map((id) => id.trim())
+  );
+
+  let total = 0;
+  for (const id of uniqueIds) {
+    const skill = getSkillById(id);
+    if (skill) {
+      total += skill.cost;
+    }
+  }
+  return total;
 }
