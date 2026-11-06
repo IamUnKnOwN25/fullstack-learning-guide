@@ -746,3 +746,100 @@ export const BOSSES: Record<string, Boss> = {
     ],
   },
 };
+
+
+const REALM_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  db: "databases",
+  database: "databases",
+};
+
+export function getBossByRealmId(realmId?: string | null): Boss | undefined {
+  if (!realmId || typeof realmId !== "string") {
+    return undefined;
+  }
+  const normalized = realmId.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+  const resolvedRealm = REALM_ALIASES[normalized] || normalized;
+  return BOSSES[resolvedRealm];
+}
+
+export function getBossById(bossId?: string | null): Boss | undefined {
+  if (!bossId || typeof bossId !== "string") {
+    return undefined;
+  }
+  const normalized = bossId.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+  return Object.values(BOSSES).find(
+    (boss) => boss.id.toLowerCase() === normalized
+  );
+}
+
+export function getAllBosses(): Boss[] {
+  return Object.values(BOSSES);
+}
+
+export function getTotalBossXp(): number {
+  return Object.values(BOSSES).reduce((total, boss) => total + (boss.xpReward || 0), 0);
+}
+
+export function validateBossPhaseAttempt(
+  phase?: BossPhase | null,
+  code?: string | null
+): {
+  passed: boolean;
+  keywordsFound: string[];
+  keywordsMissing: string[];
+} {
+  if (!phase || typeof phase !== "object") {
+    return {
+      passed: false,
+      keywordsFound: [],
+      keywordsMissing: [],
+    };
+  }
+
+  const keywords = Array.isArray(phase.solutionKeywords) ? phase.solutionKeywords : [];
+
+  if (typeof code !== "string") {
+    return {
+      passed: false,
+      keywordsFound: [],
+      keywordsMissing: [...keywords],
+    };
+  }
+
+  const lowerCode = code.toLowerCase();
+  const keywordsFound: string[] = [];
+  const keywordsMissing: string[] = [];
+
+  for (const kw of keywords) {
+    if (typeof kw === "string" && lowerCode.includes(kw.toLowerCase())) {
+      keywordsFound.push(kw);
+    } else {
+      keywordsMissing.push(kw);
+    }
+  }
+
+  let passed = false;
+  if (typeof phase.testCondition === "function") {
+    try {
+      passed = Boolean(phase.testCondition(code)?.passed);
+    } catch {
+      passed = false;
+    }
+  } else {
+    passed = keywords.length > 0 && keywordsMissing.length === 0;
+  }
+
+  return {
+    passed,
+    keywordsFound,
+    keywordsMissing,
+  };
+}

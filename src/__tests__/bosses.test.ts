@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BOSSES } from "../data/bosses";
+import { BOSSES, BossPhase, getBossByRealmId, getBossById, getAllBosses, getTotalBossXp, validateBossPhaseAttempt } from "../data/bosses";
 import { REALMS } from "../data/realms";
 
 describe("DevQuest Bosses Matrix", () => {
@@ -100,5 +100,190 @@ describe("DevQuest Bosses Matrix", () => {
       expect(REALMS.some((r) => r.id === id)).toBe(true);
       expect(BOSSES[id]).toBeDefined();
     }
+  });
+});
+
+
+describe("getBossByRealmId lookup and alias normalization", () => {
+  it("retrieves boss by canonical realm id", () => {
+    const boss = getBossByRealmId("html");
+    expect(boss).toBeDefined();
+    expect(boss?.id).toBe("html_boss");
+    expect(boss?.realmId).toBe("html");
+  });
+
+  it("normalizes whitespace and case-insensitive realm lookups", () => {
+    const boss1 = getBossByRealmId("  HTML  ");
+    const boss2 = getBossByRealmId("JaVaScRiPt");
+    const boss3 = getBossByRealmId("  TYPESCRIPT  ");
+    expect(boss1?.id).toBe("html_boss");
+    expect(boss2?.id).toBe("js_boss");
+    expect(boss3?.id).toBe("ts_boss");
+  });
+
+  it("resolves supported realm aliases correctly", () => {
+    expect(getBossByRealmId("js")?.id).toBe("js_boss");
+    expect(getBossByRealmId("  JS  ")?.id).toBe("js_boss");
+    expect(getBossByRealmId("ts")?.id).toBe("ts_boss");
+    expect(getBossByRealmId("TS")?.id).toBe("ts_boss");
+    expect(getBossByRealmId("db")?.id).toBe("db_boss");
+    expect(getBossByRealmId("DB")?.id).toBe("db_boss");
+    expect(getBossByRealmId("database")?.id).toBe("db_boss");
+    expect(getBossByRealmId("  DaTaBaSe  ")?.id).toBe("db_boss");
+  });
+
+  it("returns undefined for unknown, empty, or nullish realm inputs", () => {
+    expect(getBossByRealmId("unknown_realm")).toBeUndefined();
+    expect(getBossByRealmId("")).toBeUndefined();
+    expect(getBossByRealmId("   ")).toBeUndefined();
+    expect(getBossByRealmId(null)).toBeUndefined();
+    expect(getBossByRealmId(undefined)).toBeUndefined();
+    expect(getBossByRealmId(12345 as unknown as string)).toBeUndefined();
+  });
+});
+
+describe("getBossById lookup", () => {
+  it("retrieves boss by exact bossId", () => {
+    const boss = getBossById("html_boss");
+    expect(boss).toBeDefined();
+    expect(boss?.realmId).toBe("html");
+  });
+
+  it("handles case-insensitive and trimmed bossId lookups", () => {
+    const boss = getBossById("  FINAL_BOSS  ");
+    expect(boss).toBeDefined();
+    expect(boss?.id).toBe("final_boss");
+    expect(boss?.realmId).toBe("capstone");
+  });
+
+  it("returns undefined for unknown or nullish bossId inputs", () => {
+    expect(getBossById("non_existent_boss")).toBeUndefined();
+    expect(getBossById("")).toBeUndefined();
+    expect(getBossById("   ")).toBeUndefined();
+    expect(getBossById(null)).toBeUndefined();
+    expect(getBossById(undefined)).toBeUndefined();
+  });
+});
+
+describe("getAllBosses and getTotalBossXp aggregate utilities", () => {
+  it("returns all 12 bosses registered in the matrix", () => {
+    const all = getAllBosses();
+    expect(all).toHaveLength(12);
+    expect(all.map((b) => b.id)).toContain("html_boss");
+    expect(all.map((b) => b.id)).toContain("final_boss");
+  });
+
+  it("calculates correct total boss XP across all realms", () => {
+    const totalXp = getTotalBossXp();
+    const expectedXp = Object.values(BOSSES).reduce((sum, b) => sum + b.xpReward, 0);
+    expect(totalXp).toBe(expectedXp);
+    expect(totalXp).toBe(9050);
+  });
+});
+
+describe("validateBossPhaseAttempt diagnostics", () => {
+  it("validates successful attempt using phase hint solution", () => {
+    const boss = getBossByRealmId("html")!;
+    const phase = boss.phases[0];
+    const result = validateBossPhaseAttempt(phase, phase.hint);
+
+    expect(result.passed).toBe(true);
+    expect(result.keywordsMissing).toHaveLength(0);
+    expect(result.keywordsFound.length).toBe(phase.solutionKeywords.length);
+    for (const kw of phase.solutionKeywords) {
+      expect(result.keywordsFound).toContain(kw);
+    }
+  });
+
+  it("detects missing keywords and failed attempt with initialCode", () => {
+    const boss = getBossByRealmId("css")!;
+    const phase = boss.phases[0];
+    const result = validateBossPhaseAttempt(phase, phase.initialCode);
+
+    expect(result.passed).toBe(false);
+    expect(result.keywordsMissing.length).toBeGreaterThan(0);
+  });
+
+  it("evaluates keyword diagnostics case-insensitively", () => {
+    const boss = getBossByRealmId("javascript")!;
+    const phase = boss.phases[0];
+    const upperCaseCode = `
+      TRY {
+        const res = AWAIT FETCH('https://api.example.com/users/1');
+        return AWAIT res.JSON();
+      } CATCH (err) {
+        throw err;
+      }
+    `;
+    const result = validateBossPhaseAttempt(phase, upperCaseCode);
+    expect(result.keywordsMissing).toHaveLength(0);
+    expect(result.keywordsFound).toEqual(phase.solutionKeywords);
+    expect(result.passed).toBe(true);
+  });
+
+  it("correctly partitions partial keywords into found and missing", () => {
+    const boss = getBossByRealmId("databases")!;
+    const phase = boss.phases[1];
+    const partialCode = `
+      await client.query('BEGIN');
+      // incomplete transaction block
+    `;
+    const result = validateBossPhaseAttempt(phase, partialCode);
+    expect(result.passed).toBe(false);
+    expect(result.keywordsFound).toContain("BEGIN");
+    expect(result.keywordsMissing).toContain("COMMIT");
+    expect(result.keywordsMissing).toContain("ROLLBACK");
+  });
+
+  it("safely handles nullish, empty, and non-string inputs", () => {
+    const boss = getBossByRealmId("capstone")!;
+    const phase = boss.phases[0];
+
+    const emptyRes = validateBossPhaseAttempt(phase, "");
+    expect(emptyRes.passed).toBe(false);
+    expect(emptyRes.keywordsFound).toHaveLength(0);
+    expect(emptyRes.keywordsMissing).toEqual(phase.solutionKeywords);
+
+    const nullCodeRes = validateBossPhaseAttempt(phase, null);
+    expect(nullCodeRes.passed).toBe(false);
+    expect(nullCodeRes.keywordsFound).toHaveLength(0);
+    expect(nullCodeRes.keywordsMissing).toEqual(phase.solutionKeywords);
+
+    const numCodeRes = validateBossPhaseAttempt(phase, 42 as unknown as string);
+    expect(numCodeRes.passed).toBe(false);
+    expect(numCodeRes.keywordsMissing).toEqual(phase.solutionKeywords);
+
+    const nullPhaseRes = validateBossPhaseAttempt(null, "some code");
+    expect(nullPhaseRes.passed).toBe(false);
+    expect(nullPhaseRes.keywordsFound).toEqual([]);
+    expect(nullPhaseRes.keywordsMissing).toEqual([]);
+
+    const undefPhaseRes = validateBossPhaseAttempt(undefined, "some code");
+    expect(undefPhaseRes.passed).toBe(false);
+    expect(undefPhaseRes.keywordsFound).toEqual([]);
+    expect(undefPhaseRes.keywordsMissing).toEqual([]);
+  });
+
+  it("falls back to keyword-based evaluation when testCondition is absent", () => {
+    const syntheticPhase = {
+      phaseNumber: 1,
+      phaseTitle: "Custom Test",
+      bossDialogue: "...",
+      prompt: "...",
+      initialCode: "...",
+      language: "typescript",
+      solutionKeywords: ["alpha", "beta"],
+      hint: "alpha beta",
+      damageToBoss: 50,
+      damageToPlayer: 25,
+    };
+
+    const passRes = validateBossPhaseAttempt(syntheticPhase as unknown as BossPhase, "alpha and beta are here");
+    expect(passRes.passed).toBe(true);
+    expect(passRes.keywordsMissing).toHaveLength(0);
+
+    const failRes = validateBossPhaseAttempt(syntheticPhase as unknown as BossPhase, "only alpha");
+    expect(failRes.passed).toBe(false);
+    expect(failRes.keywordsMissing).toEqual(["beta"]);
   });
 });
