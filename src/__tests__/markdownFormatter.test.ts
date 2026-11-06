@@ -160,8 +160,8 @@ describe("markdownFormatter", () => {
       );
       expect(aNode).toBeDefined();
       expect(aNode?.props.href).toBe("guide.md");
-      expect(aNode?.props.target).toBe("_blank");
-      expect(aNode?.props.rel).toBe("noopener noreferrer");
+      expect(aNode?.props.target).toBeUndefined();
+      expect(aNode?.props.rel).toBeUndefined();
     });
 
     it("formats hash links properly without target or rel", () => {
@@ -246,6 +246,47 @@ describe("markdownFormatter", () => {
       expect(mockOnSelect).toHaveBeenCalledWith("../02-css/css_1_flexbox.md");
     });
 
+    it("supports balanced single-level parentheses inside markdown link URLs", () => {
+      const input = "Read [Closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)) for details.";
+      const nodes = formatInlineText(input);
+      expect(nodes).toHaveLength(3);
+      expect(nodes[0]).toBe("Read ");
+      const aNode = nodes[1] as React.ReactElement<{ href?: string; target?: string; rel?: string; children?: React.ReactNode }>;
+      expect(React.isValidElement(aNode)).toBe(true);
+      expect(aNode.type).toBe("a");
+      expect(aNode.props.href).toBe("https://en.wikipedia.org/wiki/Closure_(computer_programming)");
+      expect(aNode.props.target).toBe("_blank");
+      expect(aNode.props.rel).toBe("noopener noreferrer");
+      expect(nodes[2]).toBe(" for details.");
+    });
+
+    it("supports multiple balanced parentheses in Wikipedia style URLs", () => {
+      const input = "Check [Matrix Film](https://en.wikipedia.org/wiki/Matrix_(film)#Plot_(synopsis)) now";
+      const nodes = formatInlineText(input);
+      const aNode = nodes[1] as React.ReactElement<{ href?: string }>;
+      expect(aNode.props.href).toBe("https://en.wikipedia.org/wiki/Matrix_(film)#Plot_(synopsis)");
+      expect(nodes[2]).toBe(" now");
+    });
+
+    it("does not add target or rel to internal relative app paths in formatInlineText", () => {
+      const input = "Visit [Curriculum](/curriculum) and [World Map](/world-map) or [HTML Quest](quest/html)";
+      const nodes = formatInlineText(input);
+      const aNodes = nodes.filter(
+        (n): n is React.ReactElement<{ href?: string; target?: string; rel?: string }> =>
+          React.isValidElement(n) && n.type === "a"
+      );
+      expect(aNodes).toHaveLength(3);
+      expect(aNodes[0].props.href).toBe("/curriculum");
+      expect(aNodes[0].props.target).toBeUndefined();
+      expect(aNodes[0].props.rel).toBeUndefined();
+      expect(aNodes[1].props.href).toBe("/world-map");
+      expect(aNodes[1].props.target).toBeUndefined();
+      expect(aNodes[1].props.rel).toBeUndefined();
+      expect(aNodes[2].props.href).toBe("quest/html");
+      expect(aNodes[2].props.target).toBeUndefined();
+      expect(aNodes[2].props.rel).toBeUndefined();
+    });
+
     it("neutralizes dangerous javascript: URLs in markdown links", () => {
       const input = "Click [Malicious](javascript:alert('pwned'))";
       const nodes = formatInlineText(input);
@@ -299,6 +340,14 @@ describe("markdownFormatter", () => {
       expect(getLinkAttributes("javascript:alert(1)")).toEqual({ href: "#" });
       expect(getLinkAttributes("vbscript:msgbox(1)")).toEqual({ href: "#" });
       expect(getLinkAttributes("data:text/html,<script>alert(1)</script>")).toEqual({ href: "#" });
+    });
+
+    it("returns internal relative app path attributes without target or rel", () => {
+      expect(getLinkAttributes("/curriculum")).toEqual({ href: "/curriculum" });
+      expect(getLinkAttributes("/world-map")).toEqual({ href: "/world-map" });
+      expect(getLinkAttributes("quest/html")).toEqual({ href: "quest/html" });
+      expect(getLinkAttributes("guide.md")).toEqual({ href: "guide.md" });
+      expect(getLinkAttributes("../reference/api.md")).toEqual({ href: "../reference/api.md" });
     });
 
     it("handles null, undefined, or empty URLs safely", () => {
@@ -380,6 +429,46 @@ Sixth level.
       expect(headings).toHaveLength(2);
       expect(headings[0].title).toBe("Real Header");
       expect(headings[1].title).toBe("Another Real Header");
+    });
+
+    it("ignores heading syntax inside tilde (~~~) fenced code blocks", () => {
+      const markdown = `
+# Real Header
+
+~~~python
+# This is a comment inside tilde code block
+## Not a header either
+~~~
+
+## Another Real Header
+      `;
+
+      const headings = extractHeadings(markdown);
+      expect(headings).toHaveLength(2);
+      expect(headings[0].title).toBe("Real Header");
+      expect(headings[1].title).toBe("Another Real Header");
+    });
+
+    it("ignores heading syntax inside mixed backtick and tilde fenced code blocks", () => {
+      const markdown = `
+# Real Header 1
+
+\`\`\`
+# Backtick comment
+\`\`\`
+
+## Real Header 2
+
+~~~bash
+# Tilde comment
+~~~
+
+### Real Header 3
+      `;
+
+      const headings = extractHeadings(markdown);
+      expect(headings).toHaveLength(3);
+      expect(headings.map((h) => h.title)).toEqual(["Real Header 1", "Real Header 2", "Real Header 3"]);
     });
 
     it("supports level filtering options", () => {

@@ -36,10 +36,10 @@ export function getLinkAttributes(url?: string | null): LinkAttributes {
     return { href: "#" };
   }
   const cleanUrl = url.trim();
-  if (/^(javascript|vbscript|data):/i.test(cleanUrl)) {
+  if (!cleanUrl || /^(javascript|vbscript|data):/i.test(cleanUrl)) {
     return { href: "#" };
   }
-  if (cleanUrl.startsWith("#")) {
+  if (cleanUrl.startsWith("#") || !isExternalLink(cleanUrl)) {
     return { href: cleanUrl };
   }
   return {
@@ -61,16 +61,23 @@ export function extractHeadings(
   const maxLevel = options?.maxLevel ?? 6;
   const headings: ExtractedHeading[] = [];
   const lines = content.split("\n");
-  let inCodeBlock = false;
+  let activeFence: "```" | "~~~" | null = null;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith("```")) {
-      inCodeBlock = !inCodeBlock;
+    if (activeFence) {
+      if (trimmed.startsWith(activeFence)) {
+        activeFence = null;
+      }
       continue;
     }
 
-    if (inCodeBlock) {
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      activeFence = trimmed.startsWith("~~~") ? "~~~" : "```";
+      continue;
+    }
+
+    if (activeFence) {
       continue;
     }
 
@@ -103,7 +110,7 @@ export function formatInlineText(
 
   const parts: React.ReactNode[] = [];
   const regex =
-    /(`[^`]+`|\[[^\]]+\]\([^)]+\)|~~[^~\n]+?~~|\*\*\*[^*\n]+?\*\*\*|___[^_\n]+?___|\*\*[^*\n]+?\*\*|__[^_\n]+?__|\*[^*\s\n][^*\n]*?\*|(?<=\s|^|[([{"'])_(?!\s)[^_\n]+?(?<!\s)_(?=\s|[.,;:!?)}\]']|$))/g;
+    /(`[^`]+`|\[[^\]]+\]\((?:[^()]+|\([^()]*\))+\)|~~[^~\n]+?~~|\*\*\*[^*\n]+?\*\*\*|___[^_\n]+?___|\*\*[^*\n]+?\*\*|__[^_\n]+?__|\*[^*\s\n][^*\n]*?\*|(?<=\s|^|[([{"'])_(?!\s)[^_\n]+?(?<!\s)_(?=\s|[.,;:!?)}\]']|$))/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
