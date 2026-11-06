@@ -27,14 +27,28 @@ const LEGACY_FILE_ALIASES: Record<string, string> = {
   "07-databases.md": "07-databases-and-sql.md",
 };
 
+interface PageProps {
+  searchParams?: Promise<{
+    file?: string | string[];
+    [key: string]: string | string[] | undefined;
+  }>;
+}
+
 export default async function CurriculumPage({
   searchParams,
-}: {
-  searchParams?: Promise<{ file?: string }>;
-}) {
+}: PageProps = {}) {
   const params = searchParams ? await searchParams : undefined;
   const rawFile = params?.file;
-  const initialFile = rawFile ? LEGACY_FILE_ALIASES[rawFile] || rawFile : undefined;
+  const fileCandidate = Array.isArray(rawFile) ? rawFile[0] : rawFile;
+  const trimmedFile = typeof fileCandidate === "string" ? fileCandidate.trim() : "";
+  const mappedFile = trimmedFile ? LEGACY_FILE_ALIASES[trimmedFile] || trimmedFile : "";
+
+  const defaultDocFile = DOC_FILES[0]?.filename || "00-curriculum-overview.md";
+  const initialFile =
+    mappedFile && DOC_FILES.some((doc) => doc.filename === mappedFile)
+      ? mappedFile
+      : defaultDocFile;
+
   const docs: DocFile[] = [];
 
   for (const doc of DOC_FILES) {

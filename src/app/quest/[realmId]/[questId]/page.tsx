@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { QUESTS } from "@/data/quests";
+import { resolveRealmAlias } from "@/data/realms";
+import { getQuestById, getQuestsForRealm } from "@/data/quests";
 import { QuestCodingWorkspace } from "@/components/QuestCodingWorkspace";
 
 interface PageProps {
@@ -11,20 +12,25 @@ interface PageProps {
 
 export default async function QuestPage({ params }: PageProps) {
   const { realmId, questId } = await params;
-  const realmQuests = QUESTS[realmId];
+  const normalizedRealmId = resolveRealmAlias(realmId);
+  const realmQuests = getQuestsForRealm(normalizedRealmId);
 
-  if (!realmQuests) {
+  if (!realmQuests || realmQuests.length === 0) {
     notFound();
   }
 
-  let matchedQuest = realmQuests.find((q) => q.id === questId);
-  if (!matchedQuest) {
-    const numMatch = questId.match(/(\d+)$/);
-    if (numMatch) {
-      const orderNum = parseInt(numMatch[1], 10);
-      matchedQuest = realmQuests.find((q) => q.order === orderNum);
-    }
+  let cleanQuestId = "";
+  try {
+    cleanQuestId = decodeURIComponent(questId).trim();
+  } catch {
+    cleanQuestId = typeof questId === "string" ? questId.trim() : "";
   }
+
+  if (!cleanQuestId) {
+    notFound();
+  }
+
+  const matchedQuest = getQuestById(normalizedRealmId, cleanQuestId);
 
   if (!matchedQuest) {
     notFound();
@@ -32,7 +38,7 @@ export default async function QuestPage({ params }: PageProps) {
 
   return (
     <QuestCodingWorkspace
-      realmId={realmId}
+      realmId={matchedQuest.realmId || normalizedRealmId}
       questId={matchedQuest.id}
     />
   );

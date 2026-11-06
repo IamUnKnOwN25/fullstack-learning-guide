@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { BOSSES } from "@/data/bosses";
+import { getBossByRealmId } from "@/data/bosses";
 import { BossBattleArena } from "@/components/BossBattleArena";
 
 interface PageProps {
@@ -10,11 +10,11 @@ interface PageProps {
 
 export default async function BossPage({ params }: PageProps) {
   const { realmId } = await params;
-  const boss = BOSSES[realmId];
+  const boss = getBossByRealmId(realmId);
 
   if (!boss) {
     notFound();
   }
 
-  return <BossBattleArena realmId={realmId} />;
+  return <BossBattleArena realmId={boss.realmId} />;
 }

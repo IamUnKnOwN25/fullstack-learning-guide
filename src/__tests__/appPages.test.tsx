@@ -36,7 +36,7 @@ describe("App Router Page Components", () => {
       xp: 1200,
       streak: 2,
       unlockedSkills: ["html_semantics"],
-      unlockedRealms: ["html", "css"],
+      unlockedRealms: ["html", "css", "javascript", "typescript", "databases"],
       completedQuests: ["html_1_skeleton"],
       completedBosses: ["html"],
       completedChapters: ["00-curriculum-overview.md"],
@@ -92,6 +92,22 @@ describe("App Router Page Components", () => {
       render(pageJsx);
       expect(screen.getByLabelText("Matrix studio code editor")).toBeDefined();
     });
+
+    it("handles array quest searchParam by selecting the first element", async () => {
+      const pageJsx = await IdePage({
+        searchParams: Promise.resolve({ quest: ["html_1_skeleton", "css_1_flexbox"] }),
+      });
+      render(pageJsx);
+      expect(screen.getByLabelText("Matrix studio code editor")).toBeDefined();
+    });
+
+    it("trims whitespace on quest searchParam", async () => {
+      const pageJsx = await IdePage({
+        searchParams: Promise.resolve({ quest: "  html_1_skeleton  " }),
+      });
+      render(pageJsx);
+      expect(screen.getByLabelText("Matrix studio code editor")).toBeDefined();
+    });
   });
 
   describe("Boss Page", () => {
@@ -102,6 +118,36 @@ describe("App Router Page Components", () => {
       render(pageJsx);
       expect(screen.getByText("The Malformed Tag Abomination")).toBeDefined();
       expect(screen.getByText(/lord of broken semantics/i)).toBeDefined();
+    });
+
+    it("resolves uppercase realm routes (e.g. /boss/HTML)", async () => {
+      const pageJsx = await BossPage({
+        params: Promise.resolve({ realmId: "HTML" }),
+      });
+      render(pageJsx);
+      expect(screen.getByText("The Malformed Tag Abomination")).toBeDefined();
+    });
+
+    it("resolves shorthand alias realm routes (e.g. /boss/js, /boss/ts, /boss/db)", async () => {
+      const jsJsx = await BossPage({
+        params: Promise.resolve({ realmId: "js" }),
+      });
+      const { unmount: unmountJs } = render(jsJsx);
+      expect(screen.getByText("The Callback Kraken")).toBeDefined();
+      unmountJs();
+
+      const tsJsx = await BossPage({
+        params: Promise.resolve({ realmId: "ts" }),
+      });
+      const { unmount: unmountTs } = render(tsJsx);
+      expect(screen.getByText("The Any-Demon")).toBeDefined();
+      unmountTs();
+
+      const dbJsx = await BossPage({
+        params: Promise.resolve({ realmId: "db" }),
+      });
+      render(dbJsx);
+      expect(screen.getByText("The SQL Injection Behemoth")).toBeDefined();
     });
 
     it("triggers notFound for an invalid realmId", async () => {
@@ -129,6 +175,45 @@ describe("App Router Page Components", () => {
       });
       render(pageJsx);
       expect(screen.getByText("Awaken the Page Skeleton")).toBeDefined();
+    });
+
+    it("resolves uppercase realm routes and encoded questId", async () => {
+      const pageJsx = await QuestPage({
+        params: Promise.resolve({ realmId: "HTML", questId: "html%5F1%5Fskeleton" }),
+      });
+      render(pageJsx);
+      expect(screen.getByText("Awaken the Page Skeleton")).toBeDefined();
+    });
+
+    it("resolves shorthand alias realm routes (e.g. /quest/js/js-1, /quest/ts/ts-1, /quest/db/db-1)", async () => {
+      const jsJsx = await QuestPage({
+        params: Promise.resolve({ realmId: "js", questId: "js-1" }),
+      });
+      const { unmount: unmountJs } = render(jsJsx);
+      expect(screen.getByText("Awaken the Reactive Core")).toBeDefined();
+      unmountJs();
+
+      const tsJsx = await QuestPage({
+        params: Promise.resolve({ realmId: "ts", questId: "ts-1" }),
+      });
+      const { unmount: unmountTs } = render(tsJsx);
+      expect(screen.getByText("The Ironclad Type Contract")).toBeDefined();
+      unmountTs();
+
+      const dbJsx = await QuestPage({
+        params: Promise.resolve({ realmId: "db", questId: "db-1" }),
+      });
+      render(dbJsx);
+      expect(screen.getByText("Architecting the Relational Schema")).toBeDefined();
+    });
+
+    it("safely handles malformed percent-encoding in questId without uncaught error", async () => {
+      await expect(
+        QuestPage({
+          params: Promise.resolve({ realmId: "html", questId: "%E0%A4%A" }),
+        })
+      ).rejects.toThrow("NEXT_NOT_FOUND");
+      expect(mockNotFound).toHaveBeenCalledTimes(1);
     });
 
     it("triggers notFound for unknown realmId", async () => {
@@ -162,6 +247,36 @@ describe("App Router Page Components", () => {
     it("resolves legacy file aliases in searchParams", async () => {
       const pageJsx = await CurriculumPage({
         searchParams: Promise.resolve({ file: "00-README.md" }),
+      });
+      render(pageJsx);
+      expect(
+        screen.getByRole("heading", { name: "Curriculum Knowledge Vault", level: 1 })
+      ).toBeDefined();
+    });
+
+    it("falls back to the default first doc file when file searchParam is unrecognized", async () => {
+      const pageJsx = await CurriculumPage({
+        searchParams: Promise.resolve({ file: "unknown-file.md" }),
+      });
+      render(pageJsx);
+      expect(
+        screen.getByRole("heading", { name: "Curriculum Knowledge Vault", level: 1 })
+      ).toBeDefined();
+    });
+
+    it("handles array file searchParam with fallback when unrecognized", async () => {
+      const pageJsx = await CurriculumPage({
+        searchParams: Promise.resolve({ file: ["invalid-chapter.md"] }),
+      });
+      render(pageJsx);
+      expect(
+        screen.getByRole("heading", { name: "Curriculum Knowledge Vault", level: 1 })
+      ).toBeDefined();
+    });
+
+    it("handles array file searchParam when first element resolves to a valid doc file", async () => {
+      const pageJsx = await CurriculumPage({
+        searchParams: Promise.resolve({ file: ["01-html.md", "02-css.md"] }),
       });
       render(pageJsx);
       expect(
