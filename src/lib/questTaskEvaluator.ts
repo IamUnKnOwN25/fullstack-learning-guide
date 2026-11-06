@@ -12,12 +12,12 @@ export function stripComments(code?: string | null): string {
   return code
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1|(?<!:)\/\/.*$/gm, (match, quote) => {
+    .replace(/(["'`])(?:\\.|(?!\1)[^\\])*\1|(?<!:)\/\/.*$|(?:^|[ \t]+)--(?:[ \t-].*|$)|(?:^|[ \t]+)#(?!(?:[0-9a-fA-F]{3,8}\b|[a-zA-Z_][\w-]*)).*$/gm, (match, quote) => {
       if (quote) return match;
       return "";
-    })
-    .replace(/^\s*--.*$/gm, "")
-    .replace(/^\s*#.*$/gm, "");
+    });
+
+
 }
 
 const QUEST_TASK_RULES: Record<string, Array<(cleanCode: string, rawCode: string) => boolean>> = {
@@ -30,11 +30,11 @@ const QUEST_TASK_RULES: Record<string, Array<(cleanCode: string, rawCode: string
   html_2_forms: [
     (c) =>
       /<label[^>]*for=["']email["']/i.test(c) &&
-      (/<input[^>]*id=["']email["'][^>]*type=["']email["']/i.test(c) ||
-        /<input[^>]*type=["']email["'][^>]*id=["']email["']/i.test(c)),
+      /<input\b(?=[^>]*\bid=["']email["'])(?=[^>]*\btype=["']email["'])(?=[^>]*\brequired\b)[^>]*>/i.test(c),
+
     (c) =>
       /<label[^>]*for=["']password["']/i.test(c) &&
-      /<input[^>]*type=["']password["']/i.test(c),
+      /<input\b(?=[^>]*\btype=["']password["'])(?=[^>]*\bid=["']password["'])(?=[^>]*\brequired\b)[^>]*>/i.test(c),
     (c) => /<button[^>]*type=["']submit["'][\s\S]*?>[\s\S]*?<\/button>/i.test(c),
   ],
   css_1_flexbox: [
@@ -170,6 +170,13 @@ const QUEST_TASK_RULES: Record<string, Array<(cleanCode: string, rawCode: string
     (c) => /Promise\.all/i.test(c) && /status\s*:\s*['"]degraded['"]/i.test(c),
   ],
 };
+
+export function getQuestTaskRuleCount(questId?: string | null): number {
+  if (!questId || typeof questId !== "string") {
+    return 0;
+  }
+  return QUEST_TASK_RULES[questId]?.length ?? 0;
+}
 
 export function getRegisteredQuestIds(): string[] {
   return Object.keys(QUEST_TASK_RULES);

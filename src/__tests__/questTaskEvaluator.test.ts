@@ -5,6 +5,7 @@ import {
   getQuestTaskDiagnostics,
   stripComments,
   getRegisteredQuestIds,
+  getQuestTaskRuleCount,
 } from "../lib/questTaskEvaluator";
 
 const CANONICAL_SOLUTIONS: Record<string, string> = {
@@ -315,5 +316,171 @@ describe("questTaskEvaluator", () => {
       const res = evaluateQuestTasks(id, ["dummy"], "");
       expect(res).toHaveLength(1);
     }
+  });
+
+  it("strips trailing inline SQL comments cleanly without corrupting code or strings", () => {
+    const sqlCode = `
+      CREATE TABLE users (
+        id UUID PRIMARY KEY, -- Primary key identifier
+        email TEXT UNIQUE NOT NULL -- User email address
+      ); -- End of users table
+    `;
+    const cleanSql = stripComments(sqlCode);
+    expect(cleanSql).not.toContain("Primary key identifier");
+    expect(cleanSql).not.toContain("User email address");
+    expect(cleanSql).not.toContain("End of users table");
+    expect(cleanSql).toContain("id UUID PRIMARY KEY,");
+    expect(cleanSql).toContain("email TEXT UNIQUE NOT NULL");
+
+    // Commented-out patterns in trailing inline SQL comments must not pass objectives
+    const commentedTask = `
+      CREATE TABLE tasks (
+        id UUID PRIMARY KEY,
+        title TEXT NOT NULL -- REFERENCES users(id) ON DELETE CASCADE
+      );
+    `;
+    const evalResults = evaluateQuestTasks("db_1_postgres", ["users", "tasks", "cascade"], commentedTask);
+    expect(evalResults[1]).toBe(false);
+    expect(evalResults[2]).toBe(false);
+
+    // String literals with SQL comments must remain intact
+    const sqlInString = `const q = "SELECT * FROM users -- not a comment";`;
+    expect(stripComments(sqlInString)).toContain('"SELECT * FROM users -- not a comment"');
+  });
+
+  it("preserves CSS hex colors, CSS custom properties (--var-name), and #id selectors intact", () => {
+    const cssCode = `
+      :root {
+        --primary-glow: #00f0ff;
+        --matrix-green: #00ff66;
+        --bg-dark: #121212;
+        --alpha-color: #12345678;
+        --short-hex: #fff;
+      }
+      #main-terminal {
+        color: var(--matrix-green);
+        background: #000;
+        border: 1px solid var(--primary-glow);
+      }
+      #app_root {
+        display: flex;
+      }
+      /* Real CSS comment */
+      # USER node (in dockerfile)
+      # Real shell comment
+    `;
+    const stripped = stripComments(cssCode);
+
+    // CSS variables must be preserved
+    expect(stripped).toContain("--primary-glow: #00f0ff;");
+    expect(stripped).toContain("--matrix-green: #00ff66;");
+    expect(stripped).toContain("--bg-dark: #121212;");
+    expect(stripped).toContain("--alpha-color: #12345678;");
+    expect(stripped).toContain("--short-hex: #fff;");
+    expect(stripped).toContain("var(--matrix-green)");
+    expect(stripped).toContain("var(--primary-glow)");
+
+    // Hex colors and selectors must be preserved
+    expect(stripped).toContain("#main-terminal");
+    expect(stripped).toContain("#app_root");
+    expect(stripped).toContain("#000");
+
+    // Actual comments must be stripped
+    expect(stripped).not.toContain("Real CSS comment");
+    expect(stripped).not.toContain("USER node");
+    expect(stripped).not.toContain("Real shell comment");
+
+    // HTML attributes like href="#section" must remain intact
+    const htmlWithAnchor = `<a href="#uplink-node" id="link-1">Status</a>`;
+    const strippedHtml = stripComments(htmlWithAnchor);
+    expect(strippedHtml).toContain('href="#uplink-node"');
+  });
+
+  it("accepts HTML input attributes (type, id, required) in any arbitrary order for html_2_forms", () => {
+    const tasks = [
+      "Create <label for='email'> and <input id='email' type='email' required>",
+      "Create <label for='password'> and <input id='password' type='password' required minlength='8'>",
+      "Add a <button type='submit'>Login</button>",
+    ];
+
+    // Permutation 1: type, id, required
+    const perm1 = `
+      <form action="/login">
+        <label for="email">Email</label>
+        <input type="email" id="email" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" required minlength="8">
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    expect(evaluateQuestTasks("html_2_forms", tasks, perm1)).toEqual([true, true, true]);
+
+    // Permutation 2: required, id, type
+    const perm2 = `
+      <form action="/login">
+        <label for="email">Email</label>
+        <input required id="email" type="email">
+        <label for="password">Password</label>
+        <input required id="password" type="password" minlength="8">
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    expect(evaluateQuestTasks("html_2_forms", tasks, perm2)).toEqual([true, true, true]);
+
+    // Permutation 3: required, type, id
+    const perm3 = `
+      <form action="/login">
+        <label for="email">Email</label>
+        <input required type="email" id="email">
+        <label for="password">Password</label>
+        <input required type="password" id="password" minlength="8">
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    expect(evaluateQuestTasks("html_2_forms", tasks, perm3)).toEqual([true, true, true]);
+
+    // Permutation 4: id, required, type
+    const perm4 = `
+      <form action="/login">
+        <label for="email">Email</label>
+        <input id="email" required type="email">
+        <label for="password">Password</label>
+        <input id="password" required type="password" minlength="8">
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    expect(evaluateQuestTasks("html_2_forms", tasks, perm4)).toEqual([true, true, true]);
+
+    // Permutation 5: type, required, id
+    const perm5 = `
+      <form action="/login">
+        <label for="email">Email</label>
+        <input type="email" required id="email">
+        <label for="password">Password</label>
+        <input type="password" required id="password" minlength="8">
+        <button type="submit">Submit</button>
+      </form>
+    `;
+    expect(evaluateQuestTasks("html_2_forms", tasks, perm5)).toEqual([true, true, true]);
+  });
+
+  it("exposes getQuestTaskRuleCount returning rule counts and 0 for unknown/nullish IDs", () => {
+    expect(getQuestTaskRuleCount("html_1_skeleton")).toBe(4);
+    expect(getQuestTaskRuleCount("html_2_forms")).toBe(3);
+    expect(getQuestTaskRuleCount("css_1_flexbox")).toBe(3);
+    expect(getQuestTaskRuleCount("devops_1_docker")).toBe(5);
+
+    // All registered quest IDs should return positive rule counts
+    for (const questId of getRegisteredQuestIds()) {
+      expect(getQuestTaskRuleCount(questId)).toBeGreaterThan(0);
+    }
+
+    // Unknown or nullish IDs must safely return 0
+    expect(getQuestTaskRuleCount("non_existent_quest_id")).toBe(0);
+    expect(getQuestTaskRuleCount(null)).toBe(0);
+    expect(getQuestTaskRuleCount(undefined)).toBe(0);
+    expect(getQuestTaskRuleCount("")).toBe(0);
+    // @ts-expect-error Testing invalid runtime inputs
+    expect(getQuestTaskRuleCount(12345)).toBe(0);
   });
 });
