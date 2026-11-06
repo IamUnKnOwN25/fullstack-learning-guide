@@ -1,7 +1,15 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { REALMS } from "../data/realms";
+import {
+  REALMS,
+  resolveRealmAlias,
+  getRealmById,
+  getRealmByOrder,
+  getNextRealm,
+  getPreviousRealm,
+  isRealmUnlocked,
+} from "../data/realms";
 import { BOSSES } from "../data/bosses";
 import { QUESTS } from "../data/quests";
 
@@ -70,6 +78,184 @@ describe("Campaign Realms Data Integrity", () => {
       expect(realm.themeColor).toContain("border-");
       expect(realm.borderGlow).toContain("shadow-");
       expect(realm.icon.length).toBeGreaterThan(0);
+    });
+  });
+});
+
+
+describe("Realm Query, Progression, and Unlock Helpers", () => {
+  describe("resolveRealmAlias", () => {
+    it("maps common shorthand aliases to canonical realm ids", () => {
+      expect(resolveRealmAlias("js")).toBe("javascript");
+      expect(resolveRealmAlias("ts")).toBe("typescript");
+      expect(resolveRealmAlias("db")).toBe("databases");
+      expect(resolveRealmAlias("database")).toBe("databases");
+    });
+
+    it("normalizes case and surrounding whitespace", () => {
+      expect(resolveRealmAlias("  JS  ")).toBe("javascript");
+      expect(resolveRealmAlias("  Ts ")).toBe("typescript");
+      expect(resolveRealmAlias("DB")).toBe("databases");
+      expect(resolveRealmAlias("  DATABASE  ")).toBe("databases");
+      expect(resolveRealmAlias(" HTML ")).toBe("html");
+      expect(resolveRealmAlias("REACT")).toBe("react");
+    });
+
+    it("returns empty string for empty, whitespace-only, nullish, or non-string inputs", () => {
+      expect(resolveRealmAlias("")).toBe("");
+      expect(resolveRealmAlias("   ")).toBe("");
+      // @ts-expect-error test non-string defensive runtime handling
+      expect(resolveRealmAlias(null)).toBe("");
+      // @ts-expect-error test non-string defensive runtime handling
+      expect(resolveRealmAlias(undefined)).toBe("");
+      // @ts-expect-error test non-string defensive runtime handling
+      expect(resolveRealmAlias(123)).toBe("");
+      // @ts-expect-error test non-string defensive runtime handling
+      expect(resolveRealmAlias({})).toBe("");
+    });
+
+    it("preserves canonical or unknown realm ids in lowercase trimmed format", () => {
+      expect(resolveRealmAlias("devops")).toBe("devops");
+      expect(resolveRealmAlias("  custom-realm  ")).toBe("custom-realm");
+    });
+  });
+
+  describe("getRealmById", () => {
+    it("finds realm by exact canonical identifier", () => {
+      const realm = getRealmById("html");
+      expect(realm).toBeDefined();
+      expect(realm?.id).toBe("html");
+      expect(realm?.order).toBe(1);
+    });
+
+    it("finds realm by shorthand alias and case-insensitive whitespace variants", () => {
+      expect(getRealmById("  JS ")?.id).toBe("javascript");
+      expect(getRealmById("TS")?.id).toBe("typescript");
+      expect(getRealmById("db")?.id).toBe("databases");
+      expect(getRealmById("DATABASE")?.id).toBe("databases");
+    });
+
+    it("returns undefined for unknown realm ids or invalid inputs", () => {
+      expect(getRealmById("unknown-realm")).toBeUndefined();
+      expect(getRealmById("")).toBeUndefined();
+      // @ts-expect-error test defensive runtime handling
+      expect(getRealmById(null)).toBeUndefined();
+      // @ts-expect-error test defensive runtime handling
+      expect(getRealmById(undefined)).toBeUndefined();
+    });
+  });
+
+  describe("getRealmByOrder", () => {
+    it("retrieves the correct realm for valid 1-based order indices", () => {
+      expect(getRealmByOrder(1)?.id).toBe("html");
+      expect(getRealmByOrder(6)?.id).toBe("backend");
+      expect(getRealmByOrder(12)?.id).toBe("capstone");
+    });
+
+    it("safely handles boundary, negative, out-of-range, and NaN values", () => {
+      expect(getRealmByOrder(0)).toBeUndefined();
+      expect(getRealmByOrder(13)).toBeUndefined();
+      expect(getRealmByOrder(-1)).toBeUndefined();
+      expect(getRealmByOrder(NaN)).toBeUndefined();
+      expect(getRealmByOrder(Infinity)).toBeUndefined();
+      expect(getRealmByOrder(1.5)).toBeUndefined();
+      // @ts-expect-error test defensive runtime handling
+      expect(getRealmByOrder("1")).toBeUndefined();
+      // @ts-expect-error test defensive runtime handling
+      expect(getRealmByOrder(null)).toBeUndefined();
+    });
+  });
+
+  describe("getNextRealm", () => {
+    it("returns the next realm in progression order", () => {
+      const next = getNextRealm("html");
+      expect(next?.id).toBe("css");
+      expect(next?.order).toBe(2);
+    });
+
+    it("resolves aliases when determining the current realm", () => {
+      const next = getNextRealm("js");
+      expect(next?.id).toBe("typescript");
+      expect(next?.order).toBe(4);
+    });
+
+    it("returns undefined at the progression boundary (last realm)", () => {
+      expect(getNextRealm("capstone")).toBeUndefined();
+    });
+
+    it("returns undefined for non-existent or invalid realm ids", () => {
+      expect(getNextRealm("void")).toBeUndefined();
+      expect(getNextRealm("")).toBeUndefined();
+    });
+  });
+
+  describe("getPreviousRealm", () => {
+    it("returns the previous realm in progression order", () => {
+      const prev = getPreviousRealm("css");
+      expect(prev?.id).toBe("html");
+      expect(prev?.order).toBe(1);
+    });
+
+    it("returns the previous realm for the capstone", () => {
+      const prev = getPreviousRealm("capstone");
+      expect(prev?.id).toBe("security");
+      expect(prev?.order).toBe(11);
+    });
+
+    it("returns undefined at the progression boundary (first realm)", () => {
+      expect(getPreviousRealm("html")).toBeUndefined();
+    });
+
+    it("returns undefined for non-existent or invalid realm ids", () => {
+      expect(getPreviousRealm("nonexistent")).toBeUndefined();
+      expect(getPreviousRealm("")).toBeUndefined();
+    });
+  });
+
+  describe("isRealmUnlocked", () => {
+    it("returns true when player meets or exceeds realm required level", () => {
+      expect(isRealmUnlocked("html", 1)).toBe(true);
+      expect(isRealmUnlocked("html", 5)).toBe(true);
+      expect(isRealmUnlocked("javascript", 4)).toBe(true);
+      expect(isRealmUnlocked("javascript", 10)).toBe(true);
+      expect(isRealmUnlocked("capstone", 32)).toBe(true);
+    });
+
+    it("returns false when player is below realm required level", () => {
+      expect(isRealmUnlocked("html", 0)).toBe(false);
+      expect(isRealmUnlocked("javascript", 3)).toBe(false);
+      expect(isRealmUnlocked("capstone", 31)).toBe(false);
+    });
+
+    it("guards safely against NaN, negative, or invalid player levels", () => {
+      expect(isRealmUnlocked("html", NaN)).toBe(false);
+      expect(isRealmUnlocked("html", -5)).toBe(false);
+      // @ts-expect-error test non-number level
+      expect(isRealmUnlocked("html", null)).toBe(false);
+    });
+
+    it("returns true if realm is explicitly unlocked regardless of player level", () => {
+      expect(isRealmUnlocked("javascript", 1, ["javascript"])).toBe(true);
+      expect(isRealmUnlocked("capstone", 1, ["capstone"])).toBe(true);
+    });
+
+    it("normalizes aliases, case, and whitespace in unlockedRealms list and realmId", () => {
+      // Shorthand alias in unlockedRealms
+      expect(isRealmUnlocked("javascript", 1, ["js"])).toBe(true);
+      // Case and whitespace in unlockedRealms
+      expect(isRealmUnlocked("typescript", 1, ["  TS  "])).toBe(true);
+      expect(isRealmUnlocked("databases", 1, ["DATABASE"])).toBe(true);
+      // Alias passed as realmId
+      expect(isRealmUnlocked("js", 1, ["javascript"])).toBe(true);
+      expect(isRealmUnlocked("  JS  ", 4)).toBe(true);
+    });
+
+    it("returns false if unlockedRealms does not include the target realm and level is insufficient", () => {
+      expect(isRealmUnlocked("javascript", 1, ["html", "css"])).toBe(false);
+    });
+
+    it("returns false for non-existent realm even if present in unlockedRealms", () => {
+      expect(isRealmUnlocked("mythical-realm", 100, ["mythical-realm"])).toBe(false);
     });
   });
 });

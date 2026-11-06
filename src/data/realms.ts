@@ -183,3 +183,105 @@ export const REALMS: Realm[] = [
     lore: "The final chamber where The Null Void itself dwells. Only a fully architected, battle-tested, end-to-end fullstack platform can restore the Web Matrix to eternal stability.",
   },
 ];
+
+const REALM_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  db: "databases",
+  database: "databases",
+};
+
+/**
+ * Normalizes a realm identifier by trimming whitespace, converting to lowercase,
+ * and resolving common shorthand aliases ('js' -> 'javascript', 'ts' -> 'typescript',
+ * 'db' | 'database' -> 'databases'). Returns an empty string for nullish or non-string inputs.
+ */
+export function resolveRealmAlias(realmId: string): string {
+  if (typeof realmId !== "string") {
+    return "";
+  }
+  const cleaned = realmId.trim().toLowerCase();
+  if (!cleaned) {
+    return "";
+  }
+  return REALM_ALIASES[cleaned] ?? cleaned;
+}
+
+/**
+ * Retrieves a realm by its identifier or shorthand alias.
+ * Returns undefined if no matching realm is found.
+ */
+export function getRealmById(realmId: string): Realm | undefined {
+  const resolved = resolveRealmAlias(realmId);
+  if (!resolved) {
+    return undefined;
+  }
+  return REALMS.find((realm) => realm.id === resolved);
+}
+
+/**
+ * Retrieves a realm by its 1-based order index (1..12).
+ * Returns undefined if order is invalid, out of bounds, or NaN.
+ */
+export function getRealmByOrder(order: number): Realm | undefined {
+  if (typeof order !== "number" || !Number.isFinite(order) || Number.isNaN(order)) {
+    return undefined;
+  }
+  return REALMS.find((realm) => realm.order === order);
+}
+
+/**
+ * Retrieves the realm immediately following the given realm in campaign progression.
+ * Returns undefined if the current realm is the last realm (order 12) or does not exist.
+ */
+export function getNextRealm(currentRealmId: string): Realm | undefined {
+  const current = getRealmById(currentRealmId);
+  if (!current) {
+    return undefined;
+  }
+  return getRealmByOrder(current.order + 1);
+}
+
+/**
+ * Retrieves the realm immediately preceding the given realm in campaign progression.
+ * Returns undefined if the current realm is the first realm (order 1) or does not exist.
+ */
+export function getPreviousRealm(currentRealmId: string): Realm | undefined {
+  const current = getRealmById(currentRealmId);
+  if (!current) {
+    return undefined;
+  }
+  return getRealmByOrder(current.order - 1);
+}
+
+/**
+ * Determines whether a realm is unlocked for a player based on their level
+ * or explicit membership in an unlocked realms list.
+ */
+export function isRealmUnlocked(
+  realmId: string,
+  playerLevel: number,
+  unlockedRealms?: string[]
+): boolean {
+  const realm = getRealmById(realmId);
+  if (!realm) {
+    return false;
+  }
+
+  if (Array.isArray(unlockedRealms)) {
+    const isExplicitlyUnlocked = unlockedRealms.some(
+      (entry) => resolveRealmAlias(entry) === realm.id
+    );
+    if (isExplicitlyUnlocked) {
+      return true;
+    }
+  }
+
+  const safePlayerLevel =
+    typeof playerLevel === "number" && Number.isFinite(playerLevel) && !Number.isNaN(playerLevel)
+      ? playerLevel
+      : 0;
+
+  return safePlayerLevel >= realm.requiredLevel;
+}
+
