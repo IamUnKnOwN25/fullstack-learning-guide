@@ -191,6 +191,8 @@ export function LeaderboardModal({
             <button
               type="button"
               role="tab"
+              id="leaderboard-tab-xp"
+              aria-controls="leaderboard-standings-panel"
               aria-selected={activeTab === "xp"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -209,6 +211,8 @@ export function LeaderboardModal({
             <button
               type="button"
               role="tab"
+              id="leaderboard-tab-stars"
+              aria-controls="leaderboard-standings-panel"
               aria-selected={activeTab === "stars"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -227,6 +231,8 @@ export function LeaderboardModal({
             <button
               type="button"
               role="tab"
+              id="leaderboard-tab-bosses"
+              aria-controls="leaderboard-standings-panel"
               aria-selected={activeTab === "bosses"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -245,6 +251,8 @@ export function LeaderboardModal({
             <button
               type="button"
               role="tab"
+              id="leaderboard-tab-curriculum"
+              aria-controls="leaderboard-standings-panel"
               aria-selected={activeTab === "curriculum"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -263,6 +271,9 @@ export function LeaderboardModal({
 
           <div className="relative w-full sm:w-48">
             <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <div role="status" aria-live="polite" className="sr-only">
+              {filteredEntries.length} {filteredEntries.length === 1 ? "operative" : "operatives"} found
+            </div>
             <input
               type="text"
               aria-label="Search operative"
@@ -310,6 +321,8 @@ export function LeaderboardModal({
         {/* Leaderboard Table */}
         <div
           role="tabpanel"
+          id="leaderboard-standings-panel"
+          aria-labelledby={`leaderboard-tab-${activeTab}`}
           aria-label="Leaderboard standings"
           className="p-3 sm:p-5 overflow-y-auto space-y-2 flex-1"
         >
@@ -328,7 +341,8 @@ export function LeaderboardModal({
               </p>
             </div>
           ) : (
-            filteredEntries.map((entry) => {
+            <div role="list" aria-label="Operative standings" className="space-y-2">
+              {filteredEntries.map((entry) => {
               const isTop1 = entry.rank === 1;
               const isTop2 = entry.rank === 2;
               const isTop3 = entry.rank === 3;
@@ -338,6 +352,7 @@ export function LeaderboardModal({
               return (
                 <div
                   key={entry.id}
+                  role="listitem"
                   className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                     isYou
                       ? "bg-matrix-accent/10 border-matrix-accent shadow-md shadow-matrix-accent/15 ring-1 ring-matrix-accent/50"
@@ -448,7 +463,8 @@ export function LeaderboardModal({
                   </div>
                 </div>
               );
-            })
+              })}
+            </div>
           )}
         </div>
 

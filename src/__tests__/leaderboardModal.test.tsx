@@ -283,4 +283,91 @@ describe("LeaderboardModal Component", () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(mockOpenAuthModal).toHaveBeenCalledTimes(1);
   });
+
+  it("links filter tabs to the standings tabpanel via deterministic IDs and aria-controls/aria-labelledby", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const xpTab = screen.getByRole("tab", { name: /Global Power \(XP\)/i });
+    const starsTab = screen.getByRole("tab", { name: /Quest Stars/i });
+    const bossesTab = screen.getByRole("tab", { name: /Boss Rush/i });
+    const curriculumTab = screen.getByRole("tab", { name: /Curriculum/i });
+
+    expect(xpTab.id).toBe("leaderboard-tab-xp");
+    expect(starsTab.id).toBe("leaderboard-tab-stars");
+    expect(bossesTab.id).toBe("leaderboard-tab-bosses");
+    expect(curriculumTab.id).toBe("leaderboard-tab-curriculum");
+
+    expect(xpTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
+    expect(starsTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
+    expect(bossesTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
+    expect(curriculumTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
+
+    const tabpanel = screen.getByRole("tabpanel");
+    expect(tabpanel.id).toBe("leaderboard-standings-panel");
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("leaderboard-tab-xp");
+
+    fireEvent.click(starsTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("leaderboard-tab-stars");
+
+    fireEvent.click(bossesTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("leaderboard-tab-bosses");
+
+    fireEvent.click(curriculumTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("leaderboard-tab-curriculum");
+  });
+
+  it("provides list and listitem semantics for operative standings rows", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const standingsList = screen.getByRole("list", { name: "Operative standings" });
+    expect(standingsList).toBeDefined();
+
+    const listItems = screen.getAllByRole("listitem");
+    expect(listItems.length).toBe(11);
+    expect(standingsList.contains(listItems[0])).toBe(true);
+
+    const searchInput = screen.getByLabelText("Search operative");
+    fireEvent.change(searchInput, { target: { value: "UnknownGhostOperative_9999" } });
+
+    expect(screen.queryByRole("list", { name: "Operative standings" })).toBeNull();
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("announces visible operative count via polite aria-live status region during search and filtering", () => {
+    render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const statusRegion = screen.getByRole("status");
+    expect(statusRegion).toBeDefined();
+    expect(statusRegion.getAttribute("aria-live")).toBe("polite");
+    expect(statusRegion.textContent?.trim()).toBe("11 operatives found");
+
+    const searchInput = screen.getByLabelText("Search operative");
+
+    // Single match
+    fireEvent.change(searchInput, { target: { value: "Cyber Sentinel" } });
+    expect(statusRegion.textContent?.trim()).toBe("1 operative found");
+
+    // Zero matches
+    fireEvent.change(searchInput, { target: { value: "UnknownGhostOperative_9999" } });
+    expect(statusRegion.textContent?.trim()).toBe("0 operatives found");
+
+    // Reset query
+    fireEvent.change(searchInput, { target: { value: "" } });
+    expect(statusRegion.textContent?.trim()).toBe("11 operatives found");
+  });
 });
