@@ -19,9 +19,18 @@ export interface Bookmark {
   createdAt: number;
 }
 
-function slugifyHeading(text: string): string {
-  if (!text) return "";
+export interface ChapterSummary {
+  wordCount: number;
+  headingCount: number;
+  estimatedReadingMinutes: number;
+}
 
+export interface HighlightSegment {
+  text: string;
+  matched: boolean;
+}
+
+function slugifyHeading(text: string): string {
   if (!text) return "";
   return text.replace(/\r/g, "")
     .toLowerCase()
@@ -68,7 +77,8 @@ export function buildSearchIndex(docs: DocFile[]): SearchIndexEntry[] {
         const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
         if (headingMatch) {
           flushSection();
-          const cleanHeading = headingMatch[2].replace(/\r/g, "").trim(); currentHeadingTitle = cleanHeading.replace(/[`*_~]/g, "");
+          const cleanHeading = headingMatch[2].replace(/\r/g, "").trim();
+          currentHeadingTitle = cleanHeading.replace(/[`*_~]/g, "");
           currentHeadingId = slugifyHeading(cleanHeading);
           currentContent = [];
           continue;
@@ -156,6 +166,100 @@ export function extractMatchedSnippet(
   if (start > 0) snippet = "..." + snippet;
   if (end < content.length) snippet = snippet + "...";
   return snippet;
+}
+
+/**
+ * Splits text into segments indicating whether each part matched the query.
+ * Safely escapes regex characters in query and preserves original text casing.
+ */
+export function highlightMatchedText(
+  text: string,
+  query: string
+): Array<{ text: string; matched: boolean }> {
+  const safeText = String(text || "");
+  if (!safeText || typeof query !== "string" || !query.trim()) {
+    return [{ text: safeText, matched: false }];
+  }
+
+  const trimmed = query.trim();
+  const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${escaped})`, "gi");
+  const parts = safeText.split(regex);
+
+  const hasMatch = parts.some(
+    (part) => part.toLowerCase() === trimmed.toLowerCase()
+  );
+
+  if (!hasMatch) {
+    return [{ text: safeText, matched: false }];
+  }
+
+  const result: Array<{ text: string; matched: boolean }> = [];
+  for (const part of parts) {
+    if (!part) continue;
+    result.push({
+      text: part,
+      matched: part.toLowerCase() === trimmed.toLowerCase(),
+    });
+  }
+
+  return result.length > 0 ? result : [{ text: safeText, matched: false }];
+}
+
+/**
+ * Computes chapter statistics including word count, heading count, and estimated reading minutes.
+ * Normalizes CRLF and excludes content inside fenced code blocks.
+ */
+export function getChapterSummary(content: string): {
+  wordCount: number;
+  headingCount: number;
+  estimatedReadingMinutes: number;
+} {
+  if (typeof content !== "string" || !content.trim()) {
+    return {
+      wordCount: 0,
+      headingCount: 0,
+      estimatedReadingMinutes: 0,
+    };
+  }
+
+  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n");
+
+  let inCodeBlock = false;
+  let headingCount = 0;
+  let wordCount = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+
+    if (inCodeBlock || !trimmed) {
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
+    if (headingMatch) {
+      headingCount++;
+      const headingWords = headingMatch[1].trim().split(/\s+/).filter(Boolean);
+      wordCount += headingWords.length;
+    } else {
+      const words = trimmed.split(/\s+/).filter(Boolean);
+      wordCount += words.length;
+    }
+  }
+
+  const estimatedReadingMinutes =
+    wordCount === 0 ? 0 : Math.max(1, Math.ceil(wordCount / 200));
+
+  return {
+    wordCount,
+    headingCount,
+    estimatedReadingMinutes,
+  };
 }
 
 // In-memory bookmark store for simple requirements (or localStorage if needed)

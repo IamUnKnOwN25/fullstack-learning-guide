@@ -3,6 +3,8 @@ import {
   buildSearchIndex,
   searchCurriculum,
   extractMatchedSnippet,
+  highlightMatchedText,
+  getChapterSummary,
   toggleBookmark,
   isBookmarked,
   getBookmarks,
@@ -469,6 +471,193 @@ Final remarks.
       // Match near end with small window
       const endMatch = extractMatchedSnippet(longText, "continuing", 12);
       expect(endMatch).toContain("continuing");
+    });
+  });
+
+  describe("highlightMatchedText", () => {
+    it("returns unmodified text with matched=false when query is empty, whitespace, or missing", () => {
+      expect(highlightMatchedText("Hello World", "")).toEqual([
+        { text: "Hello World", matched: false },
+      ]);
+      expect(highlightMatchedText("Hello World", "   ")).toEqual([
+        { text: "Hello World", matched: false },
+      ]);
+      expect(highlightMatchedText("Hello World", null as any)).toEqual([
+        { text: "Hello World", matched: false },
+      ]);
+      expect(highlightMatchedText("", "react")).toEqual([
+        { text: "", matched: false },
+      ]);
+      expect(highlightMatchedText(null as any, "react")).toEqual([
+        { text: "", matched: false },
+      ]);
+    });
+
+    it("returns unmatched segment when query is not found in text", () => {
+      expect(highlightMatchedText("Quick brown fox", "matrix")).toEqual([
+        { text: "Quick brown fox", matched: false },
+      ]);
+    });
+
+    it("splits text case-insensitively and preserves original text casing", () => {
+      const text = "React is awesome. Use REACT for modern web apps with react.";
+      const segments = highlightMatchedText(text, "react");
+
+      expect(segments).toEqual([
+        { text: "React", matched: true },
+        { text: " is awesome. Use ", matched: false },
+        { text: "REACT", matched: true },
+        { text: " for modern web apps with ", matched: false },
+        { text: "react", matched: true },
+        { text: ".", matched: false },
+      ]);
+    });
+
+    it("safely escapes regex metacharacters in query string", () => {
+      const text = "Learning C++ and [React] Hooks with $100 budget? Yes.*";
+
+      // C++ (plus signs)
+      const cplus = highlightMatchedText(text, "C++");
+      expect(cplus).toEqual([
+        { text: "Learning ", matched: false },
+        { text: "C++", matched: true },
+        { text: " and [React] Hooks with $100 budget? Yes.*", matched: false },
+      ]);
+
+      // [React] (brackets)
+      const brackets = highlightMatchedText(text, "[React]");
+      expect(brackets).toEqual([
+        { text: "Learning C++ and ", matched: false },
+        { text: "[React]", matched: true },
+        { text: " Hooks with $100 budget? Yes.*", matched: false },
+      ]);
+
+      // $100 (dollar sign)
+      const dollar = highlightMatchedText(text, "$100");
+      expect(dollar).toEqual([
+        { text: "Learning C++ and [React] Hooks with ", matched: false },
+        { text: "$100", matched: true },
+        { text: " budget? Yes.*", matched: false },
+      ]);
+
+      // ? (question mark)
+      const question = highlightMatchedText(text, "?");
+      expect(question).toEqual([
+        { text: "Learning C++ and [React] Hooks with $100 budget", matched: false },
+        { text: "?", matched: true },
+        { text: " Yes.*", matched: false },
+      ]);
+
+      // .* (dot and star)
+      const dotStar = highlightMatchedText(text, ".*");
+      expect(dotStar).toEqual([
+        { text: "Learning C++ and [React] Hooks with $100 budget? Yes", matched: false },
+        { text: ".*", matched: true },
+      ]);
+
+      // Nested parens / alternation
+      const parensText = "Check (A|B) conditions.";
+      const parens = highlightMatchedText(parensText, "(A|B)");
+      expect(parens).toEqual([
+        { text: "Check ", matched: false },
+        { text: "(A|B)", matched: true },
+        { text: " conditions.", matched: false },
+      ]);
+    });
+
+    it("handles exact whole string matches and matches at boundaries", () => {
+      expect(highlightMatchedText("exact", "exact")).toEqual([
+        { text: "exact", matched: true },
+      ]);
+      expect(highlightMatchedText("START rest of text", "start")).toEqual([
+        { text: "START", matched: true },
+        { text: " rest of text", matched: false },
+      ]);
+      expect(highlightMatchedText("rest of text END", "end")).toEqual([
+        { text: "rest of text ", matched: false },
+        { text: "END", matched: true },
+      ]);
+    });
+  });
+
+  describe("getChapterSummary", () => {
+    it("returns zero counts and zero reading time for empty or whitespace content", () => {
+      expect(getChapterSummary("")).toEqual({
+        wordCount: 0,
+        headingCount: 0,
+        estimatedReadingMinutes: 0,
+      });
+      expect(getChapterSummary("   \n\r\n  ")).toEqual({
+        wordCount: 0,
+        headingCount: 0,
+        estimatedReadingMinutes: 0,
+      });
+      expect(getChapterSummary(null as any)).toEqual({
+        wordCount: 0,
+        headingCount: 0,
+        estimatedReadingMinutes: 0,
+      });
+      expect(getChapterSummary(undefined as any)).toEqual({
+        wordCount: 0,
+        headingCount: 0,
+        estimatedReadingMinutes: 0,
+      });
+    });
+
+    it("correctly counts headings and words in markdown with CRLF normalisation", () => {
+      const markdown = `# Introduction to React\r\n\r\nReact is a declarative JavaScript library for user interfaces.\r\n\r\n## Components and Props\r\n\r\nComponents let you split the UI into independent pieces.\r\n`;
+
+      const summary = getChapterSummary(markdown);
+      // Headings: 2 ("# Introduction to React", "## Components and Props")
+      expect(summary.headingCount).toBe(2);
+      // Heading 1: "Introduction to React" (3 words)
+      // Line 1: "React is a declarative JavaScript library for user interfaces." (9 words)
+      // Heading 2: "Components and Props" (3 words)
+      // Line 2: "Components let you split the UI into independent pieces." (9 words)
+      // Total words: 3 + 9 + 3 + 9 = 24 words
+      expect(summary.wordCount).toBe(24);
+      // Math.max(1, Math.ceil(24 / 200)) = 1
+      expect(summary.estimatedReadingMinutes).toBe(1);
+    });
+
+    it("ignores words and '#' comments inside fenced code blocks (backticks and tildes)", () => {
+      const markdownWithCode = `# Python Guide\nIntroductory text with four words.\n\n\`\`\`python\n# This is a comment\nprint("Hello world from inside code block")\n\`\`\`\n\n## Shell Setup\n\n~~~bash\n# Another comment\nexport NODE_ENV=production\n~~~\n\nFinal concluding sentence here.\n`;
+
+      const summary = getChapterSummary(markdownWithCode);
+      // Headings outside code blocks: "# Python Guide", "## Shell Setup" = 2
+      expect(summary.headingCount).toBe(2);
+
+      // Outside code block words:
+      // "Python Guide" (2)
+      // "Introductory text with four words." (5)
+      // "Shell Setup" (2)
+      // "Final concluding sentence here." (4)
+      // Total words: 2 + 5 + 2 + 4 = 13 words
+      expect(summary.wordCount).toBe(13);
+      expect(summary.estimatedReadingMinutes).toBe(1);
+    });
+
+    it("calculates reading minutes based on word count thresholds (200 words per minute)", () => {
+      // 200 words -> 1 minute
+      const twoHundredWords = Array(200).fill("matrix").join(" ");
+      expect(getChapterSummary(twoHundredWords).estimatedReadingMinutes).toBe(1);
+
+      // 201 words -> 2 minutes
+      const twoHundredOneWords = Array(201).fill("matrix").join(" ");
+      expect(getChapterSummary(twoHundredOneWords).estimatedReadingMinutes).toBe(2);
+
+      // 400 words -> 2 minutes
+      const fourHundredWords = Array(400).fill("matrix").join(" ");
+      expect(getChapterSummary(fourHundredWords).estimatedReadingMinutes).toBe(2);
+
+      // 401 words -> 3 minutes
+      const fourHundredOneWords = Array(401).fill("matrix").join(" ");
+      expect(getChapterSummary(fourHundredOneWords).estimatedReadingMinutes).toBe(3);
+
+      // Code block only -> 0 reading minutes
+      const codeOnly = "```ts\nconst x = 1;\n```";
+      expect(getChapterSummary(codeOnly).estimatedReadingMinutes).toBe(0);
+      expect(getChapterSummary(codeOnly).wordCount).toBe(0);
     });
   });
 
