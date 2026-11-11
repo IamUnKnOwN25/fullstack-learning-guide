@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { useGameStore, type PlayerStats } from "../lib/gameStore";
+import { useGameStore, type PlayerStats, type GameState } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 
 describe("DevQuest Game Store", () => {
@@ -408,6 +408,107 @@ describe("DevQuest Game Store", () => {
     // Default xpReward parameter in completeChapter awards 50 XP
     expect(store.completeChapter("ch_default.md")).toBe(true);
     expect(useGameStore.getState().xp).toBe(125);
+  });
+
+  it("spends mana safely with bounds and input validation", () => {
+    const store = useGameStore.getState();
+    expect(store.mana).toBe(50);
+
+    // Normal successful expenditure
+    const success = store.spendMana(20);
+    expect(success).toBe(true);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    // Decimal cost floored
+    const decimalSpend = store.spendMana(10.7);
+    expect(decimalSpend).toBe(true);
+    expect(useGameStore.getState().mana).toBe(20);
+
+    // Zero cost succeeds without changing mana
+    const zeroSpend = store.spendMana(0);
+    expect(zeroSpend).toBe(true);
+    expect(useGameStore.getState().mana).toBe(20);
+
+    // Insufficient mana fails and leaves mana untouched
+    const overspend = store.spendMana(25);
+    expect(overspend).toBe(false);
+    expect(useGameStore.getState().mana).toBe(20);
+
+    // Negative amounts rejected
+    expect(store.spendMana(-5)).toBe(false);
+    expect(store.spendMana(-0.1)).toBe(false);
+    expect(useGameStore.getState().mana).toBe(20);
+
+    // Non-finite amounts rejected
+    expect(store.spendMana(NaN)).toBe(false);
+    expect(store.spendMana(Infinity)).toBe(false);
+    expect(store.spendMana(-Infinity)).toBe(false);
+    expect(useGameStore.getState().mana).toBe(20);
+  });
+
+  it("restores mana safely and clamps to maxMana", () => {
+    const store = useGameStore.getState();
+    // Spend 40 mana first (mana becomes 10, maxMana is 50)
+    store.spendMana(40);
+    expect(useGameStore.getState().mana).toBe(10);
+
+    // Partial restore
+    store.restoreMana(15);
+    expect(useGameStore.getState().mana).toBe(25);
+
+    // Decimal restore floored
+    store.restoreMana(5.9);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    // Clamps to maxMana
+    store.restoreMana(100);
+    expect(useGameStore.getState().mana).toBe(store.maxMana);
+    expect(useGameStore.getState().mana).toBe(50);
+
+    // Negative, zero, and non-finite amounts are ignored
+    store.spendMana(20);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    store.restoreMana(0);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    store.restoreMana(-10);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    store.restoreMana(NaN);
+    expect(useGameStore.getState().mana).toBe(30);
+
+    store.restoreMana(Infinity);
+    expect(useGameStore.getState().mana).toBe(30);
+  });
+
+  it("increments and resets streak properly", () => {
+    const store = useGameStore.getState();
+    expect(store.streak).toBe(1);
+
+    store.incrementStreak();
+    expect(useGameStore.getState().streak).toBe(2);
+
+    store.incrementStreak();
+    expect(useGameStore.getState().streak).toBe(3);
+
+    store.resetStreak();
+    expect(useGameStore.getState().streak).toBe(0);
+
+    store.incrementStreak();
+    expect(useGameStore.getState().streak).toBe(1);
+
+    // Handles fallback when streak is zero or corrupted
+    useGameStore.setState({ streak: 0 });
+    store.incrementStreak();
+    expect(useGameStore.getState().streak).toBe(1);
+
+    useGameStore.setState({ streak: 4.8 as unknown as number });
+    store.incrementStreak();
+    expect(useGameStore.getState().streak).toBe(5);
+
+    store.resetStreak();
+    expect(useGameStore.getState().streak).toBe(0);
   });
 
   it("sanitizes non-finite, negative, and NaN inputs in mutators", () => {

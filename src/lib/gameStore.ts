@@ -42,7 +42,7 @@ export interface PlayerStats {
   recentXpGain: XpGainEvent | null;
 }
 
-interface PlayerActions {
+export interface PlayerActions {
   addXp: (amount: number, source?: string) => { leveledUp: boolean; newLevel: number };
   removeXp: (amount: number, source?: string) => { newXp: number; newLevel: number };
   dismissLevelUp: () => void;
@@ -62,7 +62,13 @@ interface PlayerActions {
   toggleAudio: () => void;
   toggleBgm: () => void;
   resetProgress: () => void;
+  spendMana: (amount: number) => boolean;
+  restoreMana: (amount: number) => void;
+  incrementStreak: () => void;
+  resetStreak: () => void;
 }
+
+export type GameState = PlayerStats & PlayerActions;
 
 const INITIAL_STATE: PlayerStats = {
   xp: 0,
@@ -462,6 +468,37 @@ export const useGameStore = create<PlayerStats & PlayerActions>()(
         const state = get();
         const newBgm = soundEngine.toggleBgm(!state.bgmActive);
         set({ bgmActive: newBgm });
+      },
+
+      spendMana: (amount: number) => {
+        if (!Number.isFinite(amount) || amount < 0) {
+          return false;
+        }
+        const cost = Math.floor(amount);
+        const state = get();
+        if (state.mana < cost) {
+          return false;
+        }
+        set({ mana: state.mana - cost });
+        return true;
+      },
+
+      restoreMana: (amount: number) => {
+        if (!Number.isFinite(amount) || amount <= 0) {
+          return;
+        }
+        const state = get();
+        set({ mana: Math.min(state.maxMana, state.mana + Math.floor(amount)) });
+      },
+
+      incrementStreak: () => {
+        const state = get();
+        const currentStreak = Math.max(0, Math.floor(state.streak || 0));
+        set({ streak: currentStreak + 1 });
+      },
+
+      resetStreak: () => {
+        set({ streak: 0 });
       },
 
       resetProgress: () => {
