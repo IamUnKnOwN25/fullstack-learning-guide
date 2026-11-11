@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { executeTerminalCommand } from "../lib/ideTerminalCommands";
+import { executeTerminalCommand, KNOWN_COMMANDS } from "../lib/ideTerminalCommands";
 import { IdeFile } from "../lib/ideBundler";
 
 describe("ideTerminalCommands", () => {
@@ -167,17 +167,17 @@ describe("ideTerminalCommands", () => {
       },
       {
         name: "missing-content.txt",
-        language: "text",
+        language: "markdown",
         content: undefined,
       },
       {
         name: "null-content.txt",
-        language: "text",
+        language: "markdown",
         content: null,
       },
       {
         name: "numeric-content.txt",
-        language: "text",
+        language: "markdown",
         content: 42,
       },
     ];
@@ -245,5 +245,238 @@ describe("ideTerminalCommands", () => {
     const res = executeTerminalCommand("ls", null as any);
     expect(res.handled).toBe(true);
     expect(res.output?.[0]).toBe("");
+  });
+
+  it("includes grep, head, and tail in KNOWN_COMMANDS", () => {
+    expect(KNOWN_COMMANDS).toContain("grep");
+    expect(KNOWN_COMMANDS).toContain("head");
+    expect(KNOWN_COMMANDS).toContain("tail");
+  });
+
+  it("handles man grep, man head, and man tail documentation", () => {
+    const manGrep = executeTerminalCommand("man grep", { files: mockFiles });
+    expect(manGrep.handled).toBe(true);
+    expect(manGrep.output?.[0]).toContain("grep");
+
+    const manHead = executeTerminalCommand("man head", { files: mockFiles });
+    expect(manHead.handled).toBe(true);
+    expect(manHead.output?.[0]).toContain("head");
+
+    const manTail = executeTerminalCommand("man tail", { files: mockFiles });
+    expect(manTail.handled).toBe(true);
+    expect(manTail.output?.[0]).toContain("tail");
+  });
+
+  it("handles grep command in single file with case-sensitivity, -i, and -v flags", () => {
+    // Case sensitive match
+    const matchRes = executeTerminalCommand("grep World index.html", { files: mockFiles });
+    expect(matchRes.handled).toBe(true);
+    expect(matchRes.output).toEqual(["<h1>Hello World</h1>"]);
+
+    // Case sensitive miss
+    const noMatch = executeTerminalCommand("grep world index.html", { files: mockFiles });
+    expect(noMatch.handled).toBe(true);
+    expect(noMatch.output?.[0]).toBe("grep: no matches found");
+
+    // Case insensitive match with -i
+    const ignoreCase = executeTerminalCommand("grep -i world index.html", { files: mockFiles });
+    expect(ignoreCase.handled).toBe(true);
+    expect(ignoreCase.output).toEqual(["<h1>Hello World</h1>"]);
+
+    // Invert match with -v
+    const invertRes = executeTerminalCommand("grep -v World index.html", { files: mockFiles });
+    expect(invertRes.handled).toBe(true);
+    expect(invertRes.output).toEqual(["<p>Test</p>"]);
+
+    // Combined -i and -v
+    const combined1 = executeTerminalCommand("grep -i -v test index.html", { files: mockFiles });
+    expect(combined1.handled).toBe(true);
+    expect(combined1.output).toEqual(["<h1>Hello World</h1>"]);
+
+    const combined2 = executeTerminalCommand("grep -iv test index.html", { files: mockFiles });
+    expect(combined2.handled).toBe(true);
+    expect(combined2.output).toEqual(["<h1>Hello World</h1>"]);
+
+    // Quoted pattern
+    const quoted = executeTerminalCommand('grep "Hello World" index.html', { files: mockFiles });
+    expect(quoted.handled).toBe(true);
+    expect(quoted.output).toEqual(["<h1>Hello World</h1>"]);
+  });
+
+  it("handles grep across all workspace files with filename:line prefixing", () => {
+    // Case sensitive multi-file
+    const multiMatch = executeTerminalCommand("grep test", { files: mockFiles });
+    expect(multiMatch.handled).toBe(true);
+    expect(multiMatch.output).toEqual(["script.js:console.log('test');"]);
+
+    // Case insensitive multi-file matches both files
+    const multiIgnoreCase = executeTerminalCommand("grep -i test", { files: mockFiles });
+    expect(multiIgnoreCase.handled).toBe(true);
+    expect(multiIgnoreCase.output).toEqual([
+      "index.html:<p>Test</p>",
+      "script.js:console.log('test');",
+    ]);
+
+    // Multi-file no matches found
+    const multiNone = executeTerminalCommand("grep nonexistent", { files: mockFiles });
+    expect(multiNone.handled).toBe(true);
+    expect(multiNone.output?.[0]).toBe("grep: no matches found");
+  });
+
+  it("handles grep error conditions for missing pattern or missing file", () => {
+    const missingPattern = executeTerminalCommand("grep", { files: mockFiles });
+    expect(missingPattern.handled).toBe(true);
+    expect(missingPattern.output?.[0]).toContain("grep: missing search pattern");
+
+    const flagOnly = executeTerminalCommand("grep -i", { files: mockFiles });
+    expect(flagOnly.handled).toBe(true);
+    expect(flagOnly.output?.[0]).toContain("grep: missing search pattern");
+
+    const missingFile = executeTerminalCommand("grep World nonexistent.txt", { files: mockFiles });
+    expect(missingFile.handled).toBe(true);
+    expect(missingFile.output?.[0]).toBe("grep: nonexistent.txt: No such file in workspace");
+  });
+
+  it("handles head command with default count and -n flag including clamping", () => {
+    const multiLineFile: IdeFile = {
+      name: "multiline.txt",
+      language: "markdown",
+      content:
+        "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12",
+    };
+    const testFiles = [...mockFiles, multiLineFile];
+
+    // Default 10 lines
+    const defaultHead = executeTerminalCommand("head multiline.txt", { files: testFiles });
+    expect(defaultHead.handled).toBe(true);
+    expect(defaultHead.output?.[0].split("\n")).toHaveLength(10);
+    expect(defaultHead.output?.[0]).toBe(
+      "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10"
+    );
+
+    // Explicit -n 3
+    const head3 = executeTerminalCommand("head -n 3 multiline.txt", { files: testFiles });
+    expect(head3.handled).toBe(true);
+    expect(head3.output?.[0]).toBe("line 1\nline 2\nline 3");
+
+    // Compact -n2
+    const headCompact = executeTerminalCommand("head -n2 multiline.txt", { files: testFiles });
+    expect(headCompact.handled).toBe(true);
+    expect(headCompact.output?.[0]).toBe("line 1\nline 2");
+
+    // Clamping 0 or negative counts to 1
+    const headZero = executeTerminalCommand("head -n 0 multiline.txt", { files: testFiles });
+    expect(headZero.handled).toBe(true);
+    expect(headZero.output?.[0]).toBe("line 1");
+
+    const headNegative = executeTerminalCommand("head -n -5 multiline.txt", { files: testFiles });
+    expect(headNegative.handled).toBe(true);
+    expect(headNegative.output?.[0]).toBe("line 1");
+
+    // Missing file error
+    const missingFile = executeTerminalCommand("head missing.txt", { files: testFiles });
+    expect(missingFile.handled).toBe(true);
+    expect(missingFile.output?.[0]).toBe("head: missing.txt: No such file in workspace");
+
+    const missingArg = executeTerminalCommand("head", { files: testFiles });
+    expect(missingArg.handled).toBe(true);
+    expect(missingArg.output?.[0]).toBe("head: <missing>: No such file in workspace");
+  });
+
+  it("handles tail command with default count and -n flag including clamping", () => {
+    const multiLineFile: IdeFile = {
+      name: "multiline.txt",
+      language: "markdown",
+      content:
+        "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12",
+    };
+    const testFiles = [...mockFiles, multiLineFile];
+
+    // Default 10 lines
+    const defaultTail = executeTerminalCommand("tail multiline.txt", { files: testFiles });
+    expect(defaultTail.handled).toBe(true);
+    expect(defaultTail.output?.[0].split("\n")).toHaveLength(10);
+    expect(defaultTail.output?.[0]).toBe(
+      "line 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12"
+    );
+
+    // Explicit -n 3
+    const tail3 = executeTerminalCommand("tail -n 3 multiline.txt", { files: testFiles });
+    expect(tail3.handled).toBe(true);
+    expect(tail3.output?.[0]).toBe("line 10\nline 11\nline 12");
+
+    // Compact -n2
+    const tailCompact = executeTerminalCommand("tail -n2 multiline.txt", { files: testFiles });
+    expect(tailCompact.handled).toBe(true);
+    expect(tailCompact.output?.[0]).toBe("line 11\nline 12");
+
+    // Clamping 0 or negative counts to 1
+    const tailZero = executeTerminalCommand("tail -n 0 multiline.txt", { files: testFiles });
+    expect(tailZero.handled).toBe(true);
+    expect(tailZero.output?.[0]).toBe("line 12");
+
+    const tailNegative = executeTerminalCommand("tail -n -5 multiline.txt", { files: testFiles });
+    expect(tailNegative.handled).toBe(true);
+    expect(tailNegative.output?.[0]).toBe("line 12");
+
+    // Missing file error
+    const missingFile = executeTerminalCommand("tail missing.txt", { files: testFiles });
+    expect(missingFile.handled).toBe(true);
+    expect(missingFile.output?.[0]).toBe("tail: missing.txt: No such file in workspace");
+
+    const missingArg = executeTerminalCommand("tail", { files: testFiles });
+    expect(missingArg.handled).toBe(true);
+    expect(missingArg.output?.[0]).toBe("tail: <missing>: No such file in workspace");
+  });
+
+  it("handles corrupt and nullish files safely for grep, head, and tail", () => {
+    const corruptFiles: any[] = [
+      null,
+      undefined,
+      {
+        name: "index.html",
+        language: "html",
+        content: "<h1>Hello</h1>\n<p>World</p>",
+      },
+      {
+        name: "null-content.txt",
+        language: "markdown",
+        content: null,
+      },
+      {
+        name: "numeric-content.txt",
+        language: "markdown",
+        content: 42,
+      },
+    ];
+
+    // grep on corrupt file content
+    const grepCorrupt = executeTerminalCommand("grep -i hello", { files: corruptFiles });
+    expect(grepCorrupt.handled).toBe(true);
+    expect(grepCorrupt.output).toEqual(["index.html:<h1>Hello</h1>"]);
+
+    // head on file with null content
+    const headNull = executeTerminalCommand("head null-content.txt", { files: corruptFiles });
+    expect(headNull.handled).toBe(true);
+    expect(headNull.output?.[0]).toBe("");
+
+    // tail on file with numeric content
+    const tailNumeric = executeTerminalCommand("tail numeric-content.txt", { files: corruptFiles });
+    expect(tailNumeric.handled).toBe(true);
+    expect(tailNumeric.output?.[0]).toBe("");
+
+    // pure nullish file arrays
+    const nullishFiles: any[] = [null, undefined];
+    const grepNullish = executeTerminalCommand("grep pattern", { files: nullishFiles });
+    expect(grepNullish.handled).toBe(true);
+    expect(grepNullish.output?.[0]).toBe("grep: no matches found");
+
+    const headNullish = executeTerminalCommand("head file.txt", { files: nullishFiles });
+    expect(headNullish.handled).toBe(true);
+    expect(headNullish.output?.[0]).toContain("head: file.txt: No such file in workspace");
+
+    const tailNullish = executeTerminalCommand("tail file.txt", { files: nullishFiles });
+    expect(tailNullish.handled).toBe(true);
+    expect(tailNullish.output?.[0]).toContain("tail: file.txt: No such file in workspace");
   });
 });
