@@ -5,8 +5,8 @@ import { MatrixErrorBoundary } from '../components/MatrixErrorBoundary';
 
 // Mock Next.js Link component to avoid errors in tests
 vi.mock('next/link', () => ({
-  default: function LinkMock(props: { children: React.ReactNode; href: string }) {
-    return React.createElement('a', { href: props.href }, props.children);
+  default: function LinkMock({ children, href, ...rest }: { children: React.ReactNode; href: string; [key: string]: unknown }) {
+    return React.createElement('a', { href, ...rest }, children);
   }
 }));
 
@@ -324,5 +324,77 @@ describe('MatrixErrorBoundary', () => {
     expect(screen.getByTestId('custom-fallback')).toBeDefined();
     expect(screen.getByText('Fault: Test Matrix Error')).toBeDefined();
     expect(customFallbackFn).toHaveBeenCalled();
+  });
+
+  it('associates role="alert" with aria-labelledby and aria-describedby', () => {
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const alertContainer = screen.getByRole('alert');
+    expect(alertContainer.getAttribute('aria-labelledby')).toBe('matrix-error-title');
+    expect(alertContainer.getAttribute('aria-describedby')).toBe('matrix-error-message');
+
+    const titleEl = document.getElementById('matrix-error-title');
+    expect(titleEl).not.toBeNull();
+    expect(titleEl?.textContent).toContain('SYSTEM FAILURE DETECTED');
+
+    const descEl = document.getElementById('matrix-error-message');
+    expect(descEl).not.toBeNull();
+    expect(descEl?.textContent).toContain('Test Matrix Error');
+  });
+
+  it('provides accessible aria-label attributes on action buttons and links', () => {
+    render(
+      React.createElement(
+        MatrixErrorBoundary,
+        null,
+        React.createElement(ProblemChild, null)
+      )
+    );
+
+    const rebootBtn = screen.getByRole('button', { name: /reboot subsystem/i });
+    expect(rebootBtn.getAttribute('aria-label')).toBe('Reboot subsystem');
+
+    const copyBtn = screen.getByRole('button', { name: /copy error details/i });
+    expect(copyBtn.getAttribute('aria-label')).toBe('Copy Error Details');
+
+    const returnLink = screen.getByRole('link', { name: /return to matrix nexus/i });
+    expect(returnLink.getAttribute('aria-label')).toBe('Return to Matrix Nexus');
+  });
+
+  it('recovers from error state when Escape key is pressed', () => {
+    const onResetMock = vi.fn();
+    const TestComponent = () => {
+      const [shouldThrow, setShouldThrow] = React.useState(true);
+      return React.createElement(
+        'div',
+        null,
+        React.createElement('button', { onClick: () => setShouldThrow(false) }, 'Fix Error'),
+        React.createElement(
+          MatrixErrorBoundary,
+          { onReset: onResetMock },
+          React.createElement(ProblemChild, { shouldThrow })
+        )
+      );
+    };
+
+    render(React.createElement(TestComponent, null));
+
+    expect(screen.getByText('SYSTEM FAILURE DETECTED')).toBeDefined();
+
+    // Fix the cause externally first
+    fireEvent.click(screen.getByText('Fix Error'));
+
+    // Trigger Escape key event on window
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+
+    expect(onResetMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('SYSTEM FAILURE DETECTED')).toBeNull();
+    expect(screen.getByText('Normal Content')).toBeDefined();
   });
 });

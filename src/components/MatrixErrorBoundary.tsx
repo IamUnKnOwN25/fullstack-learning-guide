@@ -35,17 +35,50 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log the error to console and invoke optional external handler
     console.error("MatrixErrorBoundary caught an error:", error, errorInfo);
+    if (typeof window !== "undefined") {
+      window.addEventListener("keydown", this.handleGlobalKeyDown);
+    }
     this.props.onError?.(error, errorInfo);
   }
 
+  componentDidUpdate(_prevProps: MatrixErrorBoundaryProps, prevState: State) {
+    if (!prevState.hasError && this.state.hasError) {
+      if (typeof window !== "undefined") {
+        window.addEventListener("keydown", this.handleGlobalKeyDown);
+      }
+    } else if (prevState.hasError && !this.state.hasError) {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("keydown", this.handleGlobalKeyDown);
+      }
+    }
+  }
+
   componentWillUnmount() {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleGlobalKeyDown);
+    }
     if (this.copyTimeout) {
       clearTimeout(this.copyTimeout);
       this.copyTimeout = null;
     }
   }
 
+  handleGlobalKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      this.handleReset();
+    }
+  };
+
+  handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      this.handleReset();
+    }
+  };
+
   handleReset = () => {
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", this.handleGlobalKeyDown);
+    }
     try {
       soundEngine.playSfx("click");
     } catch {
@@ -134,6 +167,10 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
         <div
           role="alert"
           aria-live="assertive"
+          aria-labelledby="matrix-error-title"
+          aria-describedby="matrix-error-message"
+          onKeyDown={this.handleKeyDown}
+          tabIndex={-1}
           className="min-h-screen flex items-center justify-center bg-matrix-dark bg-cyber-grid p-6"
         >
           <div className="max-w-xl w-full bg-slate-900 border border-red-500/50 rounded-lg shadow-[0_0_30px_rgba(239,68,68,0.2)] overflow-hidden">
@@ -141,7 +178,7 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-6 h-6 text-red-400 shrink-0" aria-hidden="true" />
                 <div>
-                  <h2 className="text-xl font-mono font-bold text-red-400 tracking-tight">
+                  <h2 id="matrix-error-title" className="text-xl font-mono font-bold text-red-400 tracking-tight">
                     SYSTEM FAILURE DETECTED
                   </h2>
                   {this.props.subsystemName && (
@@ -178,6 +215,7 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
                   A critical exception has occurred in the current subsystem matrix.
                 </p>
                 <div
+                  id="matrix-error-message"
                   role="region"
                   aria-label="Error details"
                   className="bg-black/50 p-4 rounded border border-red-500/20 font-mono text-xs text-red-300 overflow-x-auto max-h-48 whitespace-pre-wrap"
@@ -190,6 +228,7 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
                 <button
                   type="button"
                   onClick={this.handleReset}
+                  aria-label="Reboot subsystem"
                   className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 rounded text-red-400 font-mono text-sm font-bold transition-all"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -198,6 +237,7 @@ export class MatrixErrorBoundary extends React.Component<MatrixErrorBoundaryProp
 
                 <Link
                   href="/"
+                  aria-label="Return to Matrix Nexus"
                   className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-300 font-mono text-sm font-bold transition-all"
                 >
                   <TerminalSquare className="w-4 h-4" />
