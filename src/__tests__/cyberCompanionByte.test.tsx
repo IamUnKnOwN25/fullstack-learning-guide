@@ -75,6 +75,16 @@ describe("CyberCompanionByte Component", () => {
     expect(intelTab).toBeDefined();
     expect(quizTab).toBeDefined();
 
+    expect(intelTab?.getAttribute("id")).toBe("companion-tab-intel");
+    expect(quizTab?.getAttribute("id")).toBe("companion-tab-quiz");
+    expect(intelTab?.getAttribute("aria-controls")).toBe("companion-byte-tabpanel");
+    expect(quizTab?.getAttribute("aria-controls")).toBe("companion-byte-tabpanel");
+
+    const tabpanel = screen.getByRole("tabpanel");
+    expect(tabpanel).toBeDefined();
+    expect(tabpanel.getAttribute("id")).toBe("companion-byte-tabpanel");
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("companion-tab-intel");
+
     // Default mode is intel
     expect(intelTab?.getAttribute("aria-selected")).toBe("true");
     expect(quizTab?.getAttribute("aria-selected")).toBe("false");
@@ -84,8 +94,11 @@ describe("CyberCompanionByte Component", () => {
     expect(intelTab?.getAttribute("aria-selected")).toBe("false");
     expect(quizTab?.getAttribute("aria-selected")).toBe("true");
 
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("companion-tab-quiz");
+
     // Click intel tab back
     fireEvent.click(intelTab!);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("companion-tab-intel");
     expect(intelTab?.getAttribute("aria-selected")).toBe("true");
     expect(quizTab?.getAttribute("aria-selected")).toBe("false");
   });
@@ -113,6 +126,27 @@ describe("CyberCompanionByte Component", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("ignores Escape key when drawer is closed and cleans up listener on unmount", () => {
+    const addEventListenerSpy = vi.spyOn(window, "addEventListener");
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+
+    const { unmount } = render(<CyberCompanionByte />);
+
+    // Pressing Escape while closed does not trigger soundEngine or open/close state
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(soundEngine.playSfx).not.toHaveBeenCalled();
+
+    // Open drawer
+    const orbBtn = screen.getByLabelText("Toggle Byte cybernetic familiar");
+    fireEvent.click(orbBtn);
+    expect(screen.getByRole("dialog")).toBeDefined();
+    expect(addEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+
+    // Unmount and verify removeEventListener was cleanly invoked
+    unmount();
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
   });
 
   it("cycles tips when Next Tip is clicked and rotates eye expression", () => {

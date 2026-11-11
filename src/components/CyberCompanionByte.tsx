@@ -237,6 +237,8 @@ export function CyberCompanionByte() {
             <button
               type="button"
               role="tab"
+              id="companion-tab-intel"
+              aria-controls="companion-byte-tabpanel"
               aria-selected={mode === "intel"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -253,6 +255,8 @@ export function CyberCompanionByte() {
             <button
               type="button"
               role="tab"
+              id="companion-tab-quiz"
+              aria-controls="companion-byte-tabpanel"
               aria-selected={mode === "quiz"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -269,8 +273,13 @@ export function CyberCompanionByte() {
             </button>
           </div>
 
-          {mode === "intel" ? (
-            <>
+          <div
+            role="tabpanel"
+            id="companion-byte-tabpanel"
+            aria-labelledby={mode === "intel" ? "companion-tab-intel" : "companion-tab-quiz"}
+          >
+            {mode === "intel" ? (
+              <div className="space-y-3">
               {/* Route-Contextual Banner if on Quest or Boss */}
               {activeQuest ? (
                 <div className="p-2.5 rounded-xl bg-matrix-neonCyan/10 border border-matrix-neonCyan/30 text-[11px] space-y-1">
@@ -337,7 +346,7 @@ export function CyberCompanionByte() {
                   </Link>
                 )}
               </div>
-            </>
+              </div>
           ) : (
             /* Flashcard Mini-Quiz Mode */
             <div className="space-y-2.5 text-xs">
@@ -414,6 +423,8 @@ export function CyberCompanionByte() {
               )}
             </div>
           )}
+
+          </div>
 
           {/* Player Cadet Briefing Footer */}
           <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-matrix-border/50">
