@@ -176,6 +176,8 @@ export function SkillTreeModal({
               setSelectedCategory("all");
             }}
             role="tab"
+            id="skill-tree-tab-all"
+            aria-controls="skill-tree-branch-panel"
             aria-selected={selectedCategory === "all"}
             className={`px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
               selectedCategory === "all"
@@ -190,6 +192,8 @@ export function SkillTreeModal({
             <button
               type="button"
               role="tab"
+              id={`skill-tree-tab-${cat.id}`}
+              aria-controls="skill-tree-branch-panel"
               aria-selected={selectedCategory === cat.id}
               key={cat.id}
               onClick={() => {
@@ -230,7 +234,12 @@ export function SkillTreeModal({
         )}
 
         {/* Modal Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+        <div
+          role="tabpanel"
+          id="skill-tree-branch-panel"
+          aria-labelledby={`skill-tree-tab-${selectedCategory}`}
+          className="p-4 sm:p-6 overflow-y-auto space-y-4"
+        >
           {/* Active Perks Summary Bar */}
           <div className="p-3.5 rounded-2xl bg-matrix-dark/80 border border-matrix-border font-mono text-xs flex flex-wrap items-center justify-between gap-2.5">
             <span className="text-gray-400 uppercase text-[10px] font-bold">
@@ -317,7 +326,11 @@ export function SkillTreeModal({
           )}
 
           {/* Skills Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div
+            role="list"
+            aria-label="Skill tree nodes"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3.5"
+          >
             {filteredSkills.map((skill) => {
               const isUnlocked = unlockedSkills.includes(skill.id) || skill.unlockedByDefault;
               const hasPrereq = !skill.prerequisiteId || unlockedSkills.includes(skill.prerequisiteId);
@@ -329,6 +342,7 @@ export function SkillTreeModal({
               return (
                 <div
                   key={skill.id}
+                  role="listitem"
                   className={`relative p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
                     isUnlocked
                       ? "bg-matrix-accent/5 border-matrix-accent/50 shadow-sm shadow-matrix-accent/10"

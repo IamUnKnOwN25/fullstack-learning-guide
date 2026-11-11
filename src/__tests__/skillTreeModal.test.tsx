@@ -9,6 +9,7 @@ import { SkillTreeModal } from "../components/SkillTreeModal";
 import { useGameStore } from "../lib/gameStore";
 import { useAuthStore } from "../lib/authStore";
 import { soundEngine } from "../lib/soundEngine";
+import { SKILL_TREE, SKILL_CATEGORIES } from "../data/skills";
 
 vi.mock("canvas-confetti", () => ({
   default: vi.fn(),
@@ -307,5 +308,93 @@ describe("SkillTreeModal Component", () => {
     });
 
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("disposes the Escape key listener cleanly upon modal unmount or when closed", () => {
+    const { unmount } = render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    // Non-escape keys should not trigger close
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    // Unmount modal and verify Escape listener is removed
+    unmount();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    // When isOpen is false, Escape listener should not be active
+    render(
+      <SkillTreeModal
+        isOpen={false}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it("links branch filter tabs to the skill tree tabpanel via deterministic IDs and aria-controls/aria-labelledby", () => {
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    const tabpanel = screen.getByRole("tabpanel");
+    expect(tabpanel).toBeDefined();
+    expect(tabpanel.getAttribute("id")).toBe("skill-tree-branch-panel");
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("skill-tree-tab-all");
+
+    const allTab = screen.getByRole("tab", { name: /All Branches/ });
+    expect(allTab.getAttribute("id")).toBe("skill-tree-tab-all");
+    expect(allTab.getAttribute("aria-controls")).toBe("skill-tree-branch-panel");
+
+    for (const cat of SKILL_CATEGORIES) {
+      const tab = screen.getByRole("tab", { name: new RegExp(cat.label) });
+      expect(tab.getAttribute("id")).toBe(`skill-tree-tab-${cat.id}`);
+      expect(tab.getAttribute("aria-controls")).toBe("skill-tree-branch-panel");
+    }
+
+    const frontendTab = screen.getByRole("tab", { name: /Frontend & Reactive/ });
+    fireEvent.click(frontendTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("skill-tree-tab-frontend");
+
+    const devopsTab = screen.getByRole("tab", { name: /DevOps & Cloud/ });
+    fireEvent.click(devopsTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("skill-tree-tab-devops");
+  });
+
+  it("presents skill nodes using list and listitem semantics matching active category", () => {
+    render(
+      <SkillTreeModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOpenAuthModal}
+      />
+    );
+
+    const list = screen.getByRole("list", { name: "Skill tree nodes" });
+    expect(list).toBeDefined();
+
+    const initialItems = screen.getAllByRole("listitem");
+    expect(initialItems).toHaveLength(SKILL_TREE.length);
+
+    // Switch to backend category
+    const backendTab = screen.getByRole("tab", { name: /Backend & Databases/ });
+    fireEvent.click(backendTab);
+
+    const backendItems = screen.getAllByRole("listitem");
+    const expectedBackendCount = SKILL_TREE.filter((s) => s.category === "backend").length;
+    expect(backendItems).toHaveLength(expectedBackendCount);
   });
 });
