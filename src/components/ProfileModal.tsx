@@ -199,6 +199,7 @@ export function ProfileModal({
       role="dialog"
       aria-modal="true"
       aria-label="Agent Profile Dossier"
+      aria-labelledby="profile-modal-title"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           soundEngine.playSfx("click");
@@ -220,7 +221,7 @@ export function ProfileModal({
               {avatar.emoji}
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
+              <h2 id="profile-modal-title" className="text-base font-bold text-white tracking-wide flex items-center gap-2">
                 <span>{activeUser.displayName}</span>
                 {activeUser.isGuest ? (
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-matrix-card border border-matrix-border text-gray-400">
@@ -380,10 +381,11 @@ export function ProfileModal({
                 )}
 
                 <div>
-                  <label className="block text-[11px] text-gray-400 mb-1">
+                  <label htmlFor="profile-bio-textarea" className="block text-[11px] text-gray-400 mb-1">
                     Cadet Bio / Motto:
                   </label>
                   <textarea
+                    id="profile-bio-textarea"
                     rows={2}
                     aria-label="Cadet Bio / Motto"
                     value={bioText}
@@ -606,6 +608,8 @@ export function ProfileModal({
                 <>
                   <input
                     ref={fileInputRef}
+                    id="profile-save-file-input"
+                    aria-label="Upload Save Backup JSON file"
                     type="file"
                     accept=".json,application/json"
                     onChange={handleFileUpload}
@@ -688,10 +692,12 @@ export function ProfileModal({
           {/* Import JSON Dropdown */}
           {showImport && (
             <div className="p-3.5 rounded-xl bg-matrix-dark border border-matrix-border space-y-2">
-              <div className="text-[11px] text-gray-300">
+              <label htmlFor="profile-import-textarea" className="block text-[11px] text-gray-300">
                 Paste exported DevQuest save backup JSON:
-              </div>
+              </label>
               <textarea
+                id="profile-import-textarea"
+                aria-label="Paste exported DevQuest save backup JSON"
                 rows={3}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}

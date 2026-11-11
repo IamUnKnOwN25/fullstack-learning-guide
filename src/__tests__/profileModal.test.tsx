@@ -83,6 +83,8 @@ describe("ProfileModal Component", () => {
     expect(dialog).toBeDefined();
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-label")).toBe("Agent Profile Dossier");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("profile-modal-title");
+    expect(screen.getByRole("heading", { level: 2 }).id).toBe("profile-modal-title");
 
     expect(screen.getByText("Matrix Runner")).toBeDefined();
     expect(screen.getByText(/Exploring the grid/)).toBeDefined();
@@ -480,5 +482,62 @@ describe("ProfileModal Component", () => {
       expect(errorAlert).toBeDefined();
       expect(errorAlert?.getAttribute("aria-live")).toBe("polite");
     });
+  });
+
+  it("ignores non-Escape keydown events and cleans up listener on unmount", () => {
+    const { unmount } = render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    // Press Enter or Tab
+    fireEvent.keyDown(window, { key: "Enter" });
+    fireEvent.keyDown(window, { key: "Tab" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+
+    // Unmount and press Escape
+    unmount();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
+  it("ensures accessible form controls for bio edit, file upload, and paste import", () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={mockOnClose}
+        onOpenAuthModal={mockOnOpenAuthModal}
+      />
+    );
+
+    // Verify upload file input has id and accessible aria-label
+    const fileInput = screen.getByLabelText("Upload Save Backup JSON file");
+    expect(fileInput).toBeDefined();
+    expect(fileInput.id).toBe("profile-save-file-input");
+
+    // Open bio edit mode and check bio textarea accessible label and id association
+    const editBtn = screen.getByTitle("Edit Profile");
+    fireEvent.click(editBtn);
+
+    const bioTextarea = screen.getByLabelText("Cadet Bio / Motto");
+    expect(bioTextarea).toBeDefined();
+    expect(bioTextarea.id).toBe("profile-bio-textarea");
+    const bioLabel = document.querySelector('label[for="profile-bio-textarea"]');
+    expect(bioLabel).not.toBeNull();
+    expect(bioLabel?.textContent).toContain("Cadet Bio / Motto:");
+
+    // Open paste import and check import textarea accessible label and id association
+    const pasteBtn = screen.getByTitle("Paste Save JSON");
+    fireEvent.click(pasteBtn);
+
+    const importTextarea = screen.getByLabelText("Paste exported DevQuest save backup JSON");
+    expect(importTextarea).toBeDefined();
+    expect(importTextarea.id).toBe("profile-import-textarea");
+    const importLabel = document.querySelector('label[for="profile-import-textarea"]');
+    expect(importLabel).not.toBeNull();
+    expect(importLabel?.textContent).toContain("Paste exported DevQuest save backup JSON:");
   });
 });
