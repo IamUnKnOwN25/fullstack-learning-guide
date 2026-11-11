@@ -5,7 +5,10 @@ import {
   analyzeWorkspaceDiagnostics,
   IDE_PROJECT_TEMPLATES,
   stripTypeScriptForBrowser,
+  computeWorkspaceSummary,
+  findBrokenAssetReferences,
   type IdeFile,
+  type WorkspaceSummary,
 } from "../lib/ideBundler";
 
 describe("Online Matrix IDE Bundler & Diagnostics Engine", () => {
@@ -369,5 +372,253 @@ console.log("Service loaded", getList());
     expect(diags).toHaveLength(1);
     expect(diags[0].file).toBe("valid.js");
     expect(diags[0].message).toContain("Prefer 'const' or 'let'");
+  });
+
+  describe("computeWorkspaceSummary", () => {
+    it("computes fileCount, totalBytes, totalLines, and languageCounts across multiple files", () => {
+      const files: IdeFile[] = [
+        { name: "index.html", language: "html", content: "<h1>Hello Matrix</h1>" },
+        { name: "styles.css", language: "css", content: "body { margin: 0; }\nh1 { color: #00ff9d; }" },
+        { name: "app.ts", language: "typescript", content: "const power = 100;\nconsole.log(power);\n" },
+      ];
+
+      const summary = computeWorkspaceSummary(files);
+      expect(summary.fileCount).toBe(3);
+      expect(summary.totalBytes).toBe(
+        "<h1>Hello Matrix</h1>".length +
+        "body { margin: 0; }\nh1 { color: #00ff9d; }".length +
+        "const power = 100;\nconsole.log(power);\n".length
+      );
+      expect(summary.totalLines).toBe(1 + 2 + 3);
+      expect(summary.languageCounts).toEqual({
+        html: 1,
+        css: 1,
+        typescript: 1,
+      });
+    });
+
+    it("accepts Record<string, IdeFile> input map format", () => {
+      const fileMap: Record<string, IdeFile> = {
+        "index.html": { name: "index.html", language: "html", content: "<div>App</div>" },
+        "main.js": { name: "main.js", language: "javascript", content: "console.log('init');" },
+      };
+
+      const summary = computeWorkspaceSummary(fileMap);
+      expect(summary.fileCount).toBe(2);
+      expect(summary.languageCounts).toEqual({
+        html: 1,
+        javascript: 1,
+      });
+      expect(summary.totalLines).toBe(2);
+      expect(summary.totalBytes).toBe("<div>App</div>".length + "console.log('init');".length);
+    });
+
+    it("returns zeroed summary for null, undefined, empty array, and non-object inputs", () => {
+      const expectedZero = {
+        fileCount: 0,
+        totalBytes: 0,
+        totalLines: 0,
+        languageCounts: {},
+      };
+
+      expect(computeWorkspaceSummary(null)).toEqual(expectedZero);
+      expect(computeWorkspaceSummary(undefined)).toEqual(expectedZero);
+      expect(computeWorkspaceSummary([])).toEqual(expectedZero);
+      expect(computeWorkspaceSummary({} as Record<string, IdeFile>)).toEqual(expectedZero);
+      expect(computeWorkspaceSummary("invalid" as unknown as IdeFile[])).toEqual(expectedZero);
+    });
+
+    it("filters out nullish and invalid file entries in arrays and records", () => {
+      const filesWithNulls = [
+        null as unknown as IdeFile,
+        undefined as unknown as IdeFile,
+        { name: "query.sql", language: "sql" as const, content: "SELECT 1;" },
+        null as unknown as IdeFile,
+      ];
+
+      const summary = computeWorkspaceSummary(filesWithNulls);
+      expect(summary.fileCount).toBe(1);
+      expect(summary.languageCounts).toEqual({ sql: 1 });
+      expect(summary.totalBytes).toBe("SELECT 1;".length);
+      expect(summary.totalLines).toBe(1);
+
+      const recordWithNulls: Record<string, IdeFile> = {
+        valid: { name: "data.json", language: "json", content: '{"status":"ok"}' },
+        bad1: null as unknown as IdeFile,
+        bad2: undefined as unknown as IdeFile,
+      };
+
+      const recordSummary = computeWorkspaceSummary(recordWithNulls);
+      expect(recordSummary.fileCount).toBe(1);
+      expect(recordSummary.languageCounts).toEqual({ json: 1 });
+    });
+
+    it("handles files with nullish or empty content gracefully", () => {
+      const files: IdeFile[] = [
+        { name: "empty.css", language: "css", content: "" },
+        { name: "nullish.js", language: "javascript", content: null as unknown as string },
+      ];
+
+      const summary = computeWorkspaceSummary(files);
+      expect(summary.fileCount).toBe(2);
+      expect(summary.totalBytes).toBe(0);
+      expect(summary.totalLines).toBe(0);
+      expect(summary.languageCounts).toEqual({ css: 1, javascript: 1 });
+    });
+
+    it("infers language from file extension when language property is omitted", () => {
+      const files = [
+        { name: "script.ts", content: "let x = 10;" } as unknown as IdeFile,
+        { name: "style.css", content: "body {}" } as unknown as IdeFile,
+      ];
+
+      const summary = computeWorkspaceSummary(files);
+      expect(summary.languageCounts.typescript).toBe(1);
+      expect(summary.languageCounts.css).toBe(1);
+    });
+
+    it("accurately calculates UTF-8 byte lengths for multibyte unicode and emojis", () => {
+      const emojiContent = "⚡ DevQuest Matrix 🚀\n";
+      const files: IdeFile[] = [
+        { name: "badge.md", language: "markdown", content: emojiContent },
+      ];
+
+      const summary = computeWorkspaceSummary(files);
+      const expectedBytes = new TextEncoder().encode(emojiContent).length;
+      expect(summary.totalBytes).toBe(expectedBytes);
+      expect(summary.totalLines).toBe(2);
+    });
+  });
+
+  describe("findBrokenAssetReferences", () => {
+    it("returns an empty array when all referenced scripts and stylesheets exist in workspace", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <link rel="stylesheet" href="./styles.css">
+            <script src="app.js"></script>
+          `,
+        },
+        "styles.css": { name: "styles.css", language: "css", content: "body { color: cyan; }" },
+        "app.js": { name: "app.js", language: "javascript", content: "console.log('ready');" },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it("detects broken script and link references and returns human-readable diagnostic strings", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <link rel="stylesheet" href="missing-styles.css">
+            <script src="./missing-script.js"></script>
+          `,
+        },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toHaveLength(2);
+      expect(diagnostics.some((d) => d.includes("missing-styles.css") && d.includes("index.html"))).toBe(true);
+      expect(diagnostics.some((d) => d.includes("missing-script.js") && d.includes("index.html"))).toBe(true);
+    });
+
+    it("strips leading './' and '/' when matching referenced asset paths", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <link rel="stylesheet" href="/assets/style.css">
+            <script src="./scripts/main.js"></script>
+          `,
+        },
+        "assets/style.css": { name: "assets/style.css", language: "css", content: "" },
+        "scripts/main.js": { name: "scripts/main.js", language: "javascript", content: "" },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it("ignores external URLs: http://, https://, protocol-relative //, data:, blob:, and # anchors", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+            <link rel="stylesheet" href="http://cdn.example.com/reset.css">
+            <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/normalize.css">
+            <link rel="icon" href="data:image/x-icon;base64,AAAB">
+            <link rel="prefetch" href="blob:http://localhost:3000/chunk-123">
+            <link rel="bookmark" href="#section-top">
+            <script src="https://cdn.example.com/analytics.js"></script>
+          `,
+        },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it("tolerates query parameters and hash anchors on existing workspace files", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <link rel="stylesheet" href="styles.css?v=2.1">
+            <script src="./app.js#init"></script>
+          `,
+        },
+        "styles.css": { name: "styles.css", language: "css", content: "" },
+        "app.js": { name: "app.js", language: "javascript", content: "" },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it("ignores broken tags embedded inside HTML comments", () => {
+      const workspace: Record<string, IdeFile> = {
+        "index.html": {
+          name: "index.html",
+          language: "html",
+          content: `
+            <!-- <link rel="stylesheet" href="commented-out.css"> -->
+            <!--
+              <script src="legacy-commented.js"></script>
+            -->
+            <h1>Active Page</h1>
+          `,
+        },
+      };
+
+      const diagnostics = findBrokenAssetReferences(workspace);
+      expect(diagnostics).toEqual([]);
+    });
+
+    it("handles null, undefined, empty collections, and IdeFile arrays without throwing", () => {
+      expect(findBrokenAssetReferences(null)).toEqual([]);
+      expect(findBrokenAssetReferences(undefined)).toEqual([]);
+      expect(findBrokenAssetReferences({})).toEqual([]);
+      expect(findBrokenAssetReferences([])).toEqual([]);
+
+      const arrayWorkspace: IdeFile[] = [
+        {
+          name: "index.html",
+          language: "html",
+          content: '<script src="absent.js"></script>',
+        },
+      ];
+      const arrayDiags = findBrokenAssetReferences(arrayWorkspace);
+      expect(arrayDiags).toHaveLength(1);
+      expect(arrayDiags[0]).toContain("absent.js");
+    });
   });
 });

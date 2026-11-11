@@ -431,6 +431,176 @@ export function analyzeWorkspaceDiagnostics(files?: IdeFile[] | null): IdeDiagno
   return diagnostics;
 }
 
+export interface WorkspaceSummary {
+  fileCount: number;
+  totalBytes: number;
+  totalLines: number;
+  languageCounts: Record<string, number>;
+}
+
+/**
+ * Computes statistical summary metrics across workspace files.
+ * Accepts either an array of IdeFile or a record/map of IdeFiles.
+ */
+export function computeWorkspaceSummary(
+  files?: Record<string, IdeFile> | IdeFile[] | null
+): WorkspaceSummary {
+  const summary: WorkspaceSummary = {
+    fileCount: 0,
+    totalBytes: 0,
+    totalLines: 0,
+    languageCounts: {},
+  };
+
+  if (!files || typeof files !== "object") {
+    return summary;
+  }
+
+  const fileList: IdeFile[] = Array.isArray(files)
+    ? files
+    : Object.values(files);
+
+  for (const file of fileList) {
+    if (!file || typeof file !== "object") continue;
+
+    summary.fileCount++;
+
+    const content =
+      typeof file.content === "string"
+        ? file.content
+        : file.content != null
+        ? String(file.content)
+        : "";
+
+    const byteLen =
+      typeof TextEncoder !== "undefined"
+        ? new TextEncoder().encode(content).length
+        : content.length;
+
+    summary.totalBytes += byteLen;
+
+    const lineCount = content.length === 0 ? 0 : content.split("\n").length;
+    summary.totalLines += lineCount;
+
+    const lang =
+      file.language && typeof file.language === "string"
+        ? file.language
+        : detectFileLanguage(file.name);
+
+    if (lang) {
+      summary.languageCounts[lang] = (summary.languageCounts[lang] || 0) + 1;
+    }
+  }
+
+  return summary;
+}
+
+function isIgnoredAssetUrl(url: string): boolean {
+  const trimmed = url.trim().toLowerCase();
+  if (!trimmed) return true;
+  return (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("//") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("#") ||
+    trimmed.startsWith("mailto:") ||
+    trimmed.startsWith("javascript:")
+  );
+}
+
+function normalizeAssetPath(url: string): string {
+  return url.trim().replace(/^(\.\/|\/)+/, "");
+}
+
+/**
+ * Scans HTML files in the workspace for local <script src="..."> and <link ... href="..."> paths
+ * and returns human-readable diagnostic strings for referenced files not present in the workspace.
+ * Ignores external URLs (http://, https://, //, data:, blob:, #) and strips leading ./ or /.
+ */
+export function findBrokenAssetReferences(
+  files?: Record<string, IdeFile> | IdeFile[] | null
+): string[] {
+  if (!files || typeof files !== "object") {
+    return [];
+  }
+
+  const fileEntries: [string, IdeFile][] = Array.isArray(files)
+    ? files.map((f, idx) => [f?.name ?? String(idx), f])
+    : Object.entries(files);
+
+  const knownFiles = new Set<string>();
+  const htmlFiles: { name: string; content: string }[] = [];
+
+  for (const [key, file] of fileEntries) {
+    if (!file || typeof file !== "object") continue;
+
+    const rawName = file.name || key;
+    if (rawName && typeof rawName === "string") {
+      knownFiles.add(rawName.trim());
+      knownFiles.add(normalizeAssetPath(rawName));
+    }
+    if (key && typeof key === "string") {
+      knownFiles.add(key.trim());
+      knownFiles.add(normalizeAssetPath(key));
+    }
+
+    const isHtml =
+      file.language === "html" ||
+      detectFileLanguage(file.name || key) === "html";
+
+    if (isHtml) {
+      const content =
+        typeof file.content === "string"
+          ? file.content
+          : file.content != null
+          ? String(file.content)
+          : "";
+      htmlFiles.push({ name: file.name || key || "index.html", content });
+    }
+  }
+
+  const diagnostics: string[] = [];
+
+  for (const htmlFile of htmlFiles) {
+    // Strip HTML comments to avoid false alarms in commented code
+    const cleanHtml = htmlFile.content.replace(/<!--[\s\S]*?-->/g, "");
+
+    const scriptRegex = /<script\b[^>]*\bsrc\s*=\s*(?:["']([^"']+)["']|([^\s>]+))[^>]*>/gi;
+    let scriptMatch: RegExpExecArray | null;
+    while ((scriptMatch = scriptRegex.exec(cleanHtml)) !== null) {
+      const rawRef = scriptMatch[1] || scriptMatch[2];
+      if (!rawRef || isIgnoredAssetUrl(rawRef)) continue;
+
+      const cleanRef = normalizeAssetPath(rawRef);
+      const basePath = cleanRef.split(/[?#]/)[0];
+      if (cleanRef && !knownFiles.has(cleanRef) && !knownFiles.has(basePath)) {
+        diagnostics.push(
+          `Broken asset reference in ${htmlFile.name}: "${cleanRef}" not found in workspace.`
+        );
+      }
+    }
+
+    const linkRegex = /<link\b[^>]*\bhref\s*=\s*(?:["']([^"']+)["']|([^\s>]+))[^>]*>/gi;
+    let linkMatch: RegExpExecArray | null;
+    while ((linkMatch = linkRegex.exec(cleanHtml)) !== null) {
+      const rawRef = linkMatch[1] || linkMatch[2];
+      if (!rawRef || isIgnoredAssetUrl(rawRef)) continue;
+
+      const cleanRef = normalizeAssetPath(rawRef);
+      const basePath = cleanRef.split(/[?#]/)[0];
+      if (cleanRef && !knownFiles.has(cleanRef) && !knownFiles.has(basePath)) {
+        diagnostics.push(
+          `Broken asset reference in ${htmlFile.name}: "${cleanRef}" not found in workspace.`
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
 export const IDE_PROJECT_TEMPLATES: IdeProjectTemplate[] = [
   {
     id: "fullstack-starter",
