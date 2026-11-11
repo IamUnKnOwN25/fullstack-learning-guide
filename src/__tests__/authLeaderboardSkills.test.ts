@@ -3,7 +3,15 @@ import fs from "fs";
 import path from "path";
 import { useAuthStore, AVATAR_OPTIONS } from "../lib/authStore";
 import { useGameStore } from "../lib/gameStore";
-import { TOP_OPERATIVES, LeaderboardEntry } from "../data/leaderboard";
+import {
+  TOP_OPERATIVES,
+  LeaderboardEntry,
+  LeaderboardMetric,
+  buildRankedLeaderboard,
+  filterLeaderboardEntries,
+  getOperativeById,
+  getLeaderboardStats,
+} from "../data/leaderboard";
 import { SKILL_TREE, SkillCategory } from "../data/skills";
 import { ACHIEVEMENTS, RARITY_CONFIG } from "../data/achievements";
 
@@ -158,6 +166,261 @@ describe("RPG Progression Systems: Auth, Leaderboard, Skills & Achievements", ()
       expect(byCurriculum[0].curriculumCompleted).toBeGreaterThanOrEqual(
         byCurriculum[1].curriculumCompleted
       );
+    });
+
+    it("builds ranked leaderboard with default XP metric and 1-based sequential ranks", () => {
+      const ranked = buildRankedLeaderboard();
+      expect(ranked).toHaveLength(TOP_OPERATIVES.length);
+      expect(ranked[0].rank).toBe(1);
+      expect(ranked[0].id).toBe("op-1"); // neo_architect with 62500 XP
+      expect(ranked[ranked.length - 1].rank).toBe(TOP_OPERATIVES.length);
+
+      // Verify strict descending XP order
+      for (let i = 0; i < ranked.length - 1; i++) {
+        expect(ranked[i].xp).toBeGreaterThanOrEqual(ranked[i + 1].xp);
+        expect(ranked[i].rank).toBe(i + 1);
+      }
+    });
+
+    it("ranks by stars, bosses, and curriculum with XP and level tie-breaking", () => {
+      const rankedByStars = buildRankedLeaderboard(undefined, "stars");
+      expect(rankedByStars[0].stars).toBe(72);
+      // Neo and Ada both have 72 stars, Neo has 62500 XP vs Ada's 57600 XP -> Neo is rank 1, Ada is rank 2
+      expect(rankedByStars[0].id).toBe("op-1");
+      expect(rankedByStars[1].id).toBe("op-2");
+
+      const rankedByBosses = buildRankedLeaderboard(undefined, "bosses");
+      expect(rankedByBosses[0].bossesSlain).toBe(12);
+
+      const rankedByBossesSlain = buildRankedLeaderboard(undefined, "bossesSlain");
+      expect(rankedByBossesSlain[0].bossesSlain).toBe(12);
+
+      const rankedByCurriculum = buildRankedLeaderboard(undefined, "curriculum");
+      expect(rankedByCurriculum[0].curriculumCompleted).toBe(113);
+      expect(rankedByCurriculum[0].id).toBe("op-1");
+
+      const rankedByCurriculumCompleted = buildRankedLeaderboard(undefined, "curriculumCompleted");
+      expect(rankedByCurriculumCompleted[0].curriculumCompleted).toBe(113);
+    });
+
+    it("handles multi-level tie-breaking down to username localeCompare", () => {
+      const tiedEntries: LeaderboardEntry[] = [
+        {
+          id: "cadet-z",
+          rank: 0,
+          username: "zeta_operative",
+          displayName: "Zeta Operative",
+          avatarEmoji: "🤖",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Cadet",
+          level: 10,
+          xp: 1000,
+          stars: 10,
+          bossesSlain: 2,
+          curriculumCompleted: 5,
+          countryCode: "US",
+          badge: "Novice",
+        },
+        {
+          id: "cadet-a",
+          rank: 0,
+          username: "alpha_operative",
+          displayName: "Alpha Operative",
+          avatarEmoji: "🤖",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Cadet",
+          level: 10,
+          xp: 1000,
+          stars: 10,
+          bossesSlain: 2,
+          curriculumCompleted: 5,
+          countryCode: "US",
+          badge: "Novice",
+        },
+        {
+          id: "cadet-b",
+          rank: 0,
+          username: "beta_operative",
+          displayName: "Beta Operative",
+          avatarEmoji: "🤖",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Cadet",
+          level: 10,
+          xp: 1000,
+          stars: 10,
+          bossesSlain: 2,
+          curriculumCompleted: 5,
+          countryCode: "US",
+          badge: "Novice",
+        },
+      ];
+
+      const ranked = buildRankedLeaderboard(tiedEntries, "stars");
+      expect(ranked.map((e) => e.username)).toEqual([
+        "alpha_operative",
+        "beta_operative",
+        "zeta_operative",
+      ]);
+      expect(ranked.map((e) => e.rank)).toEqual([1, 2, 3]);
+    });
+
+    it("sanitizes NaN, nullish, and invalid numeric values during ranking", () => {
+      const corruptEntries: any[] = [
+        {
+          id: "corrupt-1",
+          username: "corrupt_operative",
+          displayName: "Corrupt Operative",
+          avatarEmoji: "👾",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Glitch",
+          level: NaN,
+          xp: NaN,
+          stars: null,
+          bossesSlain: undefined,
+          curriculumCompleted: "not-a-number",
+          countryCode: "XX",
+          badge: "Glitch",
+        },
+        {
+          id: "valid-1",
+          username: "valid_operative",
+          displayName: "Valid Operative",
+          avatarEmoji: "⚡",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Cadet",
+          level: 5,
+          xp: 500,
+          stars: 10,
+          bossesSlain: 1,
+          curriculumCompleted: 2,
+          countryCode: "US",
+          badge: "Novice",
+        },
+      ];
+
+      const ranked = buildRankedLeaderboard(corruptEntries);
+      expect(ranked[0].id).toBe("valid-1");
+      expect(ranked[0].rank).toBe(1);
+      expect(ranked[1].id).toBe("corrupt-1");
+      expect(ranked[1].rank).toBe(2);
+    });
+
+    it("does not mutate the input array when ranking", () => {
+      const input = [
+        { ...TOP_OPERATIVES[9], rank: 0 },
+        { ...TOP_OPERATIVES[0], rank: 0 },
+      ];
+      const copy = [...input];
+      buildRankedLeaderboard(input);
+      expect(input[0].id).toBe(copy[0].id);
+      expect(input[1].id).toBe(copy[1].id);
+    });
+
+    it("returns empty array when buildRankedLeaderboard is given empty array", () => {
+      expect(buildRankedLeaderboard([])).toEqual([]);
+    });
+
+    it("filters leaderboard entries case-insensitively by username, displayName, title, badge, and tier", () => {
+      const ranked = buildRankedLeaderboard();
+
+      // Username search
+      const neoResults = filterLeaderboardEntries(ranked, "neo_architect");
+      expect(neoResults).toHaveLength(1);
+      expect(neoResults[0].username).toBe("neo_architect");
+
+      // Case-insensitive display name
+      const adaResults = filterLeaderboardEntries(ranked, "ADA");
+      expect(adaResults.some((e) => e.displayName === "Ada Lovelace")).toBe(true);
+
+      // Title search
+      const grandmasters = filterLeaderboardEntries(ranked, "grandmaster");
+      expect(grandmasters.length).toBeGreaterThanOrEqual(2);
+
+      // Tier search
+      const withCustomTier: LeaderboardEntry[] = [
+        ...ranked,
+        {
+          id: "custom-elite",
+          rank: 99,
+          username: "elite_operative",
+          displayName: "Elite Operative",
+          avatarEmoji: "🌟",
+          avatarBg: "bg-void",
+          avatarBorder: "border-void",
+          title: "Vanguard",
+          level: 60,
+          xp: 99999,
+          stars: 100,
+          bossesSlain: 20,
+          curriculumCompleted: 150,
+          countryCode: "LIVE",
+          badge: "Vanguard Badge",
+          tier: "Diamond Matrix",
+        },
+      ];
+      const tierResults = filterLeaderboardEntries(withCustomTier, "diamond");
+      expect(tierResults).toHaveLength(1);
+      expect(tierResults[0].id).toBe("custom-elite");
+
+      // Whitespace query
+      const trimmedResults = filterLeaderboardEntries(ranked, "   grace   ");
+      expect(trimmedResults.some((e) => e.username === "grace_hopper")).toBe(true);
+
+      // Empty query returns all entries
+      expect(filterLeaderboardEntries(ranked, "")).toHaveLength(ranked.length);
+      expect(filterLeaderboardEntries(ranked, "   ")).toHaveLength(ranked.length);
+
+      // Unmatched query returns empty
+      expect(filterLeaderboardEntries(ranked, "xyz_not_found_404")).toHaveLength(0);
+    });
+
+    it("looks up operative by id via getOperativeById", () => {
+      const op1 = getOperativeById("op-1");
+      expect(op1).toBeDefined();
+      expect(op1?.username).toBe("neo_architect");
+      expect(op1?.rank).toBe(1);
+
+      const op10 = getOperativeById("op-10");
+      expect(op10).toBeDefined();
+      expect(op10?.username).toBe("tim_hypertext");
+      expect(op10?.rank).toBe(10);
+
+      expect(getOperativeById("unknown-id")).toBeUndefined();
+      expect(getOperativeById("")).toBeUndefined();
+    });
+
+    it("computes aggregate leaderboard stats accurately with getLeaderboardStats", () => {
+      const stats = getLeaderboardStats();
+      expect(stats.totalOperatives).toBe(TOP_OPERATIVES.length);
+      expect(stats.topXp).toBe(62500);
+      expect(stats.averageXp).toBe(26612.5);
+      expect(stats.averageLevel).toBe(28.9);
+
+      // Empty entries test
+      const emptyStats = getLeaderboardStats([]);
+      expect(emptyStats).toEqual({
+        totalOperatives: 0,
+        averageXp: 0,
+        topXp: 0,
+        averageLevel: 0,
+      });
+
+      // Sanitization with corrupt / missing values
+      const customEntries: any[] = [
+        { xp: 1000, level: 10 },
+        { xp: NaN, level: undefined },
+        { xp: 2000, level: 20 },
+      ];
+      const customStats = getLeaderboardStats(customEntries as LeaderboardEntry[]);
+      expect(customStats.totalOperatives).toBe(3);
+      expect(customStats.topXp).toBe(2000);
+      expect(customStats.averageXp).toBe(1000); // (1000 + 0 + 2000) / 3
+      expect(customStats.averageLevel).toBe(10); // (10 + 0 + 20) / 3
     });
   });
 
