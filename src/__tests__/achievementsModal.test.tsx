@@ -127,6 +127,68 @@ describe("AchievementsModal Component", () => {
     expect(scholarTab.getAttribute("aria-selected")).toBe("false");
   });
 
+  it("links category tabs to achievements tabpanel via deterministic id and aria-controls", () => {
+    render(
+      <AchievementsModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const allTab = screen.getByRole("tab", { name: /All/i });
+    const bossTab = screen.getByRole("tab", { name: /Boss Guardians/i });
+    const questTab = screen.getByRole("tab", { name: /Coding Trials/i });
+    const scholarTab = screen.getByRole("tab", { name: /Vault & Scholar/i });
+    const masteryTab = screen.getByRole("tab", { name: /Matrix Mastery/i });
+
+    expect(allTab.getAttribute("id")).toBe("achievement-tab-all");
+    expect(allTab.getAttribute("aria-controls")).toBe("achievements-grid-panel");
+    expect(bossTab.getAttribute("id")).toBe("achievement-tab-bosses");
+    expect(bossTab.getAttribute("aria-controls")).toBe("achievements-grid-panel");
+    expect(questTab.getAttribute("id")).toBe("achievement-tab-quests");
+    expect(questTab.getAttribute("aria-controls")).toBe("achievements-grid-panel");
+    expect(scholarTab.getAttribute("id")).toBe("achievement-tab-scholar");
+    expect(scholarTab.getAttribute("aria-controls")).toBe("achievements-grid-panel");
+    expect(masteryTab.getAttribute("id")).toBe("achievement-tab-mastery");
+    expect(masteryTab.getAttribute("aria-controls")).toBe("achievements-grid-panel");
+
+    const tabpanel = screen.getByRole("tabpanel");
+    expect(tabpanel).toBeDefined();
+    expect(tabpanel.getAttribute("id")).toBe("achievements-grid-panel");
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("achievement-tab-all");
+
+    fireEvent.click(bossTab);
+    expect(tabpanel.getAttribute("aria-labelledby")).toBe("achievement-tab-bosses");
+  });
+
+  it("renders achievements grid with list and listitem semantic roles", () => {
+    render(
+      <AchievementsModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const list = screen.getByRole("list", { name: "Achievements list" });
+    expect(list).toBeDefined();
+
+    const items = screen.getAllByRole("listitem");
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("cleans up keydown Escape event listener upon unmount", () => {
+    const { unmount } = render(
+      <AchievementsModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    unmount();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(mockOnClose).not.toHaveBeenCalled();
+  });
+
   it("calls onClose and plays SFX when Escape key is pressed", () => {
     render(
       <AchievementsModal

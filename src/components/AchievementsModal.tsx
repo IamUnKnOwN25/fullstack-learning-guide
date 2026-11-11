@@ -188,6 +188,8 @@ export function AchievementsModal({
           <button
             type="button"
             role="tab"
+            id="achievement-tab-all"
+            aria-controls="achievements-grid-panel"
             aria-selected={activeCategory === "all"}
             onClick={() => {
               soundEngine.playSfx("click");
@@ -206,6 +208,8 @@ export function AchievementsModal({
           <button
             type="button"
             role="tab"
+            id="achievement-tab-bosses"
+            aria-controls="achievements-grid-panel"
             aria-selected={activeCategory === "bosses"}
             onClick={() => {
               soundEngine.playSfx("click");
@@ -224,6 +228,8 @@ export function AchievementsModal({
           <button
             type="button"
             role="tab"
+            id="achievement-tab-quests"
+            aria-controls="achievements-grid-panel"
             aria-selected={activeCategory === "quests"}
             onClick={() => {
               soundEngine.playSfx("click");
@@ -242,6 +248,8 @@ export function AchievementsModal({
           <button
             type="button"
             role="tab"
+            id="achievement-tab-scholar"
+            aria-controls="achievements-grid-panel"
             aria-selected={activeCategory === "scholar"}
             onClick={() => {
               soundEngine.playSfx("click");
@@ -260,6 +268,8 @@ export function AchievementsModal({
           <button
             type="button"
             role="tab"
+            id="achievement-tab-mastery"
+            aria-controls="achievements-grid-panel"
             aria-selected={activeCategory === "mastery"}
             onClick={() => {
               soundEngine.playSfx("click");
@@ -310,8 +320,17 @@ export function AchievementsModal({
         )}
 
         {/* Achievements Grid */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div
+          role="tabpanel"
+          id="achievements-grid-panel"
+          aria-labelledby={`achievement-tab-${activeCategory}`}
+          className="p-4 sm:p-6 overflow-y-auto space-y-3"
+        >
+          <div
+            role="list"
+            aria-label="Achievements list"
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3.5"
+          >
             {filteredAchievements.map((ach) => {
               const status = ach.checkProgress(storeState);
               const isClaimed = claimedAchievements.includes(ach.id);
@@ -322,6 +341,7 @@ export function AchievementsModal({
               return (
                 <div
                   key={ach.id}
+                  role="listitem"
                   className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
                     status.isUnlocked
                       ? "bg-matrix-dark/80 border-matrix-border hover:border-matrix-neonGold/50 shadow-sm"
