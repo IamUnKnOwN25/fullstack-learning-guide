@@ -274,4 +274,14 @@ describe("UI Layout & Overflow Regression Guards", () => {
     expect(authContent).toContain('aria-label="Matrix Terminal Access"');
     expect(authContent).toContain("backdrop-blur-md");
   });
+
+  it("enforces WCAG 2.4.1 keyboard skip-to-content link and accessible main landmark in root layout", () => {
+    const layoutPath = path.join(process.cwd(), "src/app/layout.tsx");
+    const layoutContent = fs.readFileSync(layoutPath, "utf-8");
+
+    expect(layoutContent).toContain('href="#main-content"');
+    expect(layoutContent).toContain("Skip to main content");
+    expect(layoutContent).toContain('id="main-content"');
+    expect(layoutContent).toContain("tabIndex={-1}");
+  });
 });
