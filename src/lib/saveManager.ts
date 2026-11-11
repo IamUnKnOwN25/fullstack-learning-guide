@@ -16,21 +16,45 @@ export interface SaveSummary {
   rankTitle: string;
 }
 
-export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
+export interface SaveInspectionResult {
+  valid: boolean;
+  version: number | null;
+  level: number | null;
+  xp: number | null;
+  error?: string;
+}
+
+export function getStatsValidationFailureReason(obj: unknown): string | null {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
-    return false;
+    return "Stats payload must be a non-null object";
   }
 
   const o = obj as Record<string, unknown>;
 
-  if ("xp" in o && (typeof o.xp !== "number" || o.xp < 0 || !Number.isFinite(o.xp))) return false;
-  if ("level" in o && (typeof o.level !== "number" || o.level < 1 || !Number.isFinite(o.level))) return false;
-  if ("hp" in o && (typeof o.hp !== "number" || !Number.isFinite(o.hp) || o.hp < 0)) return false;
-  if ("maxHp" in o && (typeof o.maxHp !== "number" || !Number.isFinite(o.maxHp) || o.maxHp <= 0)) return false;
-  if ("mana" in o && (typeof o.mana !== "number" || !Number.isFinite(o.mana) || o.mana < 0)) return false;
-  if ("maxMana" in o && (typeof o.maxMana !== "number" || !Number.isFinite(o.maxMana) || o.maxMana <= 0)) return false;
-  if ("streak" in o && (typeof o.streak !== "number" || !Number.isFinite(o.streak) || o.streak < 0)) return false;
-  if ("rankTitle" in o && typeof o.rankTitle !== "string") return false;
+  if ("xp" in o && (typeof o.xp !== "number" || o.xp < 0 || !Number.isFinite(o.xp))) {
+    return "Invalid xp: must be a non-negative finite number";
+  }
+  if ("level" in o && (typeof o.level !== "number" || o.level < 1 || !Number.isFinite(o.level))) {
+    return "Invalid level: must be a finite number >= 1";
+  }
+  if ("hp" in o && (typeof o.hp !== "number" || !Number.isFinite(o.hp) || o.hp < 0)) {
+    return "Invalid hp: must be a non-negative finite number";
+  }
+  if ("maxHp" in o && (typeof o.maxHp !== "number" || !Number.isFinite(o.maxHp) || o.maxHp <= 0)) {
+    return "Invalid maxHp: must be a positive finite number";
+  }
+  if ("mana" in o && (typeof o.mana !== "number" || !Number.isFinite(o.mana) || o.mana < 0)) {
+    return "Invalid mana: must be a non-negative finite number";
+  }
+  if ("maxMana" in o && (typeof o.maxMana !== "number" || !Number.isFinite(o.maxMana) || o.maxMana <= 0)) {
+    return "Invalid maxMana: must be a positive finite number";
+  }
+  if ("streak" in o && (typeof o.streak !== "number" || !Number.isFinite(o.streak) || o.streak < 0)) {
+    return "Invalid streak: must be a non-negative finite number";
+  }
+  if ("rankTitle" in o && typeof o.rankTitle !== "string") {
+    return "Invalid rankTitle: must be a string";
+  }
 
   const arrayFields = [
     "completedQuests",
@@ -44,31 +68,46 @@ export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
   ] as const;
 
   for (const field of arrayFields) {
-    if (
-      field in o &&
-      (!Array.isArray(o[field]) ||
-        !(o[field] as unknown[]).every((i) => typeof i === "string"))
-    ) {
-      return false;
+    if (field in o) {
+      if (!Array.isArray(o[field])) {
+        return `Invalid ${field}: must be an array`;
+      }
+      if (!(o[field] as unknown[]).every((i) => typeof i === "string")) {
+        return `Invalid ${field}: elements must be strings`;
+      }
     }
   }
 
-  if (
-    "stars" in o &&
-    (typeof o.stars !== "object" || o.stars === null || Array.isArray(o.stars) || !Object.values(o.stars as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v)))
-  )
-    return false;
-  if (
-    "curriculumTaskAwards" in o &&
-    (typeof o.curriculumTaskAwards !== "object" ||
-      o.curriculumTaskAwards === null ||
-      Array.isArray(o.curriculumTaskAwards) || !Object.values(o.curriculumTaskAwards as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v)))
-  )
-    return false;
-  if ("audioMuted" in o && typeof o.audioMuted !== "boolean") return false;
-  if ("bgmActive" in o && typeof o.bgmActive !== "boolean") return false;
+  if ("stars" in o) {
+    if (typeof o.stars !== "object" || o.stars === null || Array.isArray(o.stars)) {
+      return "Invalid stars: must be an object dictionary";
+    }
+    if (!Object.values(o.stars as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v))) {
+      return "Invalid stars: all values must be finite numbers";
+    }
+  }
 
-  return true;
+  if ("curriculumTaskAwards" in o) {
+    if (typeof o.curriculumTaskAwards !== "object" || o.curriculumTaskAwards === null || Array.isArray(o.curriculumTaskAwards)) {
+      return "Invalid curriculumTaskAwards: must be an object dictionary";
+    }
+    if (!Object.values(o.curriculumTaskAwards as Record<string, unknown>).every((v) => typeof v === "number" && Number.isFinite(v))) {
+      return "Invalid curriculumTaskAwards: all values must be finite numbers";
+    }
+  }
+
+  if ("audioMuted" in o && typeof o.audioMuted !== "boolean") {
+    return "Invalid audioMuted: must be a boolean";
+  }
+  if ("bgmActive" in o && typeof o.bgmActive !== "boolean") {
+    return "Invalid bgmActive: must be a boolean";
+  }
+
+  return null;
+}
+
+export function isValidStatsObject(obj: unknown): obj is Partial<PlayerStats> {
+  return getStatsValidationFailureReason(obj) === null;
 }
 
 export function generateSaveSummary(stats: Partial<PlayerStats> | null): SaveSummary {
@@ -229,4 +268,202 @@ export function deserializeSaveData(
 
   // Attempt base64 decode fallback
   return decodeSaveFromBase64(jsonString);
+}
+
+function canonicalize(data: unknown, stack = new Set<object>()): unknown {
+  if (data === null || typeof data !== "object") {
+    return data;
+  }
+  if (stack.has(data)) {
+    throw new Error("Circular reference detected");
+  }
+  stack.add(data);
+  try {
+    if (Array.isArray(data)) {
+      return data.map((item) => canonicalize(item, stack));
+    }
+    const sortedObj: Record<string, unknown> = {};
+    const keys = Object.keys(data).sort();
+    for (const key of keys) {
+      const val = (data as Record<string, unknown>)[key];
+      if (val !== undefined && typeof val !== "function" && typeof val !== "symbol") {
+        sortedObj[key] = canonicalize(val, stack);
+      }
+    }
+    return sortedObj;
+  } finally {
+    stack.delete(data);
+  }
+}
+
+export function computeSaveChecksum(data: unknown): string {
+  if (data === null || data === undefined) {
+    return "00000000";
+  }
+  try {
+    if (typeof data === "function" || typeof data === "symbol" || typeof data === "bigint") {
+      return "00000000";
+    }
+    const canonical = canonicalize(data);
+    const str = JSON.stringify(canonical);
+    if (typeof str !== "string") {
+      return "00000000";
+    }
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, "0");
+  } catch {
+    return "00000000";
+  }
+}
+
+export function verifySaveChecksum(data: unknown, expectedChecksum: string): boolean {
+  if (typeof expectedChecksum !== "string") {
+    return false;
+  }
+  const cleanExpected = expectedChecksum.trim().toLowerCase().replace(/^0x/, "");
+  if (!/^[0-9a-f]{8}$/.test(cleanExpected)) {
+    return false;
+  }
+  const computed = computeSaveChecksum(data);
+  return computed === cleanExpected;
+}
+
+export function inspectSavePayload(rawJson: string): SaveInspectionResult {
+  if (typeof rawJson !== "string" || !rawJson.trim()) {
+    return {
+      valid: false,
+      version: null,
+      level: null,
+      xp: null,
+      error: "Empty or invalid save payload string",
+    };
+  }
+
+  let json = rawJson.trim();
+  if (!json.startsWith("{") && !json.startsWith("[")) {
+    try {
+      if (typeof Buffer !== "undefined") {
+        const decoded = Buffer.from(json, "base64").toString("utf-8");
+        if (decoded.trim().startsWith("{") || decoded.trim().startsWith("[")) {
+          json = decoded.trim();
+        }
+      } else if (typeof atob === "function") {
+        const bin = atob(json);
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        const decoded = new TextDecoder().decode(bytes);
+        if (decoded.trim().startsWith("{") || decoded.trim().startsWith("[")) {
+          json = decoded.trim();
+        }
+      }
+    } catch {
+      // Proceed with original string if base64 decoding fails
+    }
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch (err) {
+    return {
+      valid: false,
+      version: null,
+      level: null,
+      xp: null,
+      error: `Malformed JSON payload: ${(err as Error).message}`,
+    };
+  }
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {
+      valid: false,
+      version: null,
+      level: null,
+      xp: null,
+      error: "Save payload root must be an object",
+    };
+  }
+
+  const obj = parsed as Record<string, unknown>;
+  const isWrapped = "version" in obj || "timestamp" in obj || "data" in obj;
+
+  let version: number | null = null;
+  let statsCandidate: unknown = obj;
+
+  if (isWrapped) {
+    if (typeof obj.version === "number" && Number.isFinite(obj.version)) {
+      version = obj.version;
+    } else if (typeof obj.version === "string") {
+      const parsedV = parseFloat(obj.version);
+      if (Number.isFinite(parsedV)) {
+        version = parsedV;
+      }
+    }
+
+    if (typeof obj.version !== "string" && typeof obj.version !== "number") {
+      return {
+        valid: false,
+        version: null,
+        level: null,
+        xp: null,
+        error: "Missing or invalid version in wrapped save file",
+      };
+    }
+
+    if (typeof obj.timestamp !== "number" || !Number.isFinite(obj.timestamp)) {
+      return {
+        valid: false,
+        version,
+        level: null,
+        xp: null,
+        error: "Invalid or missing timestamp in wrapped save file",
+      };
+    }
+
+    if (!obj.data || typeof obj.data !== "object" || Array.isArray(obj.data)) {
+      return {
+        valid: false,
+        version,
+        level: null,
+        xp: null,
+        error: "Wrapped save data must be an object",
+      };
+    }
+
+    statsCandidate = obj.data;
+  } else if ("version" in obj) {
+    if (typeof obj.version === "number" && Number.isFinite(obj.version)) {
+      version = obj.version;
+    } else if (typeof obj.version === "string") {
+      const parsedV = parseFloat(obj.version);
+      if (Number.isFinite(parsedV)) {
+        version = parsedV;
+      }
+    }
+  }
+
+  const stats = statsCandidate as Record<string, unknown>;
+  const level = typeof stats.level === "number" && Number.isFinite(stats.level) ? stats.level : null;
+  const xp = typeof stats.xp === "number" && Number.isFinite(stats.xp) ? stats.xp : null;
+
+  const failureReason = getStatsValidationFailureReason(statsCandidate);
+  if (failureReason) {
+    return {
+      valid: false,
+      version,
+      level,
+      xp,
+      error: failureReason,
+    };
+  }
+
+  return {
+    valid: true,
+    version,
+    level,
+    xp,
+  };
 }

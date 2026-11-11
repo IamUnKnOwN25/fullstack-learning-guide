@@ -8,6 +8,9 @@ import {
   decodeSaveFromBase64,
   migrateSaveData,
   SAVE_FORMAT_VERSION,
+  computeSaveChecksum,
+  verifySaveChecksum,
+  inspectSavePayload,
 } from "../lib/saveManager";
 import type { PlayerStats } from "../lib/gameStore";
 
@@ -328,6 +331,182 @@ describe("saveManager", () => {
       const b64 = encodeSaveToBase64(statsWithEmoji);
       const decoded = decodeSaveFromBase64(b64);
       expect(decoded?.rankTitle).toBe("Matrix 🚀 Dev 💻");
+    });
+  });
+
+  describe("computeSaveChecksum & verifySaveChecksum", () => {
+    it("computes a deterministic 8-char hex string for stats object", () => {
+      const hash1 = computeSaveChecksum(mockStats);
+      const hash2 = computeSaveChecksum(mockStats);
+      expect(typeof hash1).toBe("string");
+      expect(hash1).toHaveLength(8);
+      expect(/^[0-9a-f]{8}$/.test(hash1)).toBe(true);
+      expect(hash1).toBe(hash2);
+    });
+
+    it("ensures key-order invariance across root and nested objects", () => {
+      const obj1 = {
+        xp: 1500,
+        level: 5,
+        stars: { css_1: 2, html_1: 3 },
+      };
+      const obj2 = {
+        stars: { html_1: 3, css_1: 2 },
+        level: 5,
+        xp: 1500,
+      };
+
+      const hash1 = computeSaveChecksum(obj1);
+      const hash2 = computeSaveChecksum(obj2);
+      expect(hash1).toBe(hash2);
+      expect(hash1).not.toBe("00000000");
+    });
+
+    it("returns '00000000' on nullish or unserializable input", () => {
+      expect(computeSaveChecksum(null)).toBe("00000000");
+      expect(computeSaveChecksum(undefined)).toBe("00000000");
+      expect(computeSaveChecksum(() => {})).toBe("00000000");
+      expect(computeSaveChecksum(Symbol("test"))).toBe("00000000");
+      expect(computeSaveChecksum(BigInt(42))).toBe("00000000");
+
+      const circular: Record<string, unknown> = { a: 1 };
+      circular.self = circular;
+      expect(computeSaveChecksum(circular)).toBe("00000000");
+    });
+
+    it("detects tampering when any property is changed", () => {
+      const originalChecksum = computeSaveChecksum(mockStats);
+      const tamperedStats = { ...mockStats, xp: 1501 };
+      const tamperedChecksum = computeSaveChecksum(tamperedStats);
+
+      expect(tamperedChecksum).not.toBe(originalChecksum);
+      expect(verifySaveChecksum(tamperedStats, originalChecksum)).toBe(false);
+      expect(verifySaveChecksum(mockStats, originalChecksum)).toBe(true);
+    });
+
+    it("verifies normalized hex checksums safely with case and prefix tolerance", () => {
+      const checksum = computeSaveChecksum(mockStats);
+      expect(verifySaveChecksum(mockStats, checksum)).toBe(true);
+      expect(verifySaveChecksum(mockStats, checksum.toUpperCase())).toBe(true);
+      expect(verifySaveChecksum(mockStats, `0x${checksum}`)).toBe(true);
+      expect(verifySaveChecksum(mockStats, `  0x${checksum.toUpperCase()}  `)).toBe(true);
+
+      // Rejections
+      expect(verifySaveChecksum(mockStats, "invalid_hex")).toBe(false);
+      expect(verifySaveChecksum(mockStats, checksum.slice(0, 7))).toBe(false);
+      expect(verifySaveChecksum(mockStats, "")).toBe(false);
+      expect(verifySaveChecksum(mockStats, null as unknown as string)).toBe(false);
+      expect(verifySaveChecksum(mockStats, undefined as unknown as string)).toBe(false);
+    });
+  });
+
+  describe("inspectSavePayload", () => {
+    it("inspects a valid wrapped save payload correctly", () => {
+      const json = serializeSaveData(mockStats);
+      const result = inspectSavePayload(json);
+
+      expect(result.valid).toBe(true);
+      expect(result.version).toBe(1);
+      expect(result.level).toBe(5);
+      expect(result.xp).toBe(1500);
+      expect(result.error).toBeUndefined();
+    });
+
+    it("inspects a valid legacy flat save payload correctly", () => {
+      const json = JSON.stringify(mockStats);
+      const result = inspectSavePayload(json);
+
+      expect(result.valid).toBe(true);
+      expect(result.version).toBeNull();
+      expect(result.level).toBe(5);
+      expect(result.xp).toBe(1500);
+      expect(result.error).toBeUndefined();
+    });
+
+    it("inspects base64 encoded save strings", () => {
+      const b64 = encodeSaveToBase64(mockStats);
+      const result = inspectSavePayload(b64);
+
+      expect(result.valid).toBe(true);
+      expect(result.version).toBe(1);
+      expect(result.level).toBe(5);
+      expect(result.xp).toBe(1500);
+      expect(result.error).toBeUndefined();
+    });
+
+    it("handles empty object payload with null stats and valid status", () => {
+      const result = inspectSavePayload("{}");
+      expect(result.valid).toBe(true);
+      expect(result.version).toBeNull();
+      expect(result.level).toBeNull();
+      expect(result.xp).toBeNull();
+      expect(result.error).toBeUndefined();
+    });
+
+    it("reports diagnostic details on malformed JSON", () => {
+      const result = inspectSavePayload("{ invalid: json ");
+      expect(result.valid).toBe(false);
+      expect(result.version).toBeNull();
+      expect(result.level).toBeNull();
+      expect(result.xp).toBeNull();
+      expect(result.error).toContain("Malformed JSON");
+    });
+
+    it("reports diagnostic details when root payload is not an object", () => {
+      expect(inspectSavePayload("").valid).toBe(false);
+      expect(inspectSavePayload("   ").valid).toBe(false);
+      expect(inspectSavePayload("12345").valid).toBe(false);
+      expect(inspectSavePayload('"hello"').valid).toBe(false);
+      expect(inspectSavePayload("true").valid).toBe(false);
+      expect(inspectSavePayload("[]").valid).toBe(false);
+      expect(inspectSavePayload("[1, 2, 3]").error).toContain("object");
+    });
+
+    it("reports diagnostic details on wrapped save schema failures", () => {
+      const badWrapperData = JSON.stringify({
+        version: "1.0.0",
+        timestamp: Date.now(),
+        data: "not an object",
+      });
+      const resData = inspectSavePayload(badWrapperData);
+      expect(resData.valid).toBe(false);
+      expect(resData.version).toBe(1);
+      expect(resData.error).toContain("data");
+
+      const badTimestamp = JSON.stringify({
+        version: "1.0.0",
+        timestamp: "invalid-time",
+        data: { xp: 100 },
+      });
+      const resTime = inspectSavePayload(badTimestamp);
+      expect(resTime.valid).toBe(false);
+      expect(resTime.error).toContain("timestamp");
+    });
+
+    it("reports diagnostic details when player stats are invalid", () => {
+      const negativeXp = JSON.stringify({ xp: -10, level: 5 });
+      const resXp = inspectSavePayload(negativeXp);
+      expect(resXp.valid).toBe(false);
+      expect(resXp.level).toBe(5);
+      expect(resXp.xp).toBe(-10);
+      expect(resXp.error).toContain("xp");
+
+      const invalidLevel = JSON.stringify({ xp: 200, level: 0 });
+      const resLevel = inspectSavePayload(invalidLevel);
+      expect(resLevel.valid).toBe(false);
+      expect(resLevel.level).toBe(0);
+      expect(resLevel.xp).toBe(200);
+      expect(resLevel.error).toContain("level");
+
+      const badArrayField = JSON.stringify({ completedQuests: [123] });
+      const resArr = inspectSavePayload(badArrayField);
+      expect(resArr.valid).toBe(false);
+      expect(resArr.error).toContain("completedQuests");
+
+      const badStars = JSON.stringify({ stars: { html_1: NaN } });
+      const resStars = inspectSavePayload(badStars);
+      expect(resStars.valid).toBe(false);
+      expect(resStars.error).toContain("stars");
     });
   });
 });
