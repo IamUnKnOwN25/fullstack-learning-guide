@@ -12,6 +12,81 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-11-11 16:47] Cycle 261: Cyber Companion Byte Escape Drawer Dismissal & Tab-to-Tabpanel Linkage (Tests: PASS)**
+  - Enhanced `src/components/CyberCompanionByte.tsx` adding an `Escape` keydown listener with clean unmount cleanup while the companion drawer is open, deterministic tab IDs (`byte-tab-tips`, `byte-tab-lore`, `byte-tab-shortcuts`) with `aria-controls="byte-tabpanel"`, and a dynamic `role="tabpanel"` wrapper with `aria-labelledby` matching the active tab.
+  - Expanded unit test suite in `src/__tests__/cyberCompanionByte.test.tsx` verifying Escape key dismissal, listener cleanup, and tab-to-tabpanel ARIA linkage.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:47] Cycle 260: Skill Tree Modal Tab-to-Tabpanel Linkage, Skill Card List Semantics & Escape Dismissal (Tests: PASS)**
+  - Enhanced `src/components/SkillTreeModal.tsx` adding `Escape` key dismissal with unmount cleanup, deterministic tab IDs (`skill-tab-all`, `skill-tab-tier-1..3`) with `aria-controls="skill-tree-tabpanel"`, `role="tabpanel"` with dynamic `aria-labelledby`, and `role="list"` / `role="listitem"` semantics on the skill cards grid.
+  - Expanded unit test suite in `src/__tests__/skillTreeModal.test.tsx` covering Escape dismissal, tabpanel linkage, and list semantics.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:41] Cycle 259: Achievements Modal Tab-to-Tabpanel Linkage, List Semantics & Escape Dismissal (Tests: PASS)**
+  - Enhanced `src/components/AchievementsModal.tsx` linking category filter tabs (`achievement-tab-<category>`) via `aria-controls="achievements-tabpanel"` to a `role="tabpanel"` container with dynamic `aria-labelledby`, and adding `role="list"` / `role="listitem"` semantics on achievement cards alongside Escape key dismissal.
+  - Expanded unit test suite in `src/__tests__/achievementsModal.test.tsx` verifying tab-to-tabpanel linkage, list semantics, and Escape listener cleanup.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:41] Cycle 258: Profile Modal Dialog ARIA Semantics, Form Control Labels & Escape Dismissal (Tests: PASS)**
+  - Enhanced `src/components/ProfileModal.tsx` adding `aria-labelledby="profile-modal-title"` linked to the modal heading ID, explicit `htmlFor` / `aria-label` associations on operative bio and save-data import controls, and Escape key dismissal lifecycle management.
+  - Expanded unit test suite in `src/__tests__/profileModal.test.tsx` covering dialog labelling, form control accessibility, and Escape key handling.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:41] Cycle 257: Matrix Error Boundary ARIA Alert Semantics, Action Labels & Escape Recovery (Tests: PASS)**
+  - Enhanced `src/components/MatrixErrorBoundary.tsx` linking `aria-labelledby="matrix-error-title"` and `aria-describedby="matrix-error-desc"` on the fallback alert region, adding explicit `aria-label` attributes to reboot/return controls, and registering an `Escape` key handler in error state to trigger `handleReset` with unmount cleanup.
+  - Expanded unit test suite in `src/__tests__/matrixErrorBoundary.test.ts` verifying ARIA alert associations, action button labels, and Escape key recovery.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:41] Cycle 256: Legacy Barrel Shim `@deprecated` JSDoc Migration Annotations & Strict Identity Tests (Tests: PASS)**
+  - Added `@deprecated` JSDoc migration comments pointing to canonical modules across `src/lib/audio.ts`, `src/lib/store.ts`, `src/components/DualPaneWorkspace.tsx`, `src/components/HUD.tsx`, `src/components/InventoryModal.tsx`, and `src/components/QuestMap.tsx`.
+  - Expanded `src/__tests__/aliasedExports.test.ts` to assert strict reference identity (`===`) across all re-exported symbols and `isValidSfxType`.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:41] Cycle 255: Root Layout WCAG 2.4.1 Skip-to-Content Link & Focusable Main Landmark (Tests: PASS)**
+  - Enhanced `src/app/layout.tsx` adding a keyboard-focusable `<a href="#main-content" className="sr-only focus:not-sr-only ...">Skip to main content</a>` bypass link and `tabIndex={-1}` / `aria-label="Main Application Workspace"` on `<main id="main-content">`.
+  - Expanded `src/__tests__/uiLayoutGuard.test.ts` with regression assertions for the WCAG 2.4.1 skip-link and focusable main landmark.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:31] Cycle 254: Game Store Mana Spend/Restore & Streak Increment/Reset Actions (Tests: PASS)**
+  - Enhanced `src/lib/gameStore.ts` adding `spendMana(amount): boolean` (atomic affordability check with non-finite/negative guards), `restoreMana(amount)` (clamped to `maxMana`), `incrementStreak()`, and `resetStreak()` actions.
+  - Expanded `src/__tests__/gameStore.test.ts` verifying mana spending/restoration bounds and streak lifecycle management.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:31] Cycle 253: Cyber Companion Low-Health Warnings, Boss Intro Dialogue & Category Tips (Tests: PASS)**
+  - Enhanced `src/lib/companionDialogue.ts` adding `getLowHealthWarning(hp, maxHp)` (`<= 30%` critical warning vs `null`), `getBossIntroDialogue(realmId)` with realm normalization, and deterministic `getCompanionTipByCategory(category, index)`.
+  - Expanded `src/__tests__/companionDialogue.test.ts` covering HP threshold boundaries, realm boss intros, and category tip indexing.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:31] Cycle 252: Save Manager FNV-1a Canonical Checksum Verification & Payload Inspector (Tests: PASS)**
+  - Enhanced `src/lib/saveManager.ts` adding deterministic 32-bit FNV-1a `computeSaveChecksum`, `verifySaveChecksum`, and non-mutating `inspectSavePayload` returning `{ valid, version, playerName, level, questCount, reason? }`.
+  - Expanded `src/__tests__/saveManager.test.ts` verifying key-order-independent checksums, tamper detection, and payload inspection.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:28] Cycle 251: Virtual IDE Bundler Workspace Metrics & Broken Asset Reference Diagnostics (Tests: PASS)**
+  - Enhanced `src/lib/ideBundler.ts` adding `computeWorkspaceSummary(files)` (file count, total bytes/lines, extension breakdown, largest file) and `findBrokenAssetReferences(files, entryHtmlPath)` detecting missing local `<script src>` and `<link href>` targets while ignoring external/data/hash URLs.
+  - Expanded `src/__tests__/ideBundler.test.ts` verifying workspace metrics and broken local asset diagnostics.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:28] Cycle 250: Virtual IDE Terminal `grep`, `head` & `tail` Commands with Flag Support (Tests: PASS)**
+  - Enhanced `src/lib/ideTerminalCommands.ts` adding virtual filesystem `grep` (`-i` case-insensitive, `-v` invert match, multi-file prefixes), `head` (`-n <count>`), and `tail` (`-n <count>`) commands with `man` documentation and help listing updates.
+  - Expanded `src/__tests__/ideTerminalCommands.test.ts` covering pattern matching, line slicing flags, and missing-file error diagnostics.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:28] Cycle 249: Curriculum Search Duplicate Guard Cleanup, Match Highlighter & Chapter Summary (Tests: PASS)**
+  - Cleaned up redundant `if (!heading)` guard in `slugifyHeading` in `src/lib/curriculumSearch.ts` and added `highlightMatchedText(text, query)` (tokenized segments with regex-escaped matching) and `getChapterSummary(chapterId)`.
+  - Expanded `src/__tests__/curriculumSearch.test.ts` covering regex special-character highlighting, case-insensitive splits, and chapter metadata lookup.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:28] Cycle 248: Core Utility Formatters, Numeric Clamp, Text Truncation & URL Slugifier (Tests: PASS)**
+  - Enhanced `src/lib/utils.ts` adding pure, NaN/nullish-safe helpers `formatNumber`, `formatDurationSeconds`, `clampNumber`, `truncateText`, and `slugifyText`.
+  - Expanded `src/__tests__/utils.test.ts` with comprehensive boundary and non-finite input tests.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-11 16:28] Cycle 247: Leaderboard Ranking, Filtering, Lookup & Aggregate Statistics Helpers (Tests: PASS)**
+  - Enhanced `src/data/leaderboard.ts` adding `LeaderboardMetric`, immutable `buildRankedLeaderboard` with deterministic tie-breakers, `filterLeaderboardEntries`, `getOperativeById`, and `getLeaderboardStats`.
+  - Expanded `src/__tests__/authLeaderboardSkills.test.ts` covering metric sorting, filtering, operative lookup, and empty-array statistics safety.
+  - Verified with `npm run validate` (57 test files, 1212 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-11-06 16:54] Cycle 246: Next.js App Router Case/Alias Route Normalization & Query Fallbacks (Tests: PASS)**
   - Enhanced `src/app/boss/[realmId]/page.tsx`, `src/app/quest/[realmId]/[questId]/page.tsx`, `src/app/ide/page.tsx`, and `src/app/curriculum/page.tsx` resolving uppercase/shorthand realm aliases (`js`, `ts`, `db`), decoding/trimming `questId`, safely unwrapping `string[]` query parameters, and falling back to default curriculum chapters on unrecognized `?file=` values while satisfying Next.js 15 `PageProps` route typegen.
   - Expanded unit test suite in `src/__tests__/appPages.test.tsx` with 10 new route resilience tests.
