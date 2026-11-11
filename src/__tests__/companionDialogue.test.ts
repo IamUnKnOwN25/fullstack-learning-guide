@@ -3,8 +3,14 @@ import {
   getCompanionDialogue,
   getDialogueForContext,
   sanitizeDialogueStats,
+  getLowHealthWarning,
+  getBossIntroDialogue,
+  getCompanionTipByCategory,
   DEFAULT_COMPANION_DIALOGUE,
+  DEFAULT_BOSS_INTRO_DIALOGUE,
   COMPANION_QUEST_DIALOGUES,
+  BOSS_INTRO_DIALOGUES,
+  COMPANION_CATEGORY_TIPS,
 } from '../lib/companionDialogue';
 import { REALMS } from '../data/realms';
 import { QUESTS } from '../data/quests';
@@ -213,5 +219,208 @@ describe('getDialogueForContext & sanitizeDialogueStats', () => {
         }
       }
     });
+  });
+});
+
+describe('getLowHealthWarning', () => {
+  it('returns null when health ratio is greater than 25%', () => {
+    expect(getLowHealthWarning(26, 100)).toBeNull();
+    expect(getLowHealthWarning(50, 100)).toBeNull();
+    expect(getLowHealthWarning(100, 100)).toBeNull();
+    expect(getLowHealthWarning(25.01, 100)).toBeNull();
+  });
+
+  it('returns low-health tactical warning when health is at or below 25% but above 10%', () => {
+    const warning25 = getLowHealthWarning(25, 100);
+    expect(warning25).not.toBeNull();
+    expect(typeof warning25).toBe('string');
+    expect(warning25).toContain('25%');
+
+    const warning20 = getLowHealthWarning(20, 100);
+    expect(warning20).not.toBeNull();
+    expect(warning20).toContain('25%');
+
+    const warning11 = getLowHealthWarning(11, 100);
+    expect(warning11).not.toBeNull();
+    expect(warning11).toContain('Tactical Warning');
+  });
+
+  it('returns critical warning when health is at or below 10%', () => {
+    const critical10 = getLowHealthWarning(10, 100);
+    expect(critical10).not.toBeNull();
+    expect(critical10).toContain('CRITICAL WARNING');
+
+    const critical5 = getLowHealthWarning(5, 100);
+    expect(critical5).not.toBeNull();
+    expect(critical5).toContain('CRITICAL WARNING');
+
+    const critical0 = getLowHealthWarning(0, 100);
+    expect(critical0).not.toBeNull();
+    expect(critical0).toContain('CRITICAL WARNING');
+
+    const negativeHp = getLowHealthWarning(-15, 100);
+    expect(negativeHp).not.toBeNull();
+    expect(negativeHp).toContain('CRITICAL WARNING');
+  });
+
+  it('returns null when maxHp is zero or negative', () => {
+    expect(getLowHealthWarning(10, 0)).toBeNull();
+    expect(getLowHealthWarning(10, -50)).toBeNull();
+    expect(getLowHealthWarning(0, 0)).toBeNull();
+    expect(getLowHealthWarning(-5, -10)).toBeNull();
+  });
+
+  it('returns null for non-finite hp or maxHp inputs', () => {
+    expect(getLowHealthWarning(NaN, 100)).toBeNull();
+    expect(getLowHealthWarning(10, NaN)).toBeNull();
+    expect(getLowHealthWarning(Infinity, 100)).toBeNull();
+    expect(getLowHealthWarning(10, Infinity)).toBeNull();
+    expect(getLowHealthWarning(-Infinity, 100)).toBeNull();
+    expect(getLowHealthWarning(10, -Infinity)).toBeNull();
+    expect(getLowHealthWarning(undefined as any, 100)).toBeNull();
+    expect(getLowHealthWarning(10, null as any)).toBeNull();
+    expect(getLowHealthWarning('20' as any, 100)).toBeNull();
+    expect(getLowHealthWarning(20, '100' as any)).toBeNull();
+  });
+});
+
+describe('getBossIntroDialogue', () => {
+  it('returns dedicated boss battle advice for all 12 campaign realms', () => {
+    const realms = [
+      'html',
+      'css',
+      'javascript',
+      'typescript',
+      'react',
+      'backend',
+      'databases',
+      'devops',
+      'testing',
+      'cs',
+      'security',
+      'capstone',
+    ];
+
+    const seenDialogues = new Set<string>();
+
+    for (const realmId of realms) {
+      const dialogue = getBossIntroDialogue(realmId);
+      expect(dialogue).not.toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+      expect(dialogue.length).toBeGreaterThan(20);
+      expect(dialogue).toContain('Boss Alert');
+      expect(seenDialogues.has(dialogue)).toBe(false);
+      seenDialogues.add(dialogue);
+    }
+  });
+
+  it('normalizes case and surrounding whitespace in realmId', () => {
+    expect(getBossIntroDialogue('  HTML  ')).toBe(BOSS_INTRO_DIALOGUES.html);
+    expect(getBossIntroDialogue('REACT')).toBe(BOSS_INTRO_DIALOGUES.react);
+    expect(getBossIntroDialogue('  TypeScript  ')).toBe(BOSS_INTRO_DIALOGUES.typescript);
+    expect(getBossIntroDialogue('devops')).toBe(BOSS_INTRO_DIALOGUES.devops);
+  });
+
+  it('resolves shorthand aliases js, ts, and db correctly', () => {
+    expect(getBossIntroDialogue('js')).toBe(BOSS_INTRO_DIALOGUES.javascript);
+    expect(getBossIntroDialogue('JS')).toBe(BOSS_INTRO_DIALOGUES.javascript);
+    expect(getBossIntroDialogue('  js  ')).toBe(BOSS_INTRO_DIALOGUES.javascript);
+
+    expect(getBossIntroDialogue('ts')).toBe(BOSS_INTRO_DIALOGUES.typescript);
+    expect(getBossIntroDialogue('TS')).toBe(BOSS_INTRO_DIALOGUES.typescript);
+
+    expect(getBossIntroDialogue('db')).toBe(BOSS_INTRO_DIALOGUES.databases);
+    expect(getBossIntroDialogue('DB')).toBe(BOSS_INTRO_DIALOGUES.databases);
+    expect(getBossIntroDialogue('database')).toBe(BOSS_INTRO_DIALOGUES.databases);
+  });
+
+  it('falls back safely to default dialogue for unmapped or invalid realms', () => {
+    expect(getBossIntroDialogue('unknown-realm')).toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+    expect(getBossIntroDialogue('')).toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+    expect(getBossIntroDialogue('   ')).toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+    expect(getBossIntroDialogue(null as any)).toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+    expect(getBossIntroDialogue(undefined as any)).toBe(DEFAULT_BOSS_INTRO_DIALOGUE);
+  });
+});
+
+describe('getCompanionTipByCategory', () => {
+  it('returns deterministic category tips with default seedIndex', () => {
+    const frontendTip = getCompanionTipByCategory('frontend');
+    expect(frontendTip).toBe(COMPANION_CATEGORY_TIPS.frontend[0]);
+    expect(frontendTip).toContain('Frontend Tip');
+
+    const backendTip = getCompanionTipByCategory('backend');
+    expect(backendTip).toBe(COMPANION_CATEGORY_TIPS.backend[0]);
+    expect(backendTip).toContain('Backend Tip');
+
+    const devopsTip = getCompanionTipByCategory('devops');
+    expect(devopsTip).toBe(COMPANION_CATEGORY_TIPS.devops[0]);
+    expect(devopsTip).toContain('DevOps Tip');
+  });
+
+  it('cycles through tips deterministically based on seedIndex modulo', () => {
+    const tip0 = getCompanionTipByCategory('databases', 0);
+    const tip1 = getCompanionTipByCategory('databases', 1);
+    const tip2 = getCompanionTipByCategory('databases', 2);
+    const tip3 = getCompanionTipByCategory('databases', 3);
+
+    expect(tip0).toBe(COMPANION_CATEGORY_TIPS.databases[0]);
+    expect(tip1).toBe(COMPANION_CATEGORY_TIPS.databases[1]);
+    expect(tip0).not.toBe(tip1);
+    expect(tip3).toBe(COMPANION_CATEGORY_TIPS.databases[3 % COMPANION_CATEGORY_TIPS.databases.length]);
+  });
+
+  it('handles float seedIndex by flooring to nearest integer', () => {
+    expect(getCompanionTipByCategory('testing', 1.9)).toBe(COMPANION_CATEGORY_TIPS.testing[1]);
+  });
+
+  it('resolves category aliases and normalizes whitespace and casing', () => {
+    expect(getCompanionTipByCategory('  FRONTEND  ')).toBe(COMPANION_CATEGORY_TIPS.frontend[0]);
+    expect(getCompanionTipByCategory('front-end')).toBe(COMPANION_CATEGORY_TIPS.frontend[0]);
+    expect(getCompanionTipByCategory('back-end')).toBe(COMPANION_CATEGORY_TIPS.backend[0]);
+    expect(getCompanionTipByCategory('db')).toBe(COMPANION_CATEGORY_TIPS.databases[0]);
+    expect(getCompanionTipByCategory('database')).toBe(COMPANION_CATEGORY_TIPS.databases[0]);
+    expect(getCompanionTipByCategory('cs')).toBe(COMPANION_CATEGORY_TIPS.theory[0]);
+    expect(getCompanionTipByCategory('algorithms')).toBe(COMPANION_CATEGORY_TIPS.theory[0]);
+    expect(getCompanionTipByCategory('boss')).toBe(COMPANION_CATEGORY_TIPS.bosses[0]);
+    expect(getCompanionTipByCategory('quest')).toBe(COMPANION_CATEGORY_TIPS.quests[0]);
+  });
+
+  it('falls back safely to DEFAULT_COMPANION_DIALOGUE for unknown categories', () => {
+    expect(getCompanionTipByCategory('unknown-category')).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('')).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('   ')).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory(null as any)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory(undefined as any)).toBe(DEFAULT_COMPANION_DIALOGUE);
+  });
+
+  it('falls back safely to DEFAULT_COMPANION_DIALOGUE on negative or NaN seedIndex', () => {
+    expect(getCompanionTipByCategory('frontend', -1)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('frontend', -999)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('frontend', NaN)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('frontend', Infinity)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('frontend', -Infinity)).toBe(DEFAULT_COMPANION_DIALOGUE);
+    expect(getCompanionTipByCategory('frontend', '0' as any)).toBe(DEFAULT_COMPANION_DIALOGUE);
+  });
+
+  it('provides dedicated tips across all key skill and campaign categories', () => {
+    const categories = [
+      'foundations',
+      'frontend',
+      'backend',
+      'databases',
+      'devops',
+      'testing',
+      'theory',
+      'security',
+      'mastery',
+      'bosses',
+      'quests',
+    ];
+
+    for (const cat of categories) {
+      const tip = getCompanionTipByCategory(cat, 0);
+      expect(tip).not.toBe(DEFAULT_COMPANION_DIALOGUE);
+      expect(tip.length).toBeGreaterThan(15);
+    }
   });
 });

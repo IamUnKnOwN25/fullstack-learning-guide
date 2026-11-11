@@ -185,3 +185,169 @@ export function getDialogueForContext(
 
   return dialogue;
 }
+
+/**
+ * Evaluates player HP and returns a tactical warning message if health drops below 25%.
+ * Sanitizes non-finite inputs and returns null when maxHp <= 0 or when hp / maxHp > 0.25.
+ */
+export function getLowHealthWarning(hp: number, maxHp: number): string | null {
+  if (
+    typeof hp !== "number" ||
+    typeof maxHp !== "number" ||
+    !Number.isFinite(hp) ||
+    !Number.isFinite(maxHp) ||
+    maxHp <= 0
+  ) {
+    return null;
+  }
+
+  const ratio = hp / maxHp;
+  if (ratio > 0.25) {
+    return null;
+  }
+
+  if (ratio <= 0.1) {
+    return "CRITICAL WARNING: Matrix integrity critically compromised (<10%)! Evade incoming attacks and execute recovery protocols immediately!";
+  }
+
+  return "Tactical Warning: Health dropped below 25%! Check your code syntax and defenses before your runtime crashes!";
+}
+
+export const DEFAULT_BOSS_INTRO_DIALOGUE =
+  "Boss encounter initiated! Analyze attack patterns, write clean code, and exploit weakness vectors to prevail.";
+
+export const BOSS_REALM_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  db: "databases",
+  database: "databases",
+};
+
+export const BOSS_INTRO_DIALOGUES: Record<string, string> = {
+  html: "Boss Alert: The Malformed Tag Abomination corrupts structure! Use semantic HTML elements like <nav>, <header>, and <main> to break its shield.",
+  css: "Boss Alert: The Overflow Hydra is breaking layout boundaries! Deploy flex-wrap, justify-content, and grid templates to contain it.",
+  javascript: "Boss Alert: The Event Loop Leviathan floods the macrotask queue! Chain Promises properly and utilize async/await to outpace it.",
+  typescript: "Boss Alert: The Any-Demon corrupts compile-time safety! Wield Discriminated Unions and strict type guards to banish loose any types.",
+  react: "Boss Alert: The Infinite Re-render Fiend threatens UI stability! Stabilize useEffect dependency arrays and memoize expensive state calculations.",
+  backend: "Boss Alert: The Rogue Gateway returns unhandled 500s! Enforce strict REST status codes and wrap async operations in resilient try-catch blocks.",
+  databases: "Boss Alert: The SQL Injection Golem breaches data stores! Parameterize all database queries and index foreign keys to withstand the onslaught.",
+  devops: "Boss Alert: The Monolithic Container Colossus overwhelms system resources! Leverage multi-stage Docker builds and automated CI pipelines to slice it down.",
+  testing: "Boss Alert: The Flaky Spectre evades test coverage! Eliminate async race conditions and isolate component tests with deterministic stubs.",
+  cs: "Boss Alert: The Quadratic Complexity Behemoth chokes CPU execution! Refactor brute-force loops into O(1) hash maps and O(log N) binary searches.",
+  security: "Boss Alert: The Zero-Day Phantom exploits untrusted inputs! Sanitize DOM bindings to neutralize XSS and cryptographically verify all auth tokens.",
+  capstone: "Boss Alert: The Web Matrix Core demands complete fullstack mastery! Integrate frontend, backend, database, and devops layers into an unbreakable architecture.",
+};
+
+/**
+ * Returns realm-specific boss battle advice, normalizing case, whitespace,
+ * and shorthand aliases ('js', 'ts', 'db'). Falls back to a safe default for unknown realms.
+ */
+export function getBossIntroDialogue(realmId: string): string {
+  if (!realmId || typeof realmId !== "string") {
+    return DEFAULT_BOSS_INTRO_DIALOGUE;
+  }
+
+  const normalized = realmId.trim().toLowerCase();
+  const resolvedRealm = BOSS_REALM_ALIASES[normalized] || normalized;
+
+  return BOSS_INTRO_DIALOGUES[resolvedRealm] || DEFAULT_BOSS_INTRO_DIALOGUE;
+}
+
+export const CATEGORY_ALIASES: Record<string, string> = {
+  js: "javascript",
+  ts: "typescript",
+  db: "databases",
+  database: "databases",
+  cs: "theory",
+  algorithms: "theory",
+  boss: "bosses",
+  quest: "quests",
+  "front-end": "frontend",
+  "back-end": "backend",
+};
+
+export const COMPANION_CATEGORY_TIPS: Record<string, string[]> = {
+  foundations: [
+    "Foundations Tip: Use semantic HTML landmarks (<main>, <nav>, <header>) so screen readers can navigate structure effortlessly.",
+    "Foundations Tip: Provide explicit form labels and aria attributes for accessible, robust user interactions.",
+    "Foundations Tip: Keep HTML document structure valid with proper <!DOCTYPE html> and viewport meta tags.",
+  ],
+  frontend: [
+    "Frontend Tip: Master Flexbox and CSS Grid to build responsive, accessible layouts without brittle media query hacks.",
+    "Frontend Tip: Keep React component renders pure and maintain complete dependency arrays in useEffect.",
+    "Frontend Tip: Manipulate DOM state cleanly and debounce user inputs on high-frequency search fields.",
+  ],
+  backend: [
+    "Backend Tip: Structure endpoints with RESTful semantics and always handle rejected promises to prevent unhandled crashes.",
+    "Backend Tip: Store cryptographic keys in environment variables and authenticate sensitive routes with signed tokens.",
+    "Backend Tip: Validate incoming request payloads strictly at the controller boundary before hitting services.",
+  ],
+  databases: [
+    "Database Tip: Always parameterize queries ($1, $2) to eliminate SQL injection vulnerabilities completely.",
+    "Database Tip: Place B-tree indexes on high-cardinality foreign keys and frequent filter columns.",
+    "Database Tip: Enforce relational referential integrity with foreign key constraints and atomic transactions.",
+  ],
+  devops: [
+    "DevOps Tip: Use multi-stage Docker builds to keep production containers lean and free of build-time dependencies.",
+    "DevOps Tip: Automate linting, typechecking, and test validation on every branch with CI workflows.",
+    "DevOps Tip: Configure healthcheck probes to verify database and external dependency readiness.",
+  ],
+  testing: [
+    "Testing Tip: Write focused unit tests that verify boundary conditions and edge cases with deterministic assertions.",
+    "Testing Tip: Use mocks and spies to isolate the unit under test from network and database dependencies.",
+    "Testing Tip: Eliminate shared global state and timing race conditions to keep test suites blazing fast and reliable.",
+  ],
+  theory: [
+    "Theory Tip: Use hash tables for O(1) average lookup and frequency counting in high-throughput loops.",
+    "Theory Tip: Binary search reduces search spaces in O(log N) time on sorted data sets.",
+    "Theory Tip: Analyze both time and space complexity before choosing an algorithmic data structure.",
+  ],
+  security: [
+    "Security Tip: Sanitize all untrusted user inputs before injecting them into the DOM to prevent XSS attacks.",
+    "Security Tip: Always verify JWT cryptographic signatures and token expiration before trusting claims.",
+    "Security Tip: Enforce strict Content Security Policy (CSP) headers and avoid storing secrets in client bundles.",
+  ],
+  mastery: [
+    "Mastery Tip: Strive for high cohesion and loose coupling across presentation, business logic, and data layers.",
+    "Mastery Tip: Measure performance bottlenecks with real profiling data before applying speculative optimizations.",
+    "Mastery Tip: Continuously validate your entire application stack with automated end-to-end and typecheck gates.",
+  ],
+  bosses: [
+    "Boss Combat Tip: Study the boss phase prompts closely to identify the exact keywords and patterns required.",
+    "Boss Combat Tip: Keep an eye on your HP bar and verify syntax before submitting code to avoid taking damage.",
+    "Boss Combat Tip: Exploit realm-specific weaknesses like Discriminated Unions and parameterized SQL queries.",
+  ],
+  quests: [
+    "Quest Tip: Read the quest objective and requirements carefully before writing your solution.",
+    "Quest Tip: Test your solution incrementally and use the in-browser IDE preview to verify rendering.",
+    "Quest Tip: Leveling up unlocks new realm regions and equips your cyber-avatar with advanced abilities.",
+  ],
+};
+
+/**
+ * Returns a deterministic tip for the given category and seedIndex.
+ * Safely falls back to DEFAULT_COMPANION_DIALOGUE for unknown categories,
+ * negative seedIndex, or non-finite/NaN seedIndex.
+ */
+export function getCompanionTipByCategory(category: string, seedIndex = 0): string {
+  if (
+    !category ||
+    typeof category !== "string" ||
+    typeof seedIndex !== "number" ||
+    !Number.isFinite(seedIndex) ||
+    seedIndex < 0
+  ) {
+    return DEFAULT_COMPANION_DIALOGUE;
+  }
+
+  const normalized = category.trim().toLowerCase();
+  const resolvedCategory = CATEGORY_ALIASES[normalized] || normalized;
+
+  const tips = COMPANION_CATEGORY_TIPS[resolvedCategory];
+  if (!tips || tips.length === 0) {
+    return DEFAULT_COMPANION_DIALOGUE;
+  }
+
+  const index = Math.floor(seedIndex) % tips.length;
+  return tips[index];
+}
