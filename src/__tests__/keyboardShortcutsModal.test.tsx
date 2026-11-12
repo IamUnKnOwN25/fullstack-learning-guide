@@ -1,7 +1,11 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
-import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
+import {
+  KeyboardShortcutsModal,
+  filterShortcutCatalog,
+  SHORTCUT_CATALOG,
+} from "../components/KeyboardShortcutsModal";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { soundEngine } from "../lib/soundEngine";
 
@@ -181,5 +185,129 @@ describe("KeyboardShortcutsModal", () => {
     expect(statusRegion.textContent).toBe("7 keyboard shortcuts available");
     expect(screen.getAllByRole("list")).toHaveLength(3);
     expect(screen.getAllByRole("listitem")).toHaveLength(7);
+  });
+
+  describe("filterShortcutCatalog", () => {
+    it("returns the complete catalog when query is empty or only whitespace", () => {
+      expect(filterShortcutCatalog("")).toEqual(SHORTCUT_CATALOG);
+      expect(filterShortcutCatalog("   ")).toEqual(SHORTCUT_CATALOG);
+    });
+
+    it("filters case-insensitively by shortcut label with whitespace tolerance", () => {
+      const results = filterShortcutCatalog("   command palette   ");
+      expect(results).toHaveLength(1);
+      expect(results[0].label).toBe("Command Palette");
+
+      const ideResults = filterShortcutCatalog("run & verify");
+      expect(ideResults).toHaveLength(1);
+      expect(ideResults[0].label).toBe("Run & Verify Code");
+    });
+
+    it("filters case-insensitively by shortcut key combination", () => {
+      const results = filterShortcutCatalog("ctrl+b");
+      expect(results).toHaveLength(1);
+      expect(results[0].label).toBe("Toggle Sidebar (IDE only)");
+
+      const shiftResults = filterShortcutCatalog("shift+enter");
+      expect(shiftResults).toHaveLength(1);
+      expect(shiftResults[0].label).toBe("Execute Spell Strike");
+    });
+
+    it("filters case-insensitively by shortcut category", () => {
+      const results = filterShortcutCatalog("combat");
+      expect(results).toHaveLength(2);
+      expect(results.every((r) => r.category === "Combat & Navigation")).toBe(true);
+    });
+
+    it("returns an empty array when query does not match any entry", () => {
+      expect(filterShortcutCatalog("unknown_unmatched_query_12345")).toEqual([]);
+    });
+
+    it("allows filtering a custom catalog array", () => {
+      const customCatalog = [
+        {
+          category: "Global Commands" as const,
+          label: "Custom Hotkey",
+          keys: "Alt+X",
+        },
+      ];
+      expect(filterShortcutCatalog("custom", customCatalog)).toHaveLength(1);
+      expect(filterShortcutCatalog("other", customCatalog)).toHaveLength(0);
+    });
+  });
+
+  describe("Escape key handling inside search input", () => {
+    it("clears non-empty search query, plays sound, stops propagation, and keeps modal open", () => {
+      const handleClose = vi.fn();
+      render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+      const searchInput = screen.getByPlaceholderText(/Search hotkeys/i) as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: "Indent" } });
+      expect(searchInput.value).toBe("Indent");
+
+      // Press Escape inside search input
+      fireEvent.keyDown(searchInput, { key: "Escape" });
+
+      expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+      expect(searchInput.value).toBe("");
+      expect(handleClose).not.toHaveBeenCalled();
+      expect(screen.getByRole("dialog")).toBeDefined();
+    });
+
+    it("closes the modal when Escape is pressed and search query is already empty", () => {
+      const handleClose = vi.fn();
+      render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+      const searchInput = screen.getByPlaceholderText(/Search hotkeys/i) as HTMLInputElement;
+      expect(searchInput.value).toBe("");
+
+      fireEvent.keyDown(searchInput, { key: "Escape" });
+
+      expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+      expect(handleClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears query on first Escape and closes modal on second Escape", () => {
+      const handleClose = vi.fn();
+      render(<KeyboardShortcutsModal isOpen={true} onClose={handleClose} />);
+
+      const searchInput = screen.getByPlaceholderText(/Search hotkeys/i) as HTMLInputElement;
+      fireEvent.change(searchInput, { target: { value: "Spell" } });
+
+      // First Escape: clears query, stays open
+      fireEvent.keyDown(searchInput, { key: "Escape" });
+      expect(searchInput.value).toBe("");
+      expect(handleClose).not.toHaveBeenCalled();
+
+      // Second Escape: closes modal
+      fireEvent.keyDown(searchInput, { key: "Escape" });
+      expect(handleClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Decorative icon accessibility", () => {
+    it("marks decorative Lucide icons with aria-hidden=true", () => {
+      render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+      const dialog = screen.getByRole("dialog");
+      const svgs = dialog.querySelectorAll("svg");
+      expect(svgs.length).toBeGreaterThanOrEqual(3);
+
+      svgs.forEach((svg) => {
+        expect(svg.getAttribute("aria-hidden")).toBe("true");
+      });
+    });
+
+    it("marks clear search button icon with aria-hidden=true when active", () => {
+      render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
+
+      const searchInput = screen.getByPlaceholderText(/Search hotkeys/i);
+      fireEvent.change(searchInput, { target: { value: "Run" } });
+
+      const clearBtn = screen.getByRole("button", { name: /clear shortcut search/i });
+      const clearIcon = clearBtn.querySelector("svg");
+      expect(clearIcon).not.toBeNull();
+      expect(clearIcon?.getAttribute("aria-hidden")).toBe("true");
+    });
   });
 });

@@ -25,6 +25,22 @@ export const SHORTCUT_CATALOG: ShortcutItem[] = [
   { category: "Combat & Navigation", label: "Advance Familiar Intel", keys: "Space" },
 ];
 
+export function filterShortcutCatalog(
+  query: string,
+  catalog: ShortcutItem[] = SHORTCUT_CATALOG
+): ShortcutItem[] {
+  const normalizedQuery = (query || "").trim().toLowerCase();
+  if (!normalizedQuery) {
+    return catalog;
+  }
+  return catalog.filter(
+    (item) =>
+      item.label.toLowerCase().includes(normalizedQuery) ||
+      item.keys.toLowerCase().includes(normalizedQuery) ||
+      item.category.toLowerCase().includes(normalizedQuery)
+  );
+}
+
 export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -42,20 +58,24 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
 
   if (!isOpen) return null;
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredShortcuts = SHORTCUT_CATALOG.filter(
-    (item) =>
-      !normalizedQuery ||
-      item.label.toLowerCase().includes(normalizedQuery) ||
-      item.keys.toLowerCase().includes(normalizedQuery) ||
-      item.category.toLowerCase().includes(normalizedQuery)
-  );
+  const filteredShortcuts = filterShortcutCatalog(searchQuery);
 
   const categories = Array.from(new Set(filteredShortcuts.map((item) => item.category)));
   const statusMessage =
     filteredShortcuts.length === 0
       ? `No keyboard shortcuts match "${searchQuery}"`
       : `${filteredShortcuts.length} keyboard shortcut${filteredShortcuts.length === 1 ? "" : "s"} available`;
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") {
+      if (searchQuery.length > 0) {
+        e.stopPropagation();
+        e.nativeEvent?.stopImmediatePropagation?.();
+        soundEngine.playSfx("click");
+        setSearchQuery("");
+      }
+    }
+  };
 
   return (
     <div
@@ -76,7 +96,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/80 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 flex items-center justify-center text-matrix-neonCyan shrink-0">
-              <Keyboard className="w-5 h-5" />
+              <Keyboard className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <h2 id="keyboard-shortcuts-title" className="text-lg font-bold text-white leading-none mb-1">
@@ -95,18 +115,19 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
             aria-label="Close keyboard shortcuts modal"
             className="p-2 rounded-xl bg-matrix-dark/50 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         {/* Search Input Bar */}
         <div className="px-4 py-2.5 sm:px-6 border-b border-matrix-border/60 bg-matrix-dark/50 relative z-10">
           <div className="relative flex items-center">
-            <Search className="w-4 h-4 text-matrix-neonCyan absolute left-3 pointer-events-none" />
+            <Search className="w-4 h-4 text-matrix-neonCyan absolute left-3 pointer-events-none" aria-hidden="true" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               placeholder="Search hotkeys (e.g. Ctrl, Run, Modal)..."
               aria-label="Search keyboard shortcuts"
               className="w-full bg-matrix-card/80 border border-matrix-border rounded-xl pl-9 pr-8 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-matrix-neonCyan"
@@ -121,7 +142,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: Props) {
                 aria-label="Clear shortcut search"
                 className="absolute right-2.5 p-1 text-gray-400 hover:text-white"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             )}
           </div>
