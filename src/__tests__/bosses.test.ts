@@ -1,5 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { BOSSES, BossPhase, getBossByRealmId, getBossById, getAllBosses, getTotalBossXp, validateBossPhaseAttempt } from "../data/bosses";
+import {
+  BOSSES,
+  BossPhase,
+  getBossByRealmId,
+  getBossById,
+  getAllBosses,
+  getTotalBossXp,
+  validateBossPhaseAttempt,
+  getBossTotalPhaseDamage,
+  calculateBossTotalDamageToPlayer,
+  getBossPhaseByNumber,
+  validateAllBossIntegrity,
+} from "../data/bosses";
 import { REALMS } from "../data/realms";
 
 describe("DevQuest Bosses Matrix", () => {
@@ -285,5 +297,158 @@ describe("validateBossPhaseAttempt diagnostics", () => {
     const failRes = validateBossPhaseAttempt(syntheticPhase as unknown as BossPhase, "only alpha");
     expect(failRes.passed).toBe(false);
     expect(failRes.keywordsMissing).toEqual(["beta"]);
+  });
+});
+
+describe("getBossTotalPhaseDamage", () => {
+  it("calculates total phase damage dealt to boss by bossId", () => {
+    expect(getBossTotalPhaseDamage("html_boss")).toBe(100);
+    expect(getBossTotalPhaseDamage("final_boss")).toBe(150);
+  });
+
+  it("calculates total phase damage by realmId case-insensitively with trimming", () => {
+    expect(getBossTotalPhaseDamage("html")).toBe(100);
+    expect(getBossTotalPhaseDamage("  HTML  ")).toBe(100);
+    expect(getBossTotalPhaseDamage("capstone")).toBe(150);
+    expect(getBossTotalPhaseDamage("  CAPSTONE  ")).toBe(150);
+  });
+
+  it("resolves realm aliases properly", () => {
+    expect(getBossTotalPhaseDamage("js")).toBe(100);
+    expect(getBossTotalPhaseDamage("ts")).toBe(100);
+    expect(getBossTotalPhaseDamage("db")).toBe(100);
+    expect(getBossTotalPhaseDamage("database")).toBe(100);
+  });
+
+  it("returns 0 for unknown bossId or invalid inputs", () => {
+    expect(getBossTotalPhaseDamage("unknown_boss")).toBe(0);
+    expect(getBossTotalPhaseDamage("")).toBe(0);
+    expect(getBossTotalPhaseDamage("   ")).toBe(0);
+    expect(getBossTotalPhaseDamage(null as unknown as string)).toBe(0);
+    expect(getBossTotalPhaseDamage(undefined as unknown as string)).toBe(0);
+  });
+
+  it("accounts for explicit damageDealt if defined on phases", () => {
+    const htmlBoss = BOSSES.html;
+    expect(htmlBoss).toBeDefined();
+    const origDealt = htmlBoss.phases[0].damageDealt;
+    try {
+      htmlBoss.phases[0].damageDealt = 90;
+      expect(getBossTotalPhaseDamage("html_boss")).toBe(140);
+    } finally {
+      htmlBoss.phases[0].damageDealt = origDealt;
+    }
+  });
+});
+
+describe("calculateBossTotalDamageToPlayer", () => {
+  it("calculates total player damage across phases by bossId", () => {
+    expect(calculateBossTotalDamageToPlayer("html_boss")).toBe(50);
+    expect(calculateBossTotalDamageToPlayer("final_boss")).toBe(75);
+  });
+
+  it("calculates total player damage by realmId case-insensitively with trimming", () => {
+    expect(calculateBossTotalDamageToPlayer("html")).toBe(50);
+    expect(calculateBossTotalDamageToPlayer("  CSS  ")).toBe(50);
+    expect(calculateBossTotalDamageToPlayer("capstone")).toBe(75);
+  });
+
+  it("resolves realm aliases for player damage", () => {
+    expect(calculateBossTotalDamageToPlayer("js")).toBe(50);
+    expect(calculateBossTotalDamageToPlayer("ts")).toBe(50);
+    expect(calculateBossTotalDamageToPlayer("db")).toBe(50);
+  });
+
+  it("returns 0 for invalid, empty, or unknown bossId", () => {
+    expect(calculateBossTotalDamageToPlayer("nonexistent")).toBe(0);
+    expect(calculateBossTotalDamageToPlayer("")).toBe(0);
+    expect(calculateBossTotalDamageToPlayer("   ")).toBe(0);
+    expect(calculateBossTotalDamageToPlayer(null as unknown as string)).toBe(0);
+    expect(calculateBossTotalDamageToPlayer(undefined as unknown as string)).toBe(0);
+  });
+});
+
+describe("getBossPhaseByNumber", () => {
+  it("retrieves 1-indexed boss phases correctly", () => {
+    const phase1 = getBossPhaseByNumber("html_boss", 1);
+    const phase2 = getBossPhaseByNumber("html_boss", 2);
+
+    expect(phase1).toBeDefined();
+    expect(phase1?.phaseNumber).toBe(1);
+    expect(phase1?.phaseTitle).toContain("Strike 1");
+
+    expect(phase2).toBeDefined();
+    expect(phase2?.phaseNumber).toBe(2);
+    expect(phase2?.phaseTitle).toContain("Strike 2");
+  });
+
+  it("retrieves phases by realmId and aliases case-insensitively", () => {
+    const jsPhase1 = getBossPhaseByNumber("js", 1);
+    expect(jsPhase1).toBeDefined();
+    expect(jsPhase1?.phaseNumber).toBe(1);
+
+    const capstonePhase2 = getBossPhaseByNumber("  CAPSTONE  ", 2);
+    expect(capstonePhase2).toBeDefined();
+    expect(capstonePhase2?.phaseNumber).toBe(2);
+  });
+
+  it("returns undefined for out-of-bounds phase numbers", () => {
+    expect(getBossPhaseByNumber("html_boss", 3)).toBeUndefined();
+    expect(getBossPhaseByNumber("html_boss", 99)).toBeUndefined();
+  });
+
+  it("returns undefined for invalid, non-positive, or non-integer phase numbers", () => {
+    expect(getBossPhaseByNumber("html_boss", 0)).toBeUndefined();
+    expect(getBossPhaseByNumber("html_boss", -1)).toBeUndefined();
+    expect(getBossPhaseByNumber("html_boss", 1.5)).toBeUndefined();
+    expect(getBossPhaseByNumber("html_boss", NaN)).toBeUndefined();
+    expect(getBossPhaseByNumber("html_boss", Infinity)).toBeUndefined();
+  });
+
+  it("returns undefined for unknown bossId or nullish inputs", () => {
+    expect(getBossPhaseByNumber("unknown_boss", 1)).toBeUndefined();
+    expect(getBossPhaseByNumber("", 1)).toBeUndefined();
+    expect(getBossPhaseByNumber(null as unknown as string, 1)).toBeUndefined();
+  });
+});
+
+describe("validateAllBossIntegrity", () => {
+  it("validates that all bosses in the real catalog pass integrity checks", () => {
+    const result = validateAllBossIntegrity();
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it("ensures every boss satisfies non-empty id, name, realmId, positive maxHp, and phases", () => {
+    for (const realmId in BOSSES) {
+      const boss = BOSSES[realmId];
+      expect(boss.id.trim().length).toBeGreaterThan(0);
+      expect(boss.name.trim().length).toBeGreaterThan(0);
+      expect(boss.realmId.trim().length).toBeGreaterThan(0);
+      expect(boss.maxHp).toBeGreaterThan(0);
+      expect(boss.phases.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("reports descriptive errors when boss entries violate integrity rules", () => {
+    const dummyBosses = {
+      bad1: { id: "", name: "", realmId: "", maxHp: -10, phases: [] },
+      bad2: null,
+    };
+    const errors: string[] = [];
+    for (const [key, b] of Object.entries(dummyBosses)) {
+      const boss = b as unknown as { id?: string; name?: string; realmId?: string; maxHp?: number; phases?: unknown[] };
+      const label = boss?.id || key;
+      if (!boss) {
+        errors.push(`Boss '${key}' is missing or invalid.`);
+        continue;
+      }
+      if (!boss.id?.trim()) errors.push(`Boss '${label}' has empty or invalid id.`);
+      if (!boss.name?.trim()) errors.push(`Boss '${label}' has empty or invalid name.`);
+      if (!boss.realmId?.trim()) errors.push(`Boss '${label}' has empty or invalid realmId.`);
+      if (!boss.maxHp || boss.maxHp <= 0) errors.push(`Boss '${label}' must have positive maxHp.`);
+      if (!boss.phases || boss.phases.length === 0) errors.push(`Boss '${label}' must have at least 1 phase.`);
+    }
+    expect(errors.length).toBeGreaterThanOrEqual(5);
   });
 });

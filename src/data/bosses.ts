@@ -10,6 +10,7 @@ export interface BossPhase {
   hint: string;
   damageToBoss: number;
   damageToPlayer: number;
+  damageDealt?: number;
 }
 
 export interface Boss {
@@ -841,5 +842,78 @@ export function validateBossPhaseAttempt(
     passed,
     keywordsFound,
     keywordsMissing,
+  };
+}
+
+function resolveBoss(bossOrRealmId?: string | null): Boss | undefined {
+  if (!bossOrRealmId || typeof bossOrRealmId !== "string") {
+    return undefined;
+  }
+  return getBossById(bossOrRealmId) || getBossByRealmId(bossOrRealmId);
+}
+
+export function getBossTotalPhaseDamage(bossId: string): number {
+  const boss = resolveBoss(bossId);
+  if (!boss || !Array.isArray(boss.phases)) {
+    return 0;
+  }
+  return boss.phases.reduce((sum, phase) => {
+    const dmg = phase?.damageDealt ?? phase?.damageToBoss ?? 0;
+    return sum + (typeof dmg === "number" && !isNaN(dmg) ? dmg : 0);
+  }, 0);
+}
+
+export function calculateBossTotalDamageToPlayer(bossId: string): number {
+  const boss = resolveBoss(bossId);
+  if (!boss || !Array.isArray(boss.phases)) {
+    return 0;
+  }
+  return boss.phases.reduce((sum, phase) => {
+    const dmg = phase?.damageToPlayer ?? 0;
+    return sum + (typeof dmg === "number" && !isNaN(dmg) ? dmg : 0);
+  }, 0);
+}
+
+export function getBossPhaseByNumber(bossId: string, phaseNumber: number): BossPhase | undefined {
+  if (typeof phaseNumber !== "number" || !Number.isInteger(phaseNumber) || phaseNumber <= 0) {
+    return undefined;
+  }
+  const boss = resolveBoss(bossId);
+  if (!boss || !Array.isArray(boss.phases) || phaseNumber > boss.phases.length) {
+    return undefined;
+  }
+  return boss.phases[phaseNumber - 1];
+}
+
+export function validateAllBossIntegrity(): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  const entries = Object.entries(BOSSES || {});
+
+  for (const [key, boss] of entries) {
+    const bossLabel = boss?.id || key;
+    if (!boss || typeof boss !== "object") {
+      errors.push(`Boss '${key}' is missing or invalid.`);
+      continue;
+    }
+    if (typeof boss.id !== "string" || boss.id.trim().length === 0) {
+      errors.push(`Boss '${bossLabel}' has empty or invalid id.`);
+    }
+    if (typeof boss.name !== "string" || boss.name.trim().length === 0) {
+      errors.push(`Boss '${bossLabel}' has empty or invalid name.`);
+    }
+    if (typeof boss.realmId !== "string" || boss.realmId.trim().length === 0) {
+      errors.push(`Boss '${bossLabel}' has empty or invalid realmId.`);
+    }
+    if (typeof boss.maxHp !== "number" || isNaN(boss.maxHp) || boss.maxHp <= 0) {
+      errors.push(`Boss '${bossLabel}' must have positive maxHp.`);
+    }
+    if (!Array.isArray(boss.phases) || boss.phases.length === 0) {
+      errors.push(`Boss '${bossLabel}' must have at least 1 phase.`);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
   };
 }
