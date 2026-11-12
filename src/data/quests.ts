@@ -3,6 +3,7 @@ export interface Quest {
   realmId: string;
   order: number;
   title: string;
+  description?: string;
   storyIntro: string;
   conceptSummary: string;
   starterCode: string;
@@ -12,6 +13,7 @@ export interface Quest {
   testRunner: (code: string) => { passed: boolean; message: string; output?: string };
   hints: string[];
   xpReward: number;
+  goldReward?: number;
 }
 
 export const QUESTS: Record<string, Quest[]> = {
@@ -1294,4 +1296,105 @@ export function getNextQuestId(realmId: string, currentQuestId: string): string 
  */
 export function getTotalAvailableXp(): number {
   return getAllQuests().reduce((sum, q) => sum + (q.xpReward || 0), 0);
+}
+
+
+/**
+ * Returns the previous quest ID in sequence.
+ * Returns the previous quest in the same realm ordered by `order`,
+ * or the last quest of the previous realm if currently at the first quest (index 0) of a realm,
+ * or null for the very first quest across all realms or unknown quest ID.
+ * Can be called with either `getPreviousQuestId(currentQuestId)` or `getPreviousQuestId(realmId, currentQuestId)`.
+ */
+export function getPreviousQuestId(currentQuestId: string): string | null;
+export function getPreviousQuestId(realmId: string, currentQuestId: string): string | null;
+export function getPreviousQuestId(arg1: string, arg2?: string): string | null {
+  if (!arg1 || typeof arg1 !== "string") {
+    return null;
+  }
+
+  let currentQuest: Quest | undefined;
+  if (arg2 !== undefined) {
+    if (!arg2 || typeof arg2 !== "string") {
+      return null;
+    }
+    currentQuest = getQuestById(arg1, arg2) || findQuestGlobal(arg2);
+  } else {
+    currentQuest = findQuestGlobal(arg1);
+  }
+
+  if (!currentQuest) {
+    return null;
+  }
+
+  const realmQuests = getQuestsForRealm(currentQuest.realmId);
+  const sortedQuests = [...realmQuests].sort((a, b) => a.order - b.order);
+  const currentIndex = sortedQuests.findIndex((q) => q.id === currentQuest.id);
+
+  if (currentIndex > 0) {
+    return sortedQuests[currentIndex - 1].id;
+  }
+
+  if (currentIndex === 0) {
+    const realmKeys = Object.keys(QUESTS);
+    const currentRealmIndex = realmKeys.indexOf(currentQuest.realmId);
+
+    if (currentRealmIndex <= 0) {
+      return null;
+    }
+
+    for (let i = currentRealmIndex - 1; i >= 0; i--) {
+      const prevQuests = getQuestsForRealm(realmKeys[i]);
+      if (prevQuests && prevQuests.length > 0) {
+        const sortedPrev = [...prevQuests].sort((a, b) => a.order - b.order);
+        return sortedPrev[sortedPrev.length - 1].id;
+      }
+    }
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Computes telemetry stats for a realm: total quest count, total xpReward, and total goldReward.
+ * Returns zeros for unknown or invalid realms.
+ */
+export function getRealmQuestStats(realmId: string): { totalQuests: number; totalXp: number; totalGold: number } {
+  if (!realmId || typeof realmId !== "string") {
+    return { totalQuests: 0, totalXp: 0, totalGold: 0 };
+  }
+  const quests = getQuestsForRealm(realmId);
+  return {
+    totalQuests: quests.length,
+    totalXp: quests.reduce((sum, q) => sum + (q.xpReward || 0), 0),
+    totalGold: quests.reduce((sum, q) => sum + (q.goldReward || 0), 0),
+  };
+}
+
+/**
+ * Searches quests across all realms by matching query against id, title, description,
+ * or realmId case-insensitively. Returns all quests when query is empty or whitespace.
+ */
+export function searchQuestsByKeyword(query: string): Quest[] {
+  const allQuests = getAllQuests();
+  if (!query || typeof query !== "string") {
+    return allQuests;
+  }
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) {
+    return allQuests;
+  }
+
+  return allQuests.filter((quest) => {
+    const idMatch = quest.id.toLowerCase().includes(trimmed);
+    const titleMatch = quest.title.toLowerCase().includes(trimmed);
+    const descMatch = Boolean(
+      (quest.description && quest.description.toLowerCase().includes(trimmed)) ||
+      (quest.conceptSummary && quest.conceptSummary.toLowerCase().includes(trimmed)) ||
+      (quest.storyIntro && quest.storyIntro.toLowerCase().includes(trimmed))
+    );
+    const realmMatch = quest.realmId.toLowerCase().includes(trimmed);
+    return idMatch || titleMatch || descMatch || realmMatch;
+  });
 }

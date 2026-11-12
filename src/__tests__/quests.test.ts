@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { QUESTS, getQuestsForRealm, getQuestById, findQuestGlobal, getNextQuestId, getAllQuests, getTotalAvailableXp } from "../data/quests";
+import { QUESTS, getQuestsForRealm, getQuestById, findQuestGlobal, getNextQuestId, getPreviousQuestId, getRealmQuestStats, searchQuestsByKeyword, getAllQuests, getTotalAvailableXp } from "../data/quests";
 import { REALMS } from "../data/realms";
 
 describe("DevQuest Quests Matrix", () => {
@@ -781,6 +781,142 @@ describe("Quest Helper Utilities & Safe Lookups", () => {
     it("returns null for unknown realm or invalid quest ID", () => {
       expect(getNextQuestId("html", "nonexistent")).toBeNull();
       expect(getNextQuestId("unknown_realm", "html_1_skeleton")).toBeNull();
+    });
+  });
+
+  describe("getPreviousQuestId", () => {
+    it("returns the previous quest ID in sequence within the same realm", () => {
+      expect(getPreviousQuestId("html_2_forms")).toBe("html_1_skeleton");
+      expect(getPreviousQuestId("css_2_grid")).toBe("css_1_flexbox");
+      expect(getPreviousQuestId("js_2_async")).toBe("js_1_dom");
+      expect(getPreviousQuestId("ts_2_generics")).toBe("ts_1_interfaces");
+      expect(getPreviousQuestId("capstone_2_health_probe")).toBe("capstone_1_architecture");
+    });
+
+    it("returns the last quest of the previous realm when at the first quest (index 0) of a realm", () => {
+      expect(getPreviousQuestId("css_1_flexbox")).toBe("html_2_forms");
+      expect(getPreviousQuestId("js_1_dom")).toBe("css_2_grid");
+      expect(getPreviousQuestId("ts_1_interfaces")).toBe("js_2_async");
+      expect(getPreviousQuestId("capstone_1_architecture")).toBe("security_2_jwt_verification");
+    });
+
+    it("returns null for the very first quest across all realms", () => {
+      expect(getPreviousQuestId("html_1_skeleton")).toBeNull();
+    });
+
+    it("supports the two-argument signature (realmId, currentQuestId)", () => {
+      expect(getPreviousQuestId("html", "html_2_forms")).toBe("html_1_skeleton");
+      expect(getPreviousQuestId("css", "css_1_flexbox")).toBe("html_2_forms");
+      expect(getPreviousQuestId("html", "html_1_skeleton")).toBeNull();
+    });
+
+    it("works with fuzzy order and alias realms", () => {
+      expect(getPreviousQuestId("html", "2")).toBe("html_1_skeleton");
+      expect(getPreviousQuestId("js", "2")).toBe("js_1_dom");
+      expect(getPreviousQuestId("html-2")).toBe("html_1_skeleton");
+      expect(getPreviousQuestId("css-1")).toBe("html_2_forms");
+    });
+
+    it("returns null safely for unknown, invalid, or nullish inputs", () => {
+      expect(getPreviousQuestId("nonexistent_quest_id")).toBeNull();
+      expect(getPreviousQuestId("")).toBeNull();
+      expect(getPreviousQuestId("   ")).toBeNull();
+      expect(getPreviousQuestId(null as unknown as string)).toBeNull();
+      expect(getPreviousQuestId(undefined as unknown as string)).toBeNull();
+      expect(getPreviousQuestId("unknown_realm", "html_2_forms")).toBe("html_1_skeleton");
+      expect(getPreviousQuestId("html", "nonexistent")).toBeNull();
+      expect(getPreviousQuestId("html", "")).toBeNull();
+    });
+  });
+
+  describe("getRealmQuestStats", () => {
+    it("computes totalQuests, totalXp, and totalGold for standard realms", () => {
+      const htmlStats = getRealmQuestStats("html");
+      expect(htmlStats.totalQuests).toBe(2);
+      expect(htmlStats.totalXp).toBe(220);
+      expect(htmlStats.totalGold).toBe(0);
+
+      const cssStats = getRealmQuestStats("css");
+      expect(cssStats.totalQuests).toBe(2);
+      expect(cssStats.totalXp).toBe(260);
+      expect(cssStats.totalGold).toBe(0);
+
+      const capstoneStats = getRealmQuestStats("capstone");
+      expect(capstoneStats.totalQuests).toBe(2);
+      expect(capstoneStats.totalXp).toBe(750);
+      expect(capstoneStats.totalGold).toBe(0);
+    });
+
+    it("resolves realm aliases and normalizes casing/whitespace", () => {
+      const jsStats = getRealmQuestStats("js");
+      expect(jsStats.totalQuests).toBe(2);
+      expect(jsStats.totalXp).toBe(310);
+
+      const tsStats = getRealmQuestStats("  TS  ");
+      expect(tsStats.totalQuests).toBe(2);
+      expect(tsStats.totalXp).toBe(330);
+
+      const dbStats = getRealmQuestStats("db");
+      expect(dbStats.totalQuests).toBe(2);
+      expect(dbStats.totalXp).toBe(460);
+    });
+
+    it("returns zeros safely for unknown, invalid, or nullish realms", () => {
+      expect(getRealmQuestStats("unknown_realm")).toEqual({ totalQuests: 0, totalXp: 0, totalGold: 0 });
+      expect(getRealmQuestStats("")).toEqual({ totalQuests: 0, totalXp: 0, totalGold: 0 });
+      expect(getRealmQuestStats("   ")).toEqual({ totalQuests: 0, totalXp: 0, totalGold: 0 });
+      expect(getRealmQuestStats(null as unknown as string)).toEqual({ totalQuests: 0, totalXp: 0, totalGold: 0 });
+      expect(getRealmQuestStats(undefined as unknown as string)).toEqual({ totalQuests: 0, totalXp: 0, totalGold: 0 });
+    });
+  });
+
+  describe("searchQuestsByKeyword", () => {
+    it("returns all quests when query is empty, whitespace, or nullish", () => {
+      const all = getAllQuests();
+      expect(searchQuestsByKeyword("")).toEqual(all);
+      expect(searchQuestsByKeyword("   ")).toEqual(all);
+      expect(searchQuestsByKeyword(null as unknown as string)).toEqual(all);
+      expect(searchQuestsByKeyword(undefined as unknown as string)).toEqual(all);
+    });
+
+    it("matches quests by ID case-insensitively", () => {
+      const results = searchQuestsByKeyword("html_1_skeleton");
+      expect(results.length).toBe(1);
+      expect(results[0].id).toBe("html_1_skeleton");
+
+      const upper = searchQuestsByKeyword("FLEXBOX");
+      expect(upper.some((q) => q.id === "css_1_flexbox")).toBe(true);
+    });
+
+    it("matches quests by title case-insensitively", () => {
+      const results = searchQuestsByKeyword("Ironclad Type Contract");
+      expect(results.length).toBe(1);
+      expect(results[0].id).toBe("ts_1_interfaces");
+
+      const partial = searchQuestsByKeyword("command console");
+      expect(partial.some((q) => q.id === "html_2_forms")).toBe(true);
+    });
+
+    it("matches quests by description/conceptSummary case-insensitively", () => {
+      const results = searchQuestsByKeyword("quirks mode");
+      expect(results.some((q) => q.id === "html_1_skeleton")).toBe(true);
+
+      const binarySearch = searchQuestsByKeyword("logarithmic O(log N)");
+      expect(binarySearch.some((q) => q.id === "cs_1_binary_search")).toBe(true);
+    });
+
+    it("matches quests by realmId case-insensitively", () => {
+      const results = searchQuestsByKeyword("databases");
+      expect(results.some((q) => q.id === "db_1_postgres")).toBe(true);
+      expect(results.some((q) => q.id === "db_2_indexes_prisma")).toBe(true);
+
+      const upper = searchQuestsByKeyword("DEVOPS");
+      expect(upper.length).toBe(2);
+      expect(upper.every((q) => q.realmId === "devops")).toBe(true);
+    });
+
+    it("returns empty array for non-matching queries", () => {
+      expect(searchQuestsByKeyword("xyz_non_existent_query_12345")).toEqual([]);
     });
   });
 
