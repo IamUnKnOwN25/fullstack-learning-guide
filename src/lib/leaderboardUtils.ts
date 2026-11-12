@@ -114,3 +114,142 @@ export function getDivisionByPercentile(percentile: number): CompetitiveDivision
   if (safe >= 25) return "Silver";
   return "Bronze";
 }
+
+/**
+ * Categorizes an operative into a competitive division based on percentile or rank/total.
+ */
+export function getCompetitiveDivision(
+  percentileOrRank: number,
+  totalPlayers?: number
+): CompetitiveDivision {
+  if (typeof totalPlayers === "number" && totalPlayers > 0) {
+    const percentile = calculatePercentile(percentileOrRank, totalPlayers);
+    return getDivisionByPercentile(percentile);
+  }
+  return getDivisionByPercentile(percentileOrRank);
+}
+
+export interface PlayerRankResult {
+  rank: number | null;
+  total: number;
+  percentile: number | null;
+}
+
+/**
+ * Finds the 1-based rank and top percentile [1, 100] of an operative in the leaderboard.
+ * Sorts entries descending by xp (tie-breaking by id).
+ */
+export function findPlayerRank(
+  entries: Array<{ id: string; xp: number }>,
+  targetId: string
+): PlayerRankResult {
+  if (!Array.isArray(entries)) {
+    return { rank: null, total: 0, percentile: null };
+  }
+
+  const validEntries = entries.filter((e) => Boolean(e) && typeof e === "object");
+  const total = validEntries.length;
+
+  if (typeof targetId !== "string" || !targetId) {
+    return { rank: null, total, percentile: null };
+  }
+
+  const sorted = [...validEntries].sort((a, b) => {
+    const aXp = Number.isFinite(a.xp) ? a.xp : 0;
+    const bXp = Number.isFinite(b.xp) ? b.xp : 0;
+    if (bXp !== aXp) return bXp - aXp;
+    const aId = typeof a.id === "string" ? a.id : String(a.id ?? "");
+    const bId = typeof b.id === "string" ? b.id : String(b.id ?? "");
+    return aId.localeCompare(bId);
+  });
+
+  const index = sorted.findIndex((e) => e.id === targetId);
+  if (index === -1) {
+    return { rank: null, total, percentile: null };
+  }
+
+  const rank = index + 1;
+  const percentile = calculateTopPercentage(rank, total);
+
+  return {
+    rank,
+    total,
+    percentile,
+  };
+}
+
+/**
+ * Computes the distribution of operatives across competitive divisions.
+ */
+export function computeDivisionDistribution(
+  entries: Array<{ xp: number }>
+): Record<CompetitiveDivision, number> {
+  const distribution: Record<CompetitiveDivision, number> = {
+    "Matrix Lord": 0,
+    "Diamond": 0,
+    "Platinum": 0,
+    "Gold": 0,
+    "Silver": 0,
+    "Bronze": 0,
+  };
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return distribution;
+  }
+
+  const validEntries = entries.filter((e) => Boolean(e) && typeof e === "object");
+  const total = validEntries.length;
+  if (total === 0) {
+    return distribution;
+  }
+
+  const sorted = [...validEntries].sort((a, b) => {
+    const aXp = Number.isFinite(a.xp) ? a.xp : 0;
+    const bXp = Number.isFinite(b.xp) ? b.xp : 0;
+    if (bXp !== aXp) return bXp - aXp;
+    if ("id" in a && "id" in b) {
+      return String((a as any).id).localeCompare(String((b as any).id));
+    }
+    return 0;
+  });
+
+  for (let i = 0; i < total; i++) {
+    const rank = i + 1;
+    const division = getCompetitiveDivision(rank, total);
+    distribution[division] = (distribution[division] || 0) + 1;
+  }
+
+  return distribution;
+}
+
+/**
+ * Returns a slice of entries centered around targetId (index - radius to index + radius).
+ * Defaults to radius = 1, returning up to 3 entries (previous, target, next).
+ * Returns [] if targetId is not found or entries is invalid.
+ */
+export function getAdjacentRankNeighbors<T extends { id: string }>(
+  entries: T[],
+  targetId: string,
+  radius: number = 1
+): T[] {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return [];
+  }
+  if (typeof targetId !== "string" || !targetId) {
+    return [];
+  }
+
+  const targetIndex = entries.findIndex(
+    (entry) => Boolean(entry) && typeof entry === "object" && entry.id === targetId
+  );
+
+  if (targetIndex === -1) {
+    return [];
+  }
+
+  const safeRadius = Number.isFinite(radius) ? Math.max(0, Math.floor(radius)) : 1;
+  const startIndex = Math.max(0, targetIndex - safeRadius);
+  const endIndex = Math.min(entries.length, targetIndex + safeRadius + 1);
+
+  return entries.slice(startIndex, endIndex);
+}

@@ -6,6 +6,10 @@ import {
   calculateTopPercentage,
   sortLeaderboardEntries,
   getDivisionByPercentile,
+  getCompetitiveDivision,
+  findPlayerRank,
+  computeDivisionDistribution,
+  getAdjacentRankNeighbors,
 } from "../lib/leaderboardUtils";
 import { LeaderboardEntry } from "../data/leaderboard";
 
@@ -320,6 +324,192 @@ describe("leaderboardUtils", () => {
 
     it("returns empty array for invalid inputs", () => {
       expect(sortLeaderboardEntries(null as any)).toEqual([]);
+    });
+  });
+
+  describe("getCompetitiveDivision", () => {
+    it("delegates to getDivisionByPercentile when passed a single percentile", () => {
+      expect(getCompetitiveDivision(100)).toBe("Matrix Lord");
+      expect(getCompetitiveDivision(92)).toBe("Diamond");
+      expect(getCompetitiveDivision(77)).toBe("Platinum");
+      expect(getCompetitiveDivision(55)).toBe("Gold");
+      expect(getCompetitiveDivision(30)).toBe("Silver");
+      expect(getCompetitiveDivision(10)).toBe("Bronze");
+    });
+
+    it("calculates percentile from rank and total players when totalPlayers is provided", () => {
+      expect(getCompetitiveDivision(1, 100)).toBe("Matrix Lord");
+      expect(getCompetitiveDivision(10, 100)).toBe("Diamond");
+      expect(getCompetitiveDivision(25, 100)).toBe("Platinum");
+      expect(getCompetitiveDivision(50, 100)).toBe("Gold");
+      expect(getCompetitiveDivision(75, 100)).toBe("Silver");
+      expect(getCompetitiveDivision(95, 100)).toBe("Bronze");
+    });
+  });
+
+  describe("findPlayerRank", () => {
+    const testPlayers = [
+      { id: "p1", xp: 500 },
+      { id: "p2", xp: 1500 },
+      { id: "p3", xp: 100 },
+      { id: "p4", xp: 800 },
+    ];
+
+    it("sorts descending by XP and identifies player rank and top percentile bracket", () => {
+      // Order: p2 (1500), p4 (800), p1 (500), p3 (100)
+      const resP2 = findPlayerRank(testPlayers, "p2");
+      expect(resP2.rank).toBe(1);
+      expect(resP2.total).toBe(4);
+      expect(resP2.percentile).toBe(25); // Top 25%
+
+      const resP4 = findPlayerRank(testPlayers, "p4");
+      expect(resP4.rank).toBe(2);
+      expect(resP4.total).toBe(4);
+      expect(resP4.percentile).toBe(50); // Top 50%
+
+      const resP3 = findPlayerRank(testPlayers, "p3");
+      expect(resP3.rank).toBe(4);
+      expect(resP3.total).toBe(4);
+      expect(resP3.percentile).toBe(100); // Top 100%
+    });
+
+    it("deterministically breaks ties by player ID in alphabetical ascending order", () => {
+      const tiePlayers = [
+        { id: "zeta", xp: 1000 },
+        { id: "alpha", xp: 1000 },
+        { id: "gamma", xp: 1000 },
+      ];
+      // Tie-break: alpha (rank 1), gamma (rank 2), zeta (rank 3)
+      expect(findPlayerRank(tiePlayers, "alpha").rank).toBe(1);
+      expect(findPlayerRank(tiePlayers, "gamma").rank).toBe(2);
+      expect(findPlayerRank(tiePlayers, "zeta").rank).toBe(3);
+    });
+
+    it("returns null rank and percentile when target player is not found in entries", () => {
+      const res = findPlayerRank(testPlayers, "non-existent");
+      expect(res.rank).toBeNull();
+      expect(res.total).toBe(4);
+      expect(res.percentile).toBeNull();
+    });
+
+    it("safely handles empty array or invalid inputs", () => {
+      expect(findPlayerRank([], "p1")).toEqual({ rank: null, total: 0, percentile: null });
+      expect(findPlayerRank(null as any, "p1")).toEqual({ rank: null, total: 0, percentile: null });
+      expect(findPlayerRank(testPlayers, "")).toEqual({ rank: null, total: 4, percentile: null });
+      expect(findPlayerRank(testPlayers, null as any)).toEqual({ rank: null, total: 4, percentile: null });
+    });
+
+    it("handles single player correctly as rank 1 with 100 percentile", () => {
+      const single = [{ id: "solo", xp: 999 }];
+      const res = findPlayerRank(single, "solo");
+      expect(res.rank).toBe(1);
+      expect(res.total).toBe(1);
+      expect(res.percentile).toBe(100);
+    });
+
+    it("treats NaN and non-finite XP values as 0 deterministically", () => {
+      const weirdXp = [
+        { id: "a", xp: NaN },
+        { id: "b", xp: 50 },
+        { id: "c", xp: -Infinity },
+      ];
+      // b (50), then a (0, id 'a'), c (0, id 'c')
+      expect(findPlayerRank(weirdXp, "b").rank).toBe(1);
+      expect(findPlayerRank(weirdXp, "a").rank).toBe(2);
+      expect(findPlayerRank(weirdXp, "c").rank).toBe(3);
+    });
+  });
+
+  describe("computeDivisionDistribution", () => {
+    it("returns all zeros for empty or nullish entries", () => {
+      const emptyExpected = {
+        "Matrix Lord": 0,
+        "Diamond": 0,
+        "Platinum": 0,
+        "Gold": 0,
+        "Silver": 0,
+        "Bronze": 0,
+      };
+      expect(computeDivisionDistribution([])).toEqual(emptyExpected);
+      expect(computeDivisionDistribution(null as any)).toEqual(emptyExpected);
+    });
+
+    it("correctly counts entries across competitive divisions for 100 players", () => {
+      // 100 players with distinct XP descending
+      const players = Array.from({ length: 100 }, (_, i) => ({ xp: 10000 - i * 100 }));
+      const dist = computeDivisionDistribution(players);
+
+      expect(dist["Matrix Lord"]).toBe(1);
+      expect(dist["Diamond"]).toBe(9);
+      expect(dist["Platinum"]).toBe(15);
+      expect(dist["Gold"]).toBe(25);
+      expect(dist["Silver"]).toBe(25);
+      expect(dist["Bronze"]).toBe(25);
+
+      const totalSum = Object.values(dist).reduce((acc, val) => acc + val, 0);
+      expect(totalSum).toBe(100);
+    });
+
+    it("categorizes single entry into Matrix Lord", () => {
+      const dist = computeDivisionDistribution([{ xp: 500 }]);
+      expect(dist["Matrix Lord"]).toBe(1);
+      expect(dist["Diamond"]).toBe(0);
+      expect(dist["Platinum"]).toBe(0);
+      expect(dist["Gold"]).toBe(0);
+      expect(dist["Silver"]).toBe(0);
+      expect(dist["Bronze"]).toBe(0);
+    });
+  });
+
+  describe("getAdjacentRankNeighbors", () => {
+    const list = [
+      { id: "item1", val: 10 },
+      { id: "item2", val: 20 },
+      { id: "item3", val: 30 },
+      { id: "item4", val: 40 },
+      { id: "item5", val: 50 },
+    ];
+
+    it("returns immediate previous, target, and next neighbors with default radius 1", () => {
+      const neighbors = getAdjacentRankNeighbors(list, "item3");
+      expect(neighbors.map((n) => n.id)).toEqual(["item2", "item3", "item4"]);
+    });
+
+    it("clamps at array boundaries for start element", () => {
+      const startNeighbors = getAdjacentRankNeighbors(list, "item1");
+      expect(startNeighbors.map((n) => n.id)).toEqual(["item1", "item2"]);
+    });
+
+    it("clamps at array boundaries for end element", () => {
+      const endNeighbors = getAdjacentRankNeighbors(list, "item5");
+      expect(endNeighbors.map((n) => n.id)).toEqual(["item4", "item5"]);
+    });
+
+    it("respects custom radius parameter", () => {
+      const radiusTwo = getAdjacentRankNeighbors(list, "item3", 2);
+      expect(radiusTwo.map((n) => n.id)).toEqual(["item1", "item2", "item3", "item4", "item5"]);
+
+      const radiusZero = getAdjacentRankNeighbors(list, "item3", 0);
+      expect(radiusZero.map((n) => n.id)).toEqual(["item3"]);
+    });
+
+    it("returns empty array when targetId is not found", () => {
+      expect(getAdjacentRankNeighbors(list, "missing")).toEqual([]);
+    });
+
+    it("returns empty array for invalid entries or empty targetId", () => {
+      expect(getAdjacentRankNeighbors([], "item1")).toEqual([]);
+      expect(getAdjacentRankNeighbors(null as any, "item1")).toEqual([]);
+      expect(getAdjacentRankNeighbors(list, "")).toEqual([]);
+      expect(getAdjacentRankNeighbors(list, null as any)).toEqual([]);
+    });
+
+    it("handles negative or NaN radius safely", () => {
+      const negRadius = getAdjacentRankNeighbors(list, "item3", -1);
+      expect(negRadius.map((n) => n.id)).toEqual(["item3"]);
+
+      const nanRadius = getAdjacentRankNeighbors(list, "item3", NaN);
+      expect(nanRadius.map((n) => n.id)).toEqual(["item2", "item3", "item4"]);
     });
   });
 
