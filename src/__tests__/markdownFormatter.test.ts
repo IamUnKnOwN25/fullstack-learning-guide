@@ -7,6 +7,9 @@ import {
   getLinkAttributes,
   extractHeadings,
   extractSectionHeadings,
+  extractCodeBlocks,
+  stripMarkdownFormatting,
+  estimateReadingTimeMinutes,
 } from "../lib/markdownFormatter";
 import { soundEngine } from "../lib/soundEngine";
 
@@ -482,6 +485,253 @@ Sixth level.
       const onlyH2 = extractHeadings(markdown, { minLevel: 2, maxLevel: 2 });
       expect(onlyH2).toHaveLength(2);
       expect(onlyH2.map((h) => h.title)).toEqual(["Section 1", "Section 2"]);
+    });
+  });
+
+  describe("extractCodeBlocks", () => {
+    it("safely handles null, undefined, and non-string inputs", () => {
+      expect(extractCodeBlocks(null)).toEqual([]);
+      expect(extractCodeBlocks(undefined)).toEqual([]);
+      expect(extractCodeBlocks()).toEqual([]);
+      expect(extractCodeBlocks("")).toEqual([]);
+      expect(extractCodeBlocks(12345 as unknown as string)).toEqual([]);
+    });
+
+    it("returns empty array when no code blocks exist", () => {
+      expect(extractCodeBlocks("Just regular markdown text without code blocks.")).toEqual([]);
+    });
+
+    it("extracts code blocks with explicit language tags", () => {
+      const markdown = "```typescript\nconst message: string = 'Hello Matrix';\nconsole.log(message);\n```";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toEqual({
+        language: "typescript",
+        code: "const message: string = 'Hello Matrix';\nconsole.log(message);",
+      });
+    });
+
+    it("defaults language tag to 'text' when omitted", () => {
+      const markdown = "```\nPlain code snippet without language\n```";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toEqual({
+        language: "text",
+        code: "Plain code snippet without language",
+      });
+    });
+
+    it("normalizes language tags to lowercase and extracts language from info strings with attributes", () => {
+      const markdown = "```TypeScript title='App.tsx' lineNumbers\nconst x = 42;\n```";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toEqual({
+        language: "typescript",
+        code: "const x = 42;",
+      });
+    });
+
+    it("extracts multiple code blocks in sequential order", () => {
+      const markdown = `
+# Multi-Language Guide
+
+First, HTML:
+\`\`\`html
+<div class="box">Content</div>
+\`\`\`
+
+Then CSS:
+\`\`\`css
+.box { color: cyan; }
+\`\`\`
+
+Finally JS:
+\`\`\`js
+console.log("Ready");
+\`\`\`
+      `;
+
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(3);
+      expect(blocks[0]).toEqual({ language: "html", code: '<div class="box">Content</div>' });
+      expect(blocks[1]).toEqual({ language: "css", code: ".box { color: cyan; }" });
+      expect(blocks[2]).toEqual({ language: "js", code: 'console.log("Ready");' });
+    });
+
+    it("supports tilde-fenced (~~~) code blocks", () => {
+      const markdown = "~~~python\ndef greet():\n    return 'Matrix'\n~~~";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toEqual({
+        language: "python",
+        code: "def greet():\n    return 'Matrix'",
+      });
+    });
+
+    it("handles empty code blocks correctly", () => {
+      const markdown = "```json\n```";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0]).toEqual({
+        language: "json",
+        code: "",
+      });
+    });
+
+    it("preserves empty lines and indentation inside code blocks", () => {
+      const markdown = "```python\ndef test():\n\n    value = 1\n    return value\n```";
+      const blocks = extractCodeBlocks(markdown);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].code).toBe("def test():\n\n    value = 1\n    return value");
+    });
+  });
+
+  describe("stripMarkdownFormatting", () => {
+    it("safely handles null, undefined, and non-string inputs", () => {
+      expect(stripMarkdownFormatting(null)).toBe("");
+      expect(stripMarkdownFormatting(undefined)).toBe("");
+      expect(stripMarkdownFormatting()).toBe("");
+      expect(stripMarkdownFormatting("")).toBe("");
+      expect(stripMarkdownFormatting(12345 as unknown as string)).toBe("");
+    });
+
+    it("strips ATX headings of all levels", () => {
+      const markdown = "# Heading 1\n## Heading 2\n### Heading 3\n#### Heading 4\n##### Heading 5\n###### Heading 6";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Heading 1\nHeading 2\nHeading 3\nHeading 4\nHeading 5\nHeading 6");
+    });
+
+    it("strips headings with closing hash delimiters", () => {
+      const markdown = "## Centered Heading ##\n### Subsection ###";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Centered Heading\nSubsection");
+    });
+
+    it("strips bold and italic markdown markers", () => {
+      const markdown = "This is **bold**, *italic*, ***bold-italic***, and ~~deleted~~ text.";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("This is bold, italic, bold-italic, and deleted text.");
+    });
+
+    it("strips underscore formatting while preserving snake_case identifier underscores", () => {
+      const markdown = "Use __bold_underscore__ or _italic_underscore_ with const USER_ACCOUNT_ID = 1;";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Use bold_underscore or italic_underscore with const USER_ACCOUNT_ID = 1;");
+    });
+
+    it("strips inline code backticks", () => {
+      const markdown = "Run `npm run build` and `npm test` or ``const x = `template`;`` now.";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Run npm run build and npm test or const x = `template`; now.");
+    });
+
+    it("strips markdown links and image tags while preserving anchor/alt text", () => {
+      const markdown = "Read [Matrix Guide](https://matrix.dev) or see ![System Diagram](/images/sys.png).";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Read Matrix Guide or see System Diagram.");
+    });
+
+    it("supports balanced parentheses in Wikipedia URLs when stripping links", () => {
+      const markdown = "See [Closure](https://en.wikipedia.org/wiki/Closure_(computer_programming)) for scoping.";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("See Closure for scoping.");
+    });
+
+    it("strips fenced code block markers leaving code content intact", () => {
+      const markdown = `
+Here is code:
+\`\`\`typescript
+const matrix = new Matrix();
+matrix.enter();
+\`\`\`
+All done.
+      `;
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Here is code:\nconst matrix = new Matrix();\nmatrix.enter();\nAll done.");
+    });
+
+    it("strips blockquotes and horizontal dividers cleanly", () => {
+      const markdown = "> The Matrix is everywhere.\n---\n> It is all around us.";
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("The Matrix is everywhere.\n\nIt is all around us.");
+    });
+
+    it("handles complex mixed markdown cleanly", () => {
+      const markdown = `
+# Title
+
+Welcome to **[The Matrix Chronicles](https://matrix.dev)**!
+Here is \`quickStart()\` function.
+      `;
+      const plain = stripMarkdownFormatting(markdown);
+      expect(plain).toBe("Title\n\nWelcome to The Matrix Chronicles!\nHere is quickStart() function.");
+    });
+  });
+
+  describe("estimateReadingTimeMinutes", () => {
+    it("safely handles null, undefined, empty, or whitespace-only inputs", () => {
+      expect(estimateReadingTimeMinutes(null)).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes(undefined)).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes()).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes("")).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes("   \n\t  ")).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes(12345 as unknown as string)).toEqual({ wordCount: 0, minutes: 0 });
+    });
+
+    it("returns zero counts when markdown contains only formatting characters without words", () => {
+      expect(estimateReadingTimeMinutes("#")).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes("```\n```")).toEqual({ wordCount: 0, minutes: 0 });
+      expect(estimateReadingTimeMinutes("---")).toEqual({ wordCount: 0, minutes: 0 });
+    });
+
+    it("estimates short content (< 200 words) returning wordCount and minimum 1 minute", () => {
+      const text = "The matrix is a system, Neo. That system is our enemy.";
+      const result = estimateReadingTimeMinutes(text);
+      expect(result.wordCount).toBe(11);
+      expect(result.minutes).toBe(1);
+    });
+
+    it("accurately calculates reading time at default 200 wpm threshold boundaries", () => {
+      const makeWords = (count: number) => Array.from({ length: count }, (_, i) => `word${i}`).join(" ");
+
+      // Exactly 200 words -> 1 minute
+      expect(estimateReadingTimeMinutes(makeWords(200))).toEqual({ wordCount: 200, minutes: 1 });
+
+      // 201 words -> ceil(201/200) = 2 minutes
+      expect(estimateReadingTimeMinutes(makeWords(201))).toEqual({ wordCount: 201, minutes: 2 });
+
+      // Exactly 400 words -> 2 minutes
+      expect(estimateReadingTimeMinutes(makeWords(400))).toEqual({ wordCount: 400, minutes: 2 });
+
+      // 401 words -> ceil(401/200) = 3 minutes
+      expect(estimateReadingTimeMinutes(makeWords(401))).toEqual({ wordCount: 401, minutes: 3 });
+    });
+
+    it("supports custom wordsPerMinute speeds", () => {
+      const makeWords = (count: number) => Array.from({ length: count }, (_, i) => `word${i}`).join(" ");
+
+      // 100 words at 100 wpm -> 1 minute
+      expect(estimateReadingTimeMinutes(makeWords(100), 100)).toEqual({ wordCount: 100, minutes: 1 });
+
+      // 150 words at 100 wpm -> ceil(1.5) = 2 minutes
+      expect(estimateReadingTimeMinutes(makeWords(150), 100)).toEqual({ wordCount: 150, minutes: 2 });
+
+      // 500 words at 250 wpm -> 2 minutes
+      expect(estimateReadingTimeMinutes(makeWords(500), 250)).toEqual({ wordCount: 500, minutes: 2 });
+    });
+
+    it("falls back to default 200 wpm when given invalid or non-positive wordsPerMinute", () => {
+      const makeWords = (count: number) => Array.from({ length: count }, (_, i) => `word${i}`).join(" ");
+      expect(estimateReadingTimeMinutes(makeWords(250), 0)).toEqual({ wordCount: 250, minutes: 2 });
+      expect(estimateReadingTimeMinutes(makeWords(250), -50)).toEqual({ wordCount: 250, minutes: 2 });
+    });
+
+    it("strips markdown formatting before computing word counts", () => {
+      const markdown = "# Section Header\n\nVisit [Matrix](https://matrix.dev) for **great** adventures.";
+      // Cleaned text: "Section Header\n\nVisit Matrix for great adventures." -> 7 words
+      const result = estimateReadingTimeMinutes(markdown);
+      expect(result.wordCount).toBe(7);
+      expect(result.minutes).toBe(1);
     });
   });
 });
