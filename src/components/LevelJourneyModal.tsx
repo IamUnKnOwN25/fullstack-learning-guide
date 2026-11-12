@@ -5,6 +5,9 @@ import { useGameStore } from "@/lib/gameStore";
 import { soundEngine } from "@/lib/soundEngine";
 import {
   RANKS,
+  calculateLevel,
+  getXpForLevel,
+  getNextLevelXp,
   getLevelProgress,
   calculateStreakBonus,
   calculateHpForLevel,
@@ -26,6 +29,49 @@ import {
   Terminal,
   Award,
 } from "lucide-react";
+
+export interface LevelJourneyMetrics {
+  currentLevel: number;
+  nextLevel: number;
+  currentLevelBaseXp: number;
+  nextLevelTargetXp: number;
+  xpIntoCurrentLevel: number;
+  xpNeededForNextLevel: number;
+  progressPercent: number;
+}
+
+export function calculateLevelJourneyMetrics(
+  currentXp: number,
+  currentLevel?: number
+): LevelJourneyMetrics {
+  const safeXp = Number.isFinite(currentXp) && currentXp > 0 ? currentXp : 0;
+  const safeLevel =
+    Number.isFinite(currentLevel) && (currentLevel as number) >= 1
+      ? Math.floor(currentLevel as number)
+      : Math.max(1, calculateLevel(safeXp));
+
+  const nextLevel = safeLevel + 1;
+  const currentLevelBaseXp = getXpForLevel(safeLevel);
+  const nextLevelTargetXp = getNextLevelXp(safeLevel);
+  const span = Math.max(1, nextLevelTargetXp - currentLevelBaseXp);
+
+  const xpIntoCurrentLevel = Math.max(0, safeXp - currentLevelBaseXp);
+  const xpNeededForNextLevel = Math.max(0, nextLevelTargetXp - safeXp);
+  const rawProgressPercent = (xpIntoCurrentLevel / span) * 100;
+  const progressPercent = Number.isFinite(rawProgressPercent)
+    ? Math.min(100, Math.max(0, rawProgressPercent))
+    : 0;
+
+  return {
+    currentLevel: safeLevel,
+    nextLevel,
+    currentLevelBaseXp,
+    nextLevelTargetXp,
+    xpIntoCurrentLevel,
+    xpNeededForNextLevel,
+    progressPercent,
+  };
+}
 
 interface Props {
   isOpen: boolean;
@@ -59,7 +105,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
   if (!isOpen) return null;
 
-  const progress = getLevelProgress(xp);
+  const progress = calculateLevelJourneyMetrics(xp, level);
   const streakBonus = calculateStreakBonus(streak);
   const maxHp = calculateHpForLevel(level);
   const maxMana = calculateManaForLevel(level);
@@ -87,7 +133,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 border-b border-matrix-border bg-matrix-dark/80">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-matrix-accent/20 border border-matrix-accent/40 flex items-center justify-center text-matrix-accent shrink-0">
-              <Sparkles className="w-5 h-5 animate-pulse" />
+              <Sparkles className="w-5 h-5 animate-pulse" aria-hidden="true" />
             </div>
             <div>
               <h2 id="level-journey-title" className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
@@ -109,7 +155,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
             className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0"
             title="Close (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -134,7 +180,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
                 <div>
                   <div className="flex items-center gap-1.5">
-                    {isGrandmaster && <Crown className="w-4 h-4 text-matrix-neonGold" />}
+                    {isGrandmaster && <Crown className="w-4 h-4 text-matrix-neonGold" aria-hidden="true" />}
                     <h3 className="text-lg font-bold text-white tracking-wide">
                       {rankTitle}
                     </h3>
@@ -151,15 +197,15 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
               {/* Stat Badges */}
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-neonRed">
-                  <Heart className="w-3.5 h-3.5 fill-matrix-neonRed" />
+                  <Heart className="w-3.5 h-3.5 fill-matrix-neonRed" aria-hidden="true" />
                   <span>{maxHp} Max HP</span>
                 </div>
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-neonCyan">
-                  <Zap className="w-3.5 h-3.5 fill-matrix-neonCyan" />
+                  <Zap className="w-3.5 h-3.5 fill-matrix-neonCyan" aria-hidden="true" />
                   <span>{maxMana} Max MP</span>
                 </div>
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-matrix-dark border border-matrix-border text-matrix-neonGold">
-                  <Flame className="w-3.5 h-3.5 fill-matrix-neonGold" />
+                  <Flame className="w-3.5 h-3.5 fill-matrix-neonGold" aria-hidden="true" />
                   <span>{streak}d Streak (+{streakBonus.bonusPercent}%)</span>
                 </div>
               </div>
@@ -193,7 +239,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
               >
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-matrix-accent via-matrix-neonCyan to-matrix-neonGold transition-all duration-500 shadow-sm shadow-matrix-neonCyan/50"
-                  style={{ width: `${progress.progressPercent}%` }}
+                  style={{ width: `${progressPercentClamped}%` }}
                 />
               </div>
 
@@ -211,7 +257,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
           <div className="p-3.5 rounded-xl bg-matrix-dark/70 border border-matrix-border flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple">
-                <Shield className="w-3.5 h-3.5" />
+                <Shield className="w-3.5 h-3.5" aria-hidden="true" />
               </div>
               <div>
                 <span className="text-gray-300">Skill Tree Points: </span>
@@ -232,7 +278,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                 className="px-3 py-1 rounded-lg bg-matrix-neonPurple/20 hover:bg-matrix-neonPurple/30 border border-matrix-neonPurple/40 text-matrix-neonPurple hover:text-white transition-all text-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <span>Spend Skill Points</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -241,7 +287,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-mono uppercase font-bold text-gray-300 tracking-wider flex items-center gap-1.5">
-                <Crown className="w-4 h-4 text-matrix-neonGold" />
+                <Crown className="w-4 h-4 text-matrix-neonGold" aria-hidden="true" />
                 <span>Career Rank Ladder (12 Realms)</span>
               </h4>
               <span className="text-[11px] font-mono text-gray-400">
@@ -308,10 +354,10 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
                           ACTIVE
                         </span>
                       ) : isUnlocked ? (
-                        <CheckCircle2 className="w-4 h-4 text-matrix-accent" />
+                        <CheckCircle2 className="w-4 h-4 text-matrix-accent" aria-hidden="true" />
                       ) : (
                         <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                          <Lock className="w-3.5 h-3.5" />
+                          <Lock className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>L{r.level}</span>
                         </div>
                       )}
@@ -325,14 +371,14 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
           {/* How to Earn More EXP Card */}
           <div className="p-4 rounded-xl bg-matrix-dark/80 border border-matrix-border space-y-2.5">
             <h4 className="text-xs font-mono uppercase font-bold text-gray-300 tracking-wider flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-matrix-neonCyan" />
+              <Award className="w-4 h-4 text-matrix-neonCyan" aria-hidden="true" />
               <span>How to Earn EXP & Level Up</span>
             </h4>
 
             <div role="list" aria-label="How to earn EXP guide" className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
               <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
-                  <Sword className="w-3.5 h-3.5 text-matrix-accent" />
+                  <Sword className="w-3.5 h-3.5 text-matrix-accent" aria-hidden="true" />
                   <span>Quest Trials</span>
                 </div>
                 <p className="text-[11px] text-gray-400">
@@ -342,7 +388,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
               <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
-                  <Crown className="w-3.5 h-3.5 text-matrix-neonGold" />
+                  <Crown className="w-3.5 h-3.5 text-matrix-neonGold" aria-hidden="true" />
                   <span>Boss Guardians</span>
                 </div>
                 <p className="text-[11px] text-gray-400">
@@ -352,7 +398,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
               <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
-                  <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                  <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan" aria-hidden="true" />
                   <span>Curriculum Checkpoints</span>
                 </div>
                 <p className="text-[11px] text-gray-400">
@@ -362,7 +408,7 @@ export function LevelJourneyModal({ isOpen, onClose, onOpenSkillTree }: Props) {
 
               <div role="listitem" className="p-2.5 rounded-lg bg-matrix-card/60 border border-matrix-border/60">
                 <div className="flex items-center gap-1.5 text-white font-bold mb-0.5">
-                  <Terminal className="w-3.5 h-3.5 text-matrix-neonPurple" />
+                  <Terminal className="w-3.5 h-3.5 text-matrix-neonPurple" aria-hidden="true" />
                   <span>Matrix IDE & Drills</span>
                 </div>
                 <p className="text-[11px] text-gray-400">

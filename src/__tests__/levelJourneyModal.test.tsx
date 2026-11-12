@@ -5,7 +5,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
-import { LevelJourneyModal } from "../components/LevelJourneyModal";
+import { LevelJourneyModal, calculateLevelJourneyMetrics } from "../components/LevelJourneyModal";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 import { RANKS } from "../lib/levelSystem";
@@ -287,5 +287,115 @@ describe("LevelJourneyModal Component", () => {
 
     const guideItems = within(guideList).getAllByRole("listitem");
     expect(guideItems.length).toBe(4);
+  });
+
+  describe("calculateLevelJourneyMetrics helper", () => {
+    it("returns correct progression metrics for base level 1 player", () => {
+      const metrics = calculateLevelJourneyMetrics(0, 1);
+      expect(metrics.currentLevel).toBe(1);
+      expect(metrics.nextLevel).toBe(2);
+      expect(metrics.currentLevelBaseXp).toBe(0);
+      expect(metrics.nextLevelTargetXp).toBe(25);
+      expect(metrics.xpIntoCurrentLevel).toBe(0);
+      expect(metrics.xpNeededForNextLevel).toBe(25);
+      expect(metrics.progressPercent).toBe(0);
+    });
+
+    it("calculates mid-level progress percentage accurately", () => {
+      // Level 2 spans 25 to 100 XP (span = 75). At 50 XP, 25 XP into level -> 33.333%
+      const metrics = calculateLevelJourneyMetrics(50, 2);
+      expect(metrics.currentLevel).toBe(2);
+      expect(metrics.nextLevel).toBe(3);
+      expect(metrics.currentLevelBaseXp).toBe(25);
+      expect(metrics.nextLevelTargetXp).toBe(100);
+      expect(metrics.xpIntoCurrentLevel).toBe(25);
+      expect(metrics.xpNeededForNextLevel).toBe(50);
+      expect(metrics.progressPercent).toBeCloseTo(33.33, 1);
+    });
+
+    it("clamps progress percentage to 100 when XP reaches or exceeds target", () => {
+      const atTarget = calculateLevelJourneyMetrics(100, 2);
+      expect(atTarget.progressPercent).toBe(100);
+      expect(atTarget.xpNeededForNextLevel).toBe(0);
+
+      const beyondTarget = calculateLevelJourneyMetrics(9999, 2);
+      expect(beyondTarget.progressPercent).toBe(100);
+      expect(beyondTarget.xpNeededForNextLevel).toBe(0);
+    });
+
+    it("guards against negative, NaN, and non-finite XP values", () => {
+      const negativeXp = calculateLevelJourneyMetrics(-200, 1);
+      expect(negativeXp.xpIntoCurrentLevel).toBe(0);
+      expect(negativeXp.progressPercent).toBe(0);
+      expect(negativeXp.xpNeededForNextLevel).toBe(25);
+
+      const nanXp = calculateLevelJourneyMetrics(NaN, 1);
+      expect(nanXp.xpIntoCurrentLevel).toBe(0);
+      expect(nanXp.progressPercent).toBe(0);
+      expect(nanXp.xpNeededForNextLevel).toBe(25);
+
+      const infXp = calculateLevelJourneyMetrics(Infinity, 1);
+      expect(infXp.xpIntoCurrentLevel).toBe(0);
+      expect(infXp.progressPercent).toBe(0);
+    });
+
+    it("guards against negative, zero, and NaN level inputs with safe fallback", () => {
+      const negativeLevel = calculateLevelJourneyMetrics(0, -3);
+      expect(negativeLevel.currentLevel).toBe(1);
+      expect(negativeLevel.nextLevel).toBe(2);
+
+      const zeroLevel = calculateLevelJourneyMetrics(0, 0);
+      expect(zeroLevel.currentLevel).toBe(1);
+
+      const nanLevel = calculateLevelJourneyMetrics(100, NaN);
+      // calculateLevel(100) -> 3
+      expect(nanLevel.currentLevel).toBe(3);
+      expect(nanLevel.nextLevel).toBe(4);
+    });
+
+    it("defaults or calculates safe level when level argument is omitted", () => {
+      const defaultMetrics = calculateLevelJourneyMetrics(225);
+      // calculateLevel(225) -> 4
+      expect(defaultMetrics.currentLevel).toBe(4);
+      expect(defaultMetrics.nextLevel).toBe(5);
+    });
+  });
+
+  describe("Progress bar clamping & icon accessibility", () => {
+    it("clamps inline progress bar width style between 0% and 100%", () => {
+      useGameStore.setState({ xp: 0, level: 1 });
+      const { unmount } = render(
+        <LevelJourneyModal isOpen={true} onClose={mockOnClose} />
+      );
+
+      const progressBar = screen.getByRole("progressbar");
+      const innerBar = progressBar.firstElementChild as HTMLElement;
+      expect(innerBar).not.toBeNull();
+      expect(innerBar.style.width).toBe("0%");
+
+      unmount();
+
+      useGameStore.setState({ xp: 999999, level: 50 });
+      render(
+        <LevelJourneyModal isOpen={true} onClose={mockOnClose} />
+      );
+
+      const maxProgressBar = screen.getByRole("progressbar");
+      const maxInnerBar = maxProgressBar.firstElementChild as HTMLElement;
+      expect(maxInnerBar).not.toBeNull();
+      expect(maxInnerBar.style.width).toBe("100%");
+    });
+
+    it("marks decorative Lucide icons with aria-hidden='true'", () => {
+      const { container } = render(
+        <LevelJourneyModal isOpen={true} onClose={mockOnClose} />
+      );
+
+      const svgIcons = container.querySelectorAll("svg");
+      expect(svgIcons.length).toBeGreaterThan(0);
+      svgIcons.forEach((svg) => {
+        expect(svg.getAttribute("aria-hidden")).toBe("true");
+      });
+    });
   });
 });
