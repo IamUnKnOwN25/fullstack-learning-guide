@@ -87,3 +87,226 @@ export const validateSkillUnlock = (
 
   return { canUnlock: true };
 };
+
+/**
+ * Summary metrics of a player's skill build.
+ */
+export interface SkillBuildSummary {
+  totalUnlocked: number;
+  totalCostSpent: number;
+  byCategory: Record<string, number>;
+  byTier: Record<number, number>;
+}
+
+/**
+ * Calculates a summary of the player's current skill build,
+ * tallying unique valid unlocked skills, total SP cost spent,
+ * and skill counts grouped by category and tier.
+ */
+export const calculateSkillBuildSummary = (
+  unlockedSkillIds: string[] = []
+): {
+  totalUnlocked: number;
+  totalCostSpent: number;
+  byCategory: Record<string, number>;
+  byTier: Record<number, number>;
+} => {
+  if (!Array.isArray(unlockedSkillIds)) {
+    return {
+      totalUnlocked: 0,
+      totalCostSpent: 0,
+      byCategory: {},
+      byTier: {},
+    };
+  }
+
+  const uniqueIds = Array.from(
+    new Set(
+      unlockedSkillIds
+        .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        .map((id) => id.trim())
+    )
+  );
+
+  let totalUnlocked = 0;
+  let totalCostSpent = 0;
+  const byCategory: Record<string, number> = {};
+  const byTier: Record<number, number> = {};
+
+  for (const id of uniqueIds) {
+    const skill = SKILL_TREE.find((s) => s.id === id);
+    if (skill) {
+      totalUnlocked += 1;
+      const cost =
+        typeof skill.cost === "number" && Number.isFinite(skill.cost) && skill.cost > 0
+          ? skill.cost
+          : 0;
+      totalCostSpent += cost;
+
+      if (skill.category) {
+        byCategory[skill.category] = (byCategory[skill.category] || 0) + 1;
+      }
+      if (typeof skill.tier === "number" && Number.isFinite(skill.tier)) {
+        byTier[skill.tier] = (byTier[skill.tier] || 0) + 1;
+      }
+    }
+  }
+
+  return {
+    totalUnlocked,
+    totalCostSpent,
+    byCategory,
+    byTier,
+  };
+};
+
+/**
+ * Returns IDs of locked skills whose level, cost, and prerequisite requirements
+ * are currently met, sorted by cost ascending then tier ascending.
+ */
+export const getRecommendedNextSkills = (
+  unlockedSkillIds: string[] = [],
+  playerLevel: number = 1,
+  availablePoints: number = 0
+): string[] => {
+  if (
+    typeof playerLevel !== "number" ||
+    !Number.isFinite(playerLevel) ||
+    typeof availablePoints !== "number" ||
+    !Number.isFinite(availablePoints) ||
+    availablePoints < 0
+  ) {
+    return [];
+  }
+
+  const safeUnlocked = new Set(
+    Array.isArray(unlockedSkillIds)
+      ? unlockedSkillIds
+          .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+          .map((id) => id.trim())
+      : []
+  );
+
+  const eligibleSkills: SkillNode[] = [];
+
+  for (const skill of SKILL_TREE) {
+    // 1. Must be locked (not in unlockedSkillIds and not unlockedByDefault)
+    if (safeUnlocked.has(skill.id) || skill.unlockedByDefault === true) {
+      continue;
+    }
+
+    // 2. Level requirement
+    const requiredLevel =
+      typeof skill.requiredLevel === "number" && Number.isFinite(skill.requiredLevel)
+        ? skill.requiredLevel
+        : 1;
+    if (playerLevel < requiredLevel) {
+      continue;
+    }
+
+    // 3. Cost requirement
+    const cost =
+      typeof skill.cost === "number" && Number.isFinite(skill.cost) && skill.cost >= 0
+        ? skill.cost
+        : 0;
+    if (availablePoints < cost) {
+      continue;
+    }
+
+    // 4. Prerequisite requirement
+    const prereqIds: string[] = [];
+    if (skill.prerequisiteId && typeof skill.prerequisiteId === "string" && skill.prerequisiteId.trim()) {
+      prereqIds.push(skill.prerequisiteId.trim());
+    }
+    if (Array.isArray(skill.prerequisites)) {
+      for (const p of skill.prerequisites) {
+        if (typeof p === "string" && p.trim()) {
+          prereqIds.push(p.trim());
+        }
+      }
+    }
+
+    const allPrereqsMet = prereqIds.every(
+      (pid) => safeUnlocked.has(pid) || SKILL_TREE.find((s) => s.id === pid)?.unlockedByDefault === true
+    );
+
+    if (!allPrereqsMet) {
+      continue;
+    }
+
+    eligibleSkills.push(skill);
+  }
+
+  // Sort by cost ascending, then tier ascending, then id ascending for determinism
+  eligibleSkills.sort((a, b) => {
+    const costA = typeof a.cost === "number" ? a.cost : 0;
+    const costB = typeof b.cost === "number" ? b.cost : 0;
+    if (costA !== costB) {
+      return costA - costB;
+    }
+    const tierA = typeof a.tier === "number" ? a.tier : 1;
+    const tierB = typeof b.tier === "number" ? b.tier : 1;
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  return eligibleSkills.map((s) => s.id);
+};
+
+/**
+ * Result of a skill refund feasibility check.
+ */
+export interface SkillRefundValidationResult {
+  canRefund: boolean;
+  dependentSkillIds: string[];
+}
+
+/**
+ * Checks whether refunding skillIdToRefund would orphan any currently unlocked
+ * downstream skill that lists it in prerequisites (or prerequisiteId).
+ */
+export const validateSkillRefund = (
+  skillIdToRefund: string,
+  unlockedSkillIds: string[] = []
+): { canRefund: boolean; dependentSkillIds: string[] } => {
+  if (!skillIdToRefund || typeof skillIdToRefund !== "string" || !skillIdToRefund.trim()) {
+    return { canRefund: false, dependentSkillIds: [] };
+  }
+
+  const targetId = skillIdToRefund.trim();
+  const safeUnlocked = Array.isArray(unlockedSkillIds)
+    ? unlockedSkillIds
+        .filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        .map((id) => id.trim())
+    : [];
+
+  const skill = SKILL_TREE.find((s) => s.id === targetId);
+  if (!skill) {
+    return { canRefund: false, dependentSkillIds: [] };
+  }
+
+  const isUnlocked = safeUnlocked.includes(targetId) || skill.unlockedByDefault === true;
+  if (!isUnlocked) {
+    return { canRefund: false, dependentSkillIds: [] };
+  }
+
+  // Find all currently unlocked skills that list targetId as prerequisite
+  const dependentSkillIds = safeUnlocked.filter((unlockedId) => {
+    if (unlockedId === targetId) return false;
+    const node = SKILL_TREE.find((s) => s.id === unlockedId);
+    if (!node) return false;
+    const matchesPrereqId = node.prerequisiteId === targetId;
+    const matchesPrereqsArray =
+      Array.isArray(node.prerequisites) && node.prerequisites.includes(targetId);
+    return matchesPrereqId || matchesPrereqsArray;
+  });
+
+  const uniqueDependents = Array.from(new Set(dependentSkillIds));
+
+  return {
+    canRefund: uniqueDependents.length === 0,
+    dependentSkillIds: uniqueDependents,
+  };
+};
