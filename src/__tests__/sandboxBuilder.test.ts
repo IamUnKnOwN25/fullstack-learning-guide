@@ -5,6 +5,9 @@ import {
   escapeScriptBreakout,
   SANDBOX_CSP,
   SANDBOX_CSP_META,
+  detectPotentiallyUnsafeSandboxTokens,
+  extractScriptAndStyleTags,
+  UNSAFE_SANDBOX_TOKENS,
 } from "../lib/sandboxBuilder";
 import { QUESTS } from "../data/quests";
 
@@ -217,4 +220,126 @@ describe("Sandbox Builder & TypeScript Transpiler", () => {
     expect(htmlDoc).not.toContain('http-equiv="Content-Security-Policy"');
     expect(htmlDoc).not.toContain("default-src 'none'");
   });
+
+  describe("Sandbox Unsafe Token Analyzer & Script/Style Tag Extractor", () => {
+    it("flags dangerous sandbox escape tokens and browser storage APIs", () => {
+      const codeWithTokens = `
+        const parentWin = window.parent;
+        const topWin = window.top;
+        const cookie = document.cookie;
+        const stored = localStorage.getItem("token");
+        const session = sessionStorage.getItem("key");
+        const res = eval("2 + 2");
+      `;
+
+      const result = detectPotentiallyUnsafeSandboxTokens(codeWithTokens);
+      expect(result.safe).toBe(false);
+      expect(result.flaggedTokens).toContain("window.parent");
+      expect(result.flaggedTokens).toContain("window.top");
+      expect(result.flaggedTokens).toContain("document.cookie");
+      expect(result.flaggedTokens).toContain("localStorage");
+      expect(result.flaggedTokens).toContain("sessionStorage");
+      expect(result.flaggedTokens).toContain("eval(");
+      expect(result.flaggedTokens.length).toBe(6);
+    });
+
+    it("returns safe: true and empty tokens for clean code and edge cases", () => {
+      const cleanCode = `
+        function add(a: number, b: number) {
+          return a + b;
+        }
+        console.log(add(5, 10));
+      `;
+      expect(detectPotentiallyUnsafeSandboxTokens(cleanCode)).toEqual({
+        safe: true,
+        flaggedTokens: [],
+      });
+
+      expect(detectPotentiallyUnsafeSandboxTokens("")).toEqual({
+        safe: true,
+        flaggedTokens: [],
+      });
+
+      expect(detectPotentiallyUnsafeSandboxTokens("   ")).toEqual({
+        safe: true,
+        flaggedTokens: [],
+      });
+
+      // Identifier names containing 'eval' without opening paren shouldn't trigger
+      expect(
+        detectPotentiallyUnsafeSandboxTokens("const evaluateScore = 100; const medievalCastle = true;")
+      ).toEqual({
+        safe: true,
+        flaggedTokens: [],
+      });
+    });
+
+    it("deduplicates tokens when dangerous patterns appear multiple times", () => {
+      const repeatedTokens = `
+        window.parent.postMessage("hello", "*");
+        window.parent.focus();
+        localStorage.setItem("a", "1");
+        localStorage.setItem("b", "2");
+        eval("alert(1)");
+        eval("alert(2)");
+      `;
+      const result = detectPotentiallyUnsafeSandboxTokens(repeatedTokens);
+      expect(result.safe).toBe(false);
+      expect(result.flaggedTokens).toEqual(["window.parent", "localStorage", "eval("]);
+    });
+
+    it("extracts inline script and style tags from HTML string", () => {
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style type="text/css">
+            body { background: #000; color: #fff; }
+          </style>
+          <style>
+            h1 { font-size: 24px; }
+          </style>
+        </head>
+        <body>
+          <h1>Matrix Realm</h1>
+          <script type="module">
+            console.log("Module script loaded");
+          </script>
+          <script>
+            window.alert = () => {};
+          </script>
+        </body>
+        </html>
+      `;
+
+      const { scripts, styles } = extractScriptAndStyleTags(html);
+      expect(styles).toHaveLength(2);
+      expect(styles[0]).toContain("background: #000");
+      expect(styles[1]).toContain("font-size: 24px");
+
+      expect(scripts).toHaveLength(2);
+      expect(scripts[0]).toContain('console.log("Module script loaded")');
+      expect(scripts[1]).toContain("window.alert = () => {}");
+    });
+
+    it("handles case-insensitivity and empty/missing script or style tags", () => {
+      const mixedCaseHtml = `
+        <SCRIPT>console.log("UPPERCASE");</SCRIPT>
+        <STYLE>p { margin: 0; }</STYLE>
+      `;
+      const result = extractScriptAndStyleTags(mixedCaseHtml);
+      expect(result.scripts).toEqual(['console.log("UPPERCASE");']);
+      expect(result.styles).toEqual(["p { margin: 0; }"]);
+
+      expect(extractScriptAndStyleTags("<div>No tags here</div>")).toEqual({
+        scripts: [],
+        styles: [],
+      });
+      expect(extractScriptAndStyleTags("")).toEqual({
+        scripts: [],
+        styles: [],
+      });
+  });
+});
+
 });

@@ -469,3 +469,60 @@ export function buildSandboxSrcDoc(
 </body>
 </html>`;
 }
+
+
+export const UNSAFE_SANDBOX_TOKENS: readonly string[] = [
+  "window.parent",
+  "window.top",
+  "document.cookie",
+  "localStorage",
+  "sessionStorage",
+  "eval(",
+];
+
+export function detectPotentiallyUnsafeSandboxTokens(code: string): {
+  safe: boolean;
+  flaggedTokens: string[];
+} {
+  if (!code || typeof code !== "string") {
+    return { safe: true, flaggedTokens: [] };
+  }
+
+  const flaggedTokens = UNSAFE_SANDBOX_TOKENS.filter((token) => {
+    if (token === "eval(") {
+      return /\beval\s*\(/.test(code);
+    }
+    return code.includes(token);
+  });
+
+  return {
+    safe: flaggedTokens.length === 0,
+    flaggedTokens,
+  };
+}
+
+export function extractScriptAndStyleTags(html: string): {
+  scripts: string[];
+  styles: string[];
+} {
+  if (!html || typeof html !== "string") {
+    return { scripts: [], styles: [] };
+  }
+
+  const scripts: string[] = [];
+  const styles: string[] = [];
+
+  const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi;
+  let scriptMatch: RegExpExecArray | null;
+  while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+    scripts.push(scriptMatch[1]);
+  }
+
+  const styleRegex = /<style\b[^>]*>([\s\S]*?)<\/style\s*>/gi;
+  let styleMatch: RegExpExecArray | null;
+  while ((styleMatch = styleRegex.exec(html)) !== null) {
+    styles.push(styleMatch[1]);
+  }
+
+  return { scripts, styles };
+}
