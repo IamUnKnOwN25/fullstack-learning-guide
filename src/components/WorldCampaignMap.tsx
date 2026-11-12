@@ -18,10 +18,7 @@ import {
   ArrowRight,
   Terminal,
   MapPin,
-  Trophy,
-  Flame,
   Search,
-  Filter,
   Compass,
   LayoutGrid,
   Dumbbell,
@@ -45,6 +42,41 @@ const REALM_CATEGORIES: Record<string, RealmCategory> = {
   security: "theory",
   capstone: "theory",
 };
+
+export function filterCampaignRealms<
+  T extends {
+    id?: string;
+    title?: string;
+    name?: string;
+    subtitle?: string;
+    description?: string;
+    realmName?: string;
+  }
+>(realms: T[], query: string): T[] {
+  if (!Array.isArray(realms)) return [];
+  if (!query || typeof query !== "string") return realms;
+  const q = query.trim().toLowerCase();
+  if (!q) return realms;
+
+  return realms.filter((realm) => {
+    const r = realm as {
+      id?: string;
+      title?: string;
+      name?: string;
+      subtitle?: string;
+      description?: string;
+      realmName?: string;
+    };
+    return Boolean(
+      (r.title && r.title.toLowerCase().includes(q)) ||
+      (r.name && r.name.toLowerCase().includes(q)) ||
+      (r.realmName && r.realmName.toLowerCase().includes(q)) ||
+      (r.subtitle && r.subtitle.toLowerCase().includes(q)) ||
+      (r.description && r.description.toLowerCase().includes(q)) ||
+      (r.id && r.id.toLowerCase().includes(q))
+    );
+  });
+}
 
 export function WorldCampaignMap() {
   const {
@@ -88,19 +120,13 @@ export function WorldCampaignMap() {
     return null;
   }, [completedQuests, completedBosses]);
 
-  const filteredRealms = REALMS.filter((realm) => {
-    const category = REALM_CATEGORIES[realm.id] || "theory";
-    const matchesCategory = activeCategory === "all" || category === activeCategory;
-    const query = searchQuery.trim().toLowerCase();
-    const matchesSearch =
-      query === "" ||
-      realm.title.toLowerCase().includes(query) ||
-      realm.realmName.toLowerCase().includes(query) ||
-      realm.description.toLowerCase().includes(query) ||
-      realm.id.toLowerCase().includes(query);
-
-    return matchesCategory && matchesSearch;
-  });
+  const filteredRealms = filterCampaignRealms(
+    REALMS.filter((realm) => {
+      const category = REALM_CATEGORIES[realm.id] || "theory";
+      return activeCategory === "all" || category === activeCategory;
+    }),
+    searchQuery
+  );
 
   return (
     <div className="w-full max-w-7xl mx-auto py-6 sm:py-8 px-3 sm:px-6 space-y-6 sm:space-y-8 pb-16 md:pb-8">
@@ -110,7 +136,7 @@ export function WorldCampaignMap() {
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-matrix-accent/10 border border-matrix-accent/30 text-matrix-accent text-xs font-mono font-bold">
-              <MapPin className="w-3.5 h-3.5 animate-pulse text-matrix-neonCyan" />
+              <MapPin aria-hidden="true" className="w-3.5 h-3.5 animate-pulse text-matrix-neonCyan" />
               WORLD MAP • 12 CAMPAIGN REALMS
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
@@ -125,19 +151,19 @@ export function WorldCampaignMap() {
             {/* Campaign Stats Strip */}
             <div className="flex flex-wrap items-center gap-3 pt-2 text-xs font-mono">
               <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonCyan">
-                <MapPin className="w-3.5 h-3.5" />
+                <MapPin aria-hidden="true" className="w-3.5 h-3.5" />
                 <span>Realms: {completedBosses.length}/12 Cleared</span>
               </div>
               <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-accent">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5" />
                 <span>Quests: {completedQuests.length}/24 Mastered</span>
               </div>
               <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonGold">
-                <Star className="w-3.5 h-3.5 fill-matrix-neonGold" />
+                <Star aria-hidden="true" className="w-3.5 h-3.5 fill-matrix-neonGold" />
                 <span>Stars: {totalStars}/72 ★</span>
               </div>
               <div className="px-3 py-1 rounded-lg bg-matrix-dark border border-matrix-border flex items-center gap-1.5 text-matrix-neonPurple">
-                <BookOpen className="w-3.5 h-3.5" />
+                <BookOpen aria-hidden="true" className="w-3.5 h-3.5" />
                 <span>Chapters: {completedChapters.length}/13 Mastered</span>
               </div>
             </div>
@@ -150,7 +176,7 @@ export function WorldCampaignMap() {
                 className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-matrix-accent to-matrix-neonCyan text-matrix-dark font-mono text-xs font-extrabold flex items-center justify-center gap-2 transition-all shadow-lg shadow-matrix-accent/20 hover:scale-105"
                 onClick={() => soundEngine.playSfx("click")}
               >
-                <Sparkles className="w-4 h-4 fill-matrix-dark" />
+                <Sparkles aria-hidden="true" className="w-4 h-4 fill-matrix-dark" />
                 <span>{nextCampaignTarget.label}</span>
               </Link>
             )}
@@ -160,7 +186,7 @@ export function WorldCampaignMap() {
               className="px-4 py-2.5 rounded-xl bg-matrix-neonCyan/15 hover:bg-matrix-neonCyan/25 border border-matrix-neonCyan/50 text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md whitespace-nowrap shrink-0"
               onClick={() => soundEngine.playSfx("click")}
             >
-              <Terminal className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <Terminal aria-hidden="true" className="w-4 h-4 text-matrix-neonCyan shrink-0" />
               <span>Online Matrix IDE</span>
             </Link>
 
@@ -169,7 +195,7 @@ export function WorldCampaignMap() {
               className="px-4 py-2.5 rounded-xl bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white font-mono text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md whitespace-nowrap shrink-0"
               onClick={() => soundEngine.playSfx("click")}
             >
-              <BookOpen className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <BookOpen aria-hidden="true" className="w-4 h-4 text-matrix-neonCyan shrink-0" />
               <span>Curriculum Vault</span>
             </Link>
           </div>
@@ -253,7 +279,7 @@ export function WorldCampaignMap() {
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Compass aria-hidden="true" className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Constellation</span>
             </button>
             <button
@@ -270,14 +296,14 @@ export function WorldCampaignMap() {
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid aria-hidden="true" className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Grid</span>
             </button>
           </div>
 
           {/* Quick Search Input */}
           <div className="relative sm:w-56">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
+            <Search aria-hidden="true" className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-500" />
             <div role="status" aria-live="polite" className="sr-only">
               {filteredRealms.length} {filteredRealms.length === 1 ? "realm" : "realms"} found
             </div>
@@ -287,6 +313,11 @@ export function WorldCampaignMap() {
               aria-label="Search realms and skills"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  setSearchQuery("");
+                }
+              }}
               className="w-full bg-matrix-dark border border-matrix-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none focus:border-matrix-neonCyan font-mono"
             />
           </div>
@@ -316,7 +347,7 @@ export function WorldCampaignMap() {
             />
           ) : filteredRealms.length === 0 ? (
             <div className="p-12 rounded-2xl bg-matrix-card/50 border border-dashed border-matrix-border text-center space-y-3 font-mono">
-              <Search className="w-8 h-8 text-gray-600 mx-auto" />
+              <Search aria-hidden="true" className="w-8 h-8 text-gray-600 mx-auto" />
               <h3 className="text-sm font-bold text-gray-300">No realms found</h3>
               <p className="text-xs text-gray-500">
                 No campaign realms match &ldquo;{searchQuery}&rdquo; in the selected category.
@@ -402,11 +433,11 @@ export function WorldCampaignMap() {
 
                     {isCompleted ? (
                       <span className="p-1 rounded-full bg-matrix-accent/20 text-matrix-accent">
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 aria-hidden="true" className="w-4 h-4" />
                       </span>
                     ) : !isUnlocked ? (
                       <span className="p-1 rounded-full bg-gray-800 text-gray-500">
-                        <Lock className="w-4 h-4" />
+                        <Lock aria-hidden="true" className="w-4 h-4" />
                       </span>
                     ) : null}
                   </div>
@@ -425,11 +456,11 @@ export function WorldCampaignMap() {
                       </span>
                       {isCompleted && (
                         <span className="text-matrix-neonGold ml-2 flex items-center gap-0.5">
-                          <Swords className="w-3.5 h-3.5" /> Boss Defeated
+                          <Swords aria-hidden="true" className="w-3.5 h-3.5" /> Boss Defeated
                         </span>
                       )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight aria-hidden="true" className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
                   </div>
 
                   <div
@@ -497,7 +528,7 @@ export function WorldCampaignMap() {
                     className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-matrix-dark transition-colors cursor-pointer"
                     title="Close Realm Inspector"
                   >
-                    <X className="w-4 h-4" />
+                    <X aria-hidden="true" className="w-4 h-4" />
                   </button>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-white mb-2.5 tracking-tight">
@@ -511,7 +542,7 @@ export function WorldCampaignMap() {
                   <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs space-y-2 mb-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 font-bold">
-                        <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <Lock aria-hidden="true" className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>Campaign Requirement: Level {selectedRealm.requiredLevel}</span>
                       </div>
                       <button
@@ -534,7 +565,7 @@ export function WorldCampaignMap() {
                     onClick={() => soundEngine.playSfx("click")}
                     className="py-2 px-2.5 rounded-xl bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border hover:border-matrix-neonCyan text-matrix-neonCyan font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
-                    <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                    <BookOpen aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />
                     <span>Guide</span>
                   </Link>
 
@@ -543,7 +574,7 @@ export function WorldCampaignMap() {
                     onClick={() => soundEngine.playSfx("click")}
                     className="py-2 px-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
-                    <Dumbbell className="w-3.5 h-3.5 shrink-0" />
+                    <Dumbbell aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />
                     <span>Warm-Up Drill</span>
                   </Link>
 
@@ -552,7 +583,7 @@ export function WorldCampaignMap() {
                     onClick={() => soundEngine.playSfx("click")}
                     className="py-2 px-2.5 rounded-xl bg-matrix-neonPurple/15 hover:bg-matrix-neonPurple/25 border border-matrix-neonPurple/50 text-matrix-neonPurple font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
-                    <Terminal className="w-3.5 h-3.5 shrink-0" />
+                    <Terminal aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />
                     <span>Open IDE</span>
                   </Link>
                 </div>
@@ -602,6 +633,7 @@ export function WorldCampaignMap() {
                             <span className="flex items-center gap-0.5" title={`${stars[quest.id] || 3}/3 Stars`}>
                               {[1, 2, 3].map((s) => (
                                 <Star
+                                  aria-hidden="true"
                                   key={s}
                                   className={`w-3 h-3 ${
                                     s <= (stars[quest.id] || 3)
@@ -612,7 +644,7 @@ export function WorldCampaignMap() {
                               ))}
                             </span>
                           )}
-                          <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                          <ArrowRight aria-hidden="true" className="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                       </Link>
                     );
@@ -626,7 +658,7 @@ export function WorldCampaignMap() {
                   <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/40 to-matrix-dark border border-matrix-neonRed/40 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-matrix-neonRed font-mono text-xs font-bold">
-                        <Swords className="w-4 h-4 animate-bounce" />
+                        <Swords aria-hidden="true" className="w-4 h-4 animate-bounce" />
                         REALM GUARDIAN
                       </div>
                       {completedBosses.includes(selectedRealm.id) && (
@@ -650,7 +682,7 @@ export function WorldCampaignMap() {
                       onClick={() => soundEngine.playSfx("attack")}
                       className="w-full py-2.5 px-4 rounded-lg bg-matrix-neonRed hover:bg-red-600 text-white font-mono text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-900/30 transition-all cursor-pointer"
                     >
-                      <Swords className="w-4 h-4" />
+                      <Swords aria-hidden="true" className="w-4 h-4" />
                       Engage Boss Battle (+{BOSSES[selectedRealm.id].xpReward} XP)
                     </Link>
                   </div>

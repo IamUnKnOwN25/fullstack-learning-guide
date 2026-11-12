@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { WorldCampaignMap } from "../components/WorldCampaignMap";
+import { WorldCampaignMap, filterCampaignRealms } from "../components/WorldCampaignMap";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 import { REALMS } from "../data/realms";
@@ -289,5 +289,113 @@ describe("WorldCampaignMap Component", () => {
     // Reset via empty input
     fireEvent.change(searchInput, { target: { value: "" } });
     expect(liveRegion.textContent).toBe("12 realms found");
+  });
+
+  it("clears search query when Escape is pressed inside search input", () => {
+    render(<WorldCampaignMap />);
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /search realms and skills/i,
+    });
+    fireEvent.change(searchInput, { target: { value: "sanctuary" } });
+    expect((searchInput as HTMLInputElement).value).toBe("sanctuary");
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
+    expect((searchInput as HTMLInputElement).value).toBe("");
+  });
+
+  it("marks decorative icons in toolbar, cards, and inspector with aria-hidden='true'", () => {
+    const { container } = render(<WorldCampaignMap />);
+
+    // Switch to grid view so cards are rendered directly
+    const gridBtn = screen.getByRole("button", { name: /switch to grid view/i });
+    fireEvent.click(gridBtn);
+
+    // Verify icons inside buttons/badges have aria-hidden="true"
+    const compassIcon = gridBtn.parentElement?.querySelector("svg");
+    expect(compassIcon?.getAttribute("aria-hidden")).toBe("true");
+
+    const searchIcon = container.querySelector(".relative.sm\\:w-56 svg");
+    expect(searchIcon?.getAttribute("aria-hidden")).toBe("true");
+
+    // Close button icon in inspector
+    const closeBtn = screen.getByRole("button", { name: /close realm inspector/i });
+    const closeIcon = closeBtn.querySelector("svg");
+    expect(closeIcon?.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
+describe("filterCampaignRealms helper", () => {
+  const sampleRealms = [
+    {
+      id: "html",
+      title: "HTML5 & Web Semantics",
+      realmName: "The Ruined Foundations",
+      description: "Structural bones of the matrix",
+    },
+    {
+      id: "css",
+      title: "CSS, Flexbox & Grid",
+      realmName: "The Citadel of Styles",
+      description: "Responsive layouts and utility spells",
+    },
+    {
+      id: "node",
+      name: "Node.js Server Architecture",
+      subtitle: "Backend Services",
+      description: "Express APIs and async I/O",
+    },
+  ];
+
+  it("returns all items when query is empty, whitespace, or undefined", () => {
+    expect(filterCampaignRealms(sampleRealms, "")).toEqual(sampleRealms);
+    expect(filterCampaignRealms(sampleRealms, "   ")).toEqual(sampleRealms);
+    expect(filterCampaignRealms(sampleRealms, undefined as unknown as string)).toEqual(sampleRealms);
+  });
+
+  it("filters case-insensitively by title", () => {
+    const result = filterCampaignRealms(sampleRealms, "html5");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("html");
+  });
+
+  it("filters case-insensitively by name", () => {
+    const result = filterCampaignRealms(sampleRealms, "node.js");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("node");
+  });
+
+  it("filters case-insensitively by realmName", () => {
+    const result = filterCampaignRealms(sampleRealms, "citadel");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("css");
+  });
+
+  it("filters case-insensitively by subtitle", () => {
+    const result = filterCampaignRealms(sampleRealms, "backend services");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("node");
+  });
+
+  it("filters case-insensitively by description", () => {
+    const result = filterCampaignRealms(sampleRealms, "structural bones");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("html");
+  });
+
+  it("filters case-insensitively by id", () => {
+    const result = filterCampaignRealms(sampleRealms, "css");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("css");
+  });
+
+  it("returns empty array when query does not match any property", () => {
+    const result = filterCampaignRealms(sampleRealms, "quantum computing");
+    expect(result).toEqual([]);
+  });
+
+  it("safely handles non-array or empty array inputs", () => {
+    expect(filterCampaignRealms([], "test")).toEqual([]);
+    expect(filterCampaignRealms(null as unknown as typeof sampleRealms, "test")).toEqual([]);
   });
 });
