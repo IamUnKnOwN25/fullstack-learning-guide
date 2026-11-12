@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
-import { useSpeedrunTimer, formatSpeedrunTime, formatSpeedrunTimeWithMs, MAX_SPEEDRUN_SPLITS } from "../lib/speedrunTimer";
+import { useSpeedrunTimer, formatSpeedrunTime, formatSpeedrunTimeWithMs, MAX_SPEEDRUN_SPLITS, compareSplitPace, formatSpeedrunDiff, getSpeedrunStats } from "../lib/speedrunTimer";
 
 describe("speedrunTimer", () => {
   beforeEach(() => {
@@ -66,6 +66,171 @@ describe("speedrunTimer", () => {
     it("handles negative and invalid values for formatSpeedrunTimeWithMs", () => {
       expect(formatSpeedrunTimeWithMs(-100)).toBe("00:00.000");
       expect(formatSpeedrunTimeWithMs(NaN)).toBe("00:00.000");
+    });
+  });
+
+  describe("compareSplitPace", () => {
+    it("returns first-run with deltaMs null when personalBestMs is null, undefined, or <= 0", () => {
+      expect(compareSplitPace(5000, null)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(5000, undefined)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(5000, 0)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(5000, -100)).toEqual({ deltaMs: null, status: "first-run" });
+    });
+
+    it("returns first-run when personalBestMs or currentMs is NaN, non-finite, or invalid", () => {
+      expect(compareSplitPace(5000, NaN)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(5000, Infinity)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(NaN, 5000)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(-100, 5000)).toEqual({ deltaMs: null, status: "first-run" });
+      expect(compareSplitPace(null as any, 5000)).toEqual({ deltaMs: null, status: "first-run" });
+    });
+
+    it("identifies ahead status when current time is faster than personal best", () => {
+      const result = compareSplitPace(1500, 2000);
+      expect(result).toEqual({ deltaMs: -500, status: "ahead" });
+    });
+
+    it("identifies behind status when current time is slower than personal best", () => {
+      const result = compareSplitPace(2500, 2000);
+      expect(result).toEqual({ deltaMs: 500, status: "behind" });
+    });
+
+    it("identifies even status when current time matches personal best exactly", () => {
+      const result = compareSplitPace(2000, 2000);
+      expect(result).toEqual({ deltaMs: 0, status: "even" });
+    });
+
+    it("correctly handles 0ms current split pace against a positive personal best", () => {
+      const result = compareSplitPace(0, 5000);
+      expect(result).toEqual({ deltaMs: -5000, status: "ahead" });
+    });
+  });
+
+  describe("formatSpeedrunDiff", () => {
+    it("formats negative delta with minus sign and centisecond precision", () => {
+      expect(formatSpeedrunDiff(-1250)).toBe("-00:01.25");
+      expect(formatSpeedrunDiff(-500)).toBe("-00:00.50");
+      expect(formatSpeedrunDiff(-65250)).toBe("-01:05.25");
+    });
+
+    it("formats positive delta with plus sign and centisecond precision", () => {
+      expect(formatSpeedrunDiff(2500)).toBe("+00:02.50");
+      expect(formatSpeedrunDiff(100)).toBe("+00:00.10");
+      expect(formatSpeedrunDiff(60000)).toBe("+01:00.00");
+    });
+
+    it("formats zero delta with plus-minus sign", () => {
+      expect(formatSpeedrunDiff(0)).toBe("±00:00.00");
+      expect(formatSpeedrunDiff(-0)).toBe("±00:00.00");
+    });
+
+    it("handles large delta exceeding one hour with HH:MM:SS.CC format", () => {
+      expect(formatSpeedrunDiff(3600000)).toBe("+01:00:00.00");
+      expect(formatSpeedrunDiff(-3661250)).toBe("-01:01:01.25");
+      expect(formatSpeedrunDiff(7200500)).toBe("+02:00:00.50");
+    });
+
+    it("safely handles non-finite and invalid values", () => {
+      expect(formatSpeedrunDiff(NaN)).toBe("±00:00.00");
+      expect(formatSpeedrunDiff(Infinity)).toBe("±00:00.00");
+      expect(formatSpeedrunDiff(-Infinity)).toBe("±00:00.00");
+      expect(formatSpeedrunDiff(null as any)).toBe("±00:00.00");
+    });
+  });
+
+  describe("getSpeedrunStats", () => {
+    it("returns zeroed stats with fastestTimeMs null for empty records", () => {
+      const stats = getSpeedrunStats({});
+      expect(stats).toEqual({
+        completedQuests: 0,
+        totalTimeMs: 0,
+        averageTimeMs: 0,
+        fastestTimeMs: null,
+      });
+    });
+
+    it("handles null, undefined, and non-object inputs safely", () => {
+      expect(getSpeedrunStats(null as any)).toEqual({
+        completedQuests: 0,
+        totalTimeMs: 0,
+        averageTimeMs: 0,
+        fastestTimeMs: null,
+      });
+      expect(getSpeedrunStats(undefined as any)).toEqual({
+        completedQuests: 0,
+        totalTimeMs: 0,
+        averageTimeMs: 0,
+        fastestTimeMs: null,
+      });
+      expect(getSpeedrunStats("invalid" as any)).toEqual({
+        completedQuests: 0,
+        totalTimeMs: 0,
+        averageTimeMs: 0,
+        fastestTimeMs: null,
+      });
+    });
+
+    it("aggregates single quest record accurately", () => {
+      const stats = getSpeedrunStats({ "quest-1": 12000 });
+      expect(stats).toEqual({
+        completedQuests: 1,
+        totalTimeMs: 12000,
+        averageTimeMs: 12000,
+        fastestTimeMs: 12000,
+      });
+    });
+
+    it("aggregates multiple quest records, finding total, average, and fastest times", () => {
+      const stats = getSpeedrunStats({
+        "quest-intro": 10000,
+        "quest-html": 20000,
+        "quest-css": 15000,
+      });
+      expect(stats).toEqual({
+        completedQuests: 3,
+        totalTimeMs: 45000,
+        averageTimeMs: 15000,
+        fastestTimeMs: 10000,
+      });
+    });
+
+    it("filters out non-positive, non-finite, and invalid times", () => {
+      const stats = getSpeedrunStats({
+        "quest-valid-1": 5000,
+        "quest-zero": 0,
+        "quest-neg": -500,
+        "quest-nan": NaN,
+        "quest-inf": Infinity,
+        "quest-valid-2": 15000,
+      });
+      expect(stats).toEqual({
+        completedQuests: 2,
+        totalTimeMs: 20000,
+        averageTimeMs: 10000,
+        fastestTimeMs: 5000,
+      });
+    });
+
+    it("returns zeroed stats if all entries are non-positive or invalid", () => {
+      const stats = getSpeedrunStats({
+        "quest-1": 0,
+        "quest-2": -100,
+        "quest-3": NaN,
+      });
+      expect(stats).toEqual({
+        completedQuests: 0,
+        totalTimeMs: 0,
+        averageTimeMs: 0,
+        fastestTimeMs: null,
+      });
+    });
+
+    it("rounds averageTimeMs to the nearest whole integer millisecond", () => {
+      const stats = getSpeedrunStats({
+        "quest-a": 1000,
+        "quest-b": 2001,
+      });
+      expect(stats.averageTimeMs).toBe(1501);
     });
   });
 

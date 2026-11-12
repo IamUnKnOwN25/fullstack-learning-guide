@@ -74,6 +74,105 @@ export const formatSpeedrunTimeWithMs = (ms: number): string => {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 };
 
+export type SplitPaceStatus = "ahead" | "behind" | "even" | "first-run";
+
+export interface SplitPaceComparison {
+  deltaMs: number | null;
+  status: SplitPaceStatus;
+}
+
+export const compareSplitPace = (
+  currentMs: number,
+  personalBestMs: number | null | undefined
+): { deltaMs: number | null; status: "ahead" | "behind" | "even" | "first-run" } => {
+  if (
+    typeof personalBestMs !== "number" ||
+    !Number.isFinite(personalBestMs) ||
+    personalBestMs <= 0 ||
+    typeof currentMs !== "number" ||
+    !Number.isFinite(currentMs) ||
+    currentMs < 0
+  ) {
+    return { deltaMs: null, status: "first-run" };
+  }
+
+  const deltaMs = currentMs - personalBestMs;
+  if (deltaMs < 0) {
+    return { deltaMs, status: "ahead" };
+  }
+  if (deltaMs > 0) {
+    return { deltaMs, status: "behind" };
+  }
+  return { deltaMs: 0, status: "even" };
+};
+
+export const formatSpeedrunDiff = (deltaMs: number): string => {
+  if (typeof deltaMs !== "number" || !Number.isFinite(deltaMs) || deltaMs === 0) {
+    return "±00:00.00";
+  }
+  const sign = deltaMs < 0 ? "-" : "+";
+  const absMs = Math.abs(deltaMs);
+  const totalCentis = Math.floor(absMs / 10);
+  const centis = totalCentis % 100;
+  const totalSeconds = Math.floor(totalCentis / 100);
+
+  if (absMs >= 3600000) {
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(centis).padStart(2, "0")}`;
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${sign}${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(centis).padStart(2, "0")}`;
+};
+
+export interface SpeedrunStats {
+  completedQuests: number;
+  totalTimeMs: number;
+  averageTimeMs: number;
+  fastestTimeMs: number | null;
+}
+
+export const getSpeedrunStats = (
+  records: Record<string, number>
+): { completedQuests: number; totalTimeMs: number; averageTimeMs: number; fastestTimeMs: number | null } => {
+  if (!records || typeof records !== "object") {
+    return {
+      completedQuests: 0,
+      totalTimeMs: 0,
+      averageTimeMs: 0,
+      fastestTimeMs: null,
+    };
+  }
+
+  const validTimes = Object.values(records).filter(
+    (time): time is number => typeof time === "number" && Number.isFinite(time) && time > 0
+  );
+
+  if (validTimes.length === 0) {
+    return {
+      completedQuests: 0,
+      totalTimeMs: 0,
+      averageTimeMs: 0,
+      fastestTimeMs: null,
+    };
+  }
+
+  const completedQuests = validTimes.length;
+  const totalTimeMs = validTimes.reduce((acc, t) => acc + t, 0);
+  const averageTimeMs = Math.round(totalTimeMs / completedQuests);
+  const fastestTimeMs = Math.min(...validTimes);
+
+  return {
+    completedQuests,
+    totalTimeMs,
+    averageTimeMs,
+    fastestTimeMs,
+  };
+};
+
 export const useSpeedrunTimer = create<SpeedrunState & SpeedrunActions>()(
   persist(
     (set, get) => ({
