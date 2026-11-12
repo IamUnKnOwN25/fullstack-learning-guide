@@ -5,7 +5,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { LeaderboardModal } from "../components/LeaderboardModal";
+import { LeaderboardModal, formatLeaderboardRankBadge } from "../components/LeaderboardModal";
 import { useAuthStore } from "../lib/authStore";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -302,13 +302,13 @@ describe("LeaderboardModal Component", () => {
     expect(bossesTab.id).toBe("leaderboard-tab-bosses");
     expect(curriculumTab.id).toBe("leaderboard-tab-curriculum");
 
-    expect(xpTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
-    expect(starsTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
-    expect(bossesTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
-    expect(curriculumTab.getAttribute("aria-controls")).toBe("leaderboard-standings-panel");
+    expect(xpTab.getAttribute("aria-controls")).toBe("leaderboard-tabpanel");
+    expect(starsTab.getAttribute("aria-controls")).toBe("leaderboard-tabpanel");
+    expect(bossesTab.getAttribute("aria-controls")).toBe("leaderboard-tabpanel");
+    expect(curriculumTab.getAttribute("aria-controls")).toBe("leaderboard-tabpanel");
 
     const tabpanel = screen.getByRole("tabpanel");
-    expect(tabpanel.id).toBe("leaderboard-standings-panel");
+    expect(tabpanel.id).toBe("leaderboard-tabpanel");
     expect(tabpanel.getAttribute("aria-labelledby")).toBe("leaderboard-tab-xp");
 
     fireEvent.click(starsTab);
@@ -369,5 +369,54 @@ describe("LeaderboardModal Component", () => {
     // Reset query
     fireEvent.change(searchInput, { target: { value: "" } });
     expect(statusRegion.textContent?.trim()).toBe("11 operatives found");
+  });
+
+  it("removes keydown event listener on unmount", () => {
+    const removeEventListenerSpy = vi.spyOn(window, "removeEventListener");
+    const { unmount } = render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+    unmount();
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+  });
+
+  it("marks decorative modal icons with aria-hidden", () => {
+    const { container } = render(
+      <LeaderboardModal
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+
+    const hiddenIcons = container.querySelectorAll("svg[aria-hidden='true']");
+    expect(hiddenIcons.length).toBeGreaterThanOrEqual(6);
+  });
+
+  describe("formatLeaderboardRankBadge", () => {
+    it("returns gold tier for rank 1", () => {
+      expect(formatLeaderboardRankBadge(1)).toEqual({ label: "1", tier: "gold" });
+    });
+
+    it("returns silver tier for rank 2", () => {
+      expect(formatLeaderboardRankBadge(2)).toEqual({ label: "2", tier: "silver" });
+    });
+
+    it("returns bronze tier for rank 3", () => {
+      expect(formatLeaderboardRankBadge(3)).toEqual({ label: "3", tier: "bronze" });
+    });
+
+    it("returns standard tier with hash prefix for ranks greater than 3", () => {
+      expect(formatLeaderboardRankBadge(4)).toEqual({ label: "#4", tier: "standard" });
+      expect(formatLeaderboardRankBadge(42)).toEqual({ label: "#42", tier: "standard" });
+    });
+
+    it("handles fallback and decimal values safely", () => {
+      expect(formatLeaderboardRankBadge(1.9)).toEqual({ label: "1", tier: "gold" });
+      expect(formatLeaderboardRankBadge(0)).toEqual({ label: "#0", tier: "standard" });
+      expect(formatLeaderboardRankBadge(NaN)).toEqual({ label: "#0", tier: "standard" });
+    });
   });
 });

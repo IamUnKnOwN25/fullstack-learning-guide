@@ -30,6 +30,19 @@ interface Props {
 
 type LeaderboardTab = "xp" | "stars" | "bosses" | "curriculum";
 
+export interface LeaderboardRankBadge {
+  label: string;
+  tier: "gold" | "silver" | "bronze" | "standard";
+}
+
+export function formatLeaderboardRankBadge(rank: number): LeaderboardRankBadge {
+  const safeRank = Number.isFinite(rank) ? Math.floor(rank) : 0;
+  if (safeRank === 1) return { label: "1", tier: "gold" };
+  if (safeRank === 2) return { label: "2", tier: "silver" };
+  if (safeRank === 3) return { label: "3", tier: "bronze" };
+  return { label: `#${safeRank}`, tier: "standard" };
+}
+
 export function LeaderboardModal({
   isOpen,
   onClose,
@@ -152,7 +165,7 @@ export function LeaderboardModal({
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-matrix-border bg-matrix-dark/80 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-matrix-neonGold/20 border border-matrix-neonGold/40 flex items-center justify-center text-matrix-neonGold shrink-0">
-              <Trophy className="w-5 h-5 animate-bounce" />
+              <Trophy className="w-5 h-5 animate-bounce" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
@@ -177,7 +190,7 @@ export function LeaderboardModal({
             className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-matrix-border/50 transition-colors shrink-0 cursor-pointer"
             title="Close (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -192,7 +205,7 @@ export function LeaderboardModal({
               type="button"
               role="tab"
               id="leaderboard-tab-xp"
-              aria-controls="leaderboard-standings-panel"
+              aria-controls="leaderboard-tabpanel"
               aria-selected={activeTab === "xp"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -204,7 +217,7 @@ export function LeaderboardModal({
                   : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
               }`}
             >
-              <Crown className="w-3.5 h-3.5" />
+              <Crown className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Global Power (XP)</span>
             </button>
 
@@ -212,7 +225,7 @@ export function LeaderboardModal({
               type="button"
               role="tab"
               id="leaderboard-tab-stars"
-              aria-controls="leaderboard-standings-panel"
+              aria-controls="leaderboard-tabpanel"
               aria-selected={activeTab === "stars"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -224,7 +237,7 @@ export function LeaderboardModal({
                   : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
               }`}
             >
-              <Star className="w-3.5 h-3.5" />
+              <Star className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Quest Stars</span>
             </button>
 
@@ -232,7 +245,7 @@ export function LeaderboardModal({
               type="button"
               role="tab"
               id="leaderboard-tab-bosses"
-              aria-controls="leaderboard-standings-panel"
+              aria-controls="leaderboard-tabpanel"
               aria-selected={activeTab === "bosses"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -244,7 +257,7 @@ export function LeaderboardModal({
                   : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
               }`}
             >
-              <Sword className="w-3.5 h-3.5" />
+              <Sword className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Boss Rush</span>
             </button>
 
@@ -252,7 +265,7 @@ export function LeaderboardModal({
               type="button"
               role="tab"
               id="leaderboard-tab-curriculum"
-              aria-controls="leaderboard-standings-panel"
+              aria-controls="leaderboard-tabpanel"
               aria-selected={activeTab === "curriculum"}
               onClick={() => {
                 soundEngine.playSfx("click");
@@ -264,13 +277,13 @@ export function LeaderboardModal({
                   : "bg-matrix-card border-matrix-border text-gray-400 hover:text-white"
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Curriculum</span>
             </button>
           </div>
 
           <div className="relative w-full sm:w-48">
-            <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
             <div role="status" aria-live="polite" className="sr-only">
               {filteredEntries.length} {filteredEntries.length === 1 ? "operative" : "operatives"} found
             </div>
@@ -290,7 +303,7 @@ export function LeaderboardModal({
           <div className="mx-3 sm:mx-5 mt-3 p-3.5 rounded-2xl bg-matrix-card/90 border border-matrix-neonGold/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-lg shadow-matrix-neonGold/5">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-matrix-neonGold/15 border border-matrix-neonGold/30 flex items-center justify-center text-matrix-neonGold shrink-0">
-                <Lock className="w-4 h-4 animate-pulse" />
+                <Lock className="w-4 h-4 animate-pulse" aria-hidden="true" />
               </div>
               <div>
                 <h4 className="font-bold text-xs text-white uppercase tracking-wider">
@@ -311,7 +324,7 @@ export function LeaderboardModal({
                 }}
                 className="px-3.5 py-1.5 rounded-xl bg-matrix-neonGold text-matrix-dark font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1.5 shadow-md shadow-matrix-neonGold/20 cursor-pointer"
               >
-                <LogIn className="w-3.5 h-3.5" />
+                <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Sign In to Rank</span>
               </button>
             )}
@@ -321,7 +334,7 @@ export function LeaderboardModal({
         {/* Leaderboard Table */}
         <div
           role="tabpanel"
-          id="leaderboard-standings-panel"
+          id="leaderboard-tabpanel"
           aria-labelledby={`leaderboard-tab-${activeTab}`}
           aria-label="Leaderboard standings"
           className="p-3 sm:p-5 overflow-y-auto space-y-2 flex-1"
@@ -329,7 +342,7 @@ export function LeaderboardModal({
           {filteredEntries.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-3">
               <div className="w-12 h-12 mx-auto rounded-2xl bg-matrix-card border border-matrix-border flex items-center justify-center text-gray-500">
-                <Search className="w-6 h-6 text-gray-400" />
+                <Search className="w-6 h-6 text-gray-400" aria-hidden="true" />
               </div>
               <div className="text-sm font-bold text-gray-300">
                 No operatives found
@@ -343,9 +356,10 @@ export function LeaderboardModal({
           ) : (
             <div role="list" aria-label="Operative standings" className="space-y-2">
               {filteredEntries.map((entry) => {
-              const isTop1 = entry.rank === 1;
-              const isTop2 = entry.rank === 2;
-              const isTop3 = entry.rank === 3;
+              const badge = formatLeaderboardRankBadge(entry.rank);
+              const isTop1 = badge.tier === "gold";
+              const isTop2 = badge.tier === "silver";
+              const isTop3 = badge.tier === "bronze";
               const isYou = entry.isCurrentUser;
               const isClassified = !isAuthenticated && !isYou && entry.rank > 3;
 
@@ -380,10 +394,11 @@ export function LeaderboardModal({
                           : "bg-matrix-card border border-matrix-border text-gray-400"
                       }`}
                     >
-                      {isTop1 ? "1" : isTop2 ? "2" : isTop3 ? "3" : `#${entry.rank}`}
+                      {badge.label}
                     </div>
 
                     <div
+                      aria-hidden="true"
                       className={`w-9 h-9 rounded-xl border flex items-center justify-center text-lg shrink-0 ${entry.avatarBorder} bg-gradient-to-br ${entry.avatarBg}`}
                     >
                       {isClassified ? "👤" : entry.avatarEmoji}
@@ -426,7 +441,7 @@ export function LeaderboardModal({
                   <div className="shrink-0 text-right font-mono">
                     {isClassified ? (
                       <div className="text-xs font-bold text-gray-500 flex items-center justify-end gap-1">
-                        <Lock className="w-3 h-3 text-matrix-neonGold" />
+                        <Lock className="w-3 h-3 text-matrix-neonGold" aria-hidden="true" />
                         <span>CLASSIFIED</span>
                       </div>
                     ) : activeTab === "xp" ? (
@@ -439,7 +454,7 @@ export function LeaderboardModal({
                     ) : activeTab === "stars" ? (
                       <div>
                         <div className="text-xs font-bold text-yellow-400 flex items-center justify-end gap-1">
-                          <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                          <Star className="w-3.5 h-3.5 fill-yellow-400" aria-hidden="true" />
                           <span>{entry.stars} ★</span>
                         </div>
                         <div className="text-[10px] text-gray-400">Perfect Clears</div>
@@ -447,7 +462,7 @@ export function LeaderboardModal({
                     ) : activeTab === "bosses" ? (
                       <div>
                         <div className="text-xs font-bold text-matrix-accent flex items-center justify-end gap-1">
-                          <Sword className="w-3.5 h-3.5" />
+                          <Sword className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>{entry.bossesSlain} / 12</span>
                         </div>
                         <div className="text-[10px] text-gray-400">Boss Trophies</div>
@@ -473,7 +488,7 @@ export function LeaderboardModal({
           {!isAuthenticated ? (
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-matrix-dark border border-matrix-border flex items-center justify-center text-gray-500 font-bold">
-                <Lock className="w-3.5 h-3.5 text-matrix-neonGold" />
+                <Lock className="w-3.5 h-3.5 text-matrix-neonGold" aria-hidden="true" />
               </div>
               <div>
                 <span className="text-gray-400">Status: </span>
@@ -510,7 +525,7 @@ export function LeaderboardModal({
                 }}
                 className="px-3 py-1.5 rounded-lg bg-matrix-neonGold text-matrix-dark font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <LogIn className="w-3.5 h-3.5" />
+                <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Sign In to Rank</span>
               </button>
             ) : onOpenProfile ? (
