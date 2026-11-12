@@ -5,7 +5,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
-import { AuthModal } from "../components/AuthModal";
+import { AuthModal, validateAuthFormInput } from "../components/AuthModal";
 import { useAuthStore, AVATAR_OPTIONS } from "../lib/authStore";
 import { soundEngine } from "../lib/soundEngine";
 
@@ -244,5 +244,163 @@ describe("AuthModal Component", () => {
     expect(soundEngine.playSfx).toHaveBeenCalledWith("victory");
     expect(mockOnClose).toHaveBeenCalledTimes(1);
     expect(useAuthStore.getState().currentUser?.username).toBe("cyber_ghost");
+  });
+
+  describe("validateAuthFormInput", () => {
+    it("validates username presence across all modes", () => {
+      expect(validateAuthFormInput("login", "")).toEqual({
+        valid: false,
+        error: "Username is required.",
+      });
+      expect(validateAuthFormInput("register", "   ")).toEqual({
+        valid: false,
+        error: "Username is required.",
+      });
+      expect(validateAuthFormInput("switch", "")).toEqual({
+        valid: false,
+        error: "Username is required.",
+      });
+    });
+
+    it("enforces minimum alphanumeric length on username", () => {
+      expect(validateAuthFormInput("login", "ab", "secret123")).toEqual({
+        valid: false,
+        error: "Username must be at least 3 alphanumeric characters.",
+      });
+      expect(validateAuthFormInput("register", "!@#", "secret123")).toEqual({
+        valid: false,
+        error: "Username must be at least 3 alphanumeric characters.",
+      });
+    });
+
+    it("requires at least 4 characters passphrase in login and register modes", () => {
+      expect(validateAuthFormInput("login", "operator_one")).toEqual({
+        valid: false,
+        error: "Passphrase must be at least 4 characters.",
+      });
+      expect(validateAuthFormInput("login", "operator_one", "123")).toEqual({
+        valid: false,
+        error: "Passphrase must be at least 4 characters.",
+      });
+      expect(validateAuthFormInput("register", "operator_one", "123")).toEqual({
+        valid: false,
+        error: "Passphrase must be at least 4 characters.",
+      });
+    });
+
+    it("passes for valid login and register inputs", () => {
+      expect(validateAuthFormInput("login", "operator_one", "secret123")).toEqual({
+        valid: true,
+        error: null,
+      });
+      expect(validateAuthFormInput("register", "operator_one", "secret123")).toEqual({
+        valid: true,
+        error: null,
+      });
+    });
+
+    it("allows switch mode without pin when username is valid", () => {
+      expect(validateAuthFormInput("switch", "operator_one")).toEqual({
+        valid: true,
+        error: null,
+      });
+    });
+  });
+
+  describe("Accessibility & Keyboard Navigation", () => {
+    it("links tabs to role='tabpanel' with aria-controls and aria-labelledby", () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />);
+
+      const tabpanel = screen.getByRole("tabpanel");
+      expect(tabpanel).toBeDefined();
+      expect(tabpanel.getAttribute("id")).toBe("auth-modal-tabpanel");
+      expect(tabpanel.getAttribute("aria-labelledby")).toBe("auth-tab-login");
+
+      const signInTab = screen.getByRole("tab", { name: /Sign In/i });
+      const newCadetTab = screen.getByRole("tab", { name: /New Cadet/i });
+
+      expect(signInTab.getAttribute("aria-controls")).toBe("auth-modal-tabpanel");
+      expect(newCadetTab.getAttribute("aria-controls")).toBe("auth-modal-tabpanel");
+      expect(signInTab.getAttribute("id")).toBe("auth-tab-login");
+      expect(newCadetTab.getAttribute("id")).toBe("auth-tab-signup");
+    });
+
+    it("navigates tabs using ArrowRight and ArrowLeft keyboard keys", () => {
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />);
+
+      const signInTab = screen.getByRole("tab", { name: /Sign In/i });
+      const newCadetTab = screen.getByRole("tab", { name: /New Cadet/i });
+      const tablist = screen.getByRole("tablist", { name: "Authentication modes" });
+
+      expect(signInTab.getAttribute("aria-selected")).toBe("true");
+
+      // Press ArrowRight to move to New Cadet
+      fireEvent.keyDown(tablist, { key: "ArrowRight" });
+      expect(newCadetTab.getAttribute("aria-selected")).toBe("true");
+      expect(signInTab.getAttribute("aria-selected")).toBe("false");
+      expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+
+      // Press ArrowRight again to wrap around to Sign In
+      fireEvent.keyDown(tablist, { key: "ArrowRight" });
+      expect(signInTab.getAttribute("aria-selected")).toBe("true");
+      expect(newCadetTab.getAttribute("aria-selected")).toBe("false");
+
+      // Press ArrowLeft to wrap backwards to New Cadet
+      fireEvent.keyDown(tablist, { key: "ArrowLeft" });
+      expect(newCadetTab.getAttribute("aria-selected")).toBe("true");
+    });
+
+    it("supports 3-way arrow navigation when saved accounts exist", () => {
+      useAuthStore.setState({
+        accounts: {
+          cadet_one: {
+            profile: {
+              id: "c1",
+              username: "cadet_one",
+              displayName: "Cadet One",
+              avatarId: "neon-hacker",
+              customBio: "",
+              title: "Initiate",
+              joinedAt: new Date().toISOString(),
+              isGuest: false,
+              showcaseBadgeId: "badge1",
+            },
+            passHash: "hash",
+          },
+        },
+      });
+
+      render(<AuthModal isOpen={true} onClose={mockOnClose} />);
+
+      const tablist = screen.getByRole("tablist", { name: "Authentication modes" });
+      const signInTab = screen.getByRole("tab", { name: /Sign In/i });
+      const newCadetTab = screen.getByRole("tab", { name: /New Cadet/i });
+      const accountsTab = screen.getByRole("tab", { name: /Accounts/i });
+
+      expect(signInTab.getAttribute("aria-selected")).toBe("true");
+
+      // ArrowRight: Sign In -> New Cadet
+      fireEvent.keyDown(signInTab, { key: "ArrowRight" });
+      expect(newCadetTab.getAttribute("aria-selected")).toBe("true");
+
+      // ArrowRight: New Cadet -> Accounts
+      fireEvent.keyDown(newCadetTab, { key: "ArrowRight" });
+      expect(accountsTab.getAttribute("aria-selected")).toBe("true");
+
+      // ArrowRight: Accounts -> Sign In (wraparound)
+      fireEvent.keyDown(accountsTab, { key: "ArrowRight" });
+      expect(signInTab.getAttribute("aria-selected")).toBe("true");
+
+      // ArrowLeft: Sign In -> Accounts (backwards wraparound)
+      fireEvent.keyDown(signInTab, { key: "ArrowLeft" });
+      expect(accountsTab.getAttribute("aria-selected")).toBe("true");
+    });
+
+    it("marks decorative icons with aria-hidden='true'", () => {
+      const { container } = render(<AuthModal isOpen={true} onClose={mockOnClose} />);
+
+      const hiddenSvgs = container.querySelectorAll("svg[aria-hidden='true']");
+      expect(hiddenSvgs.length).toBeGreaterThanOrEqual(4);
+    });
   });
 });

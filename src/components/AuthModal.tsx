@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
+import { useAuthStore, AVATAR_OPTIONS, validateUsername, validatePassphrase } from "@/lib/authStore";
 import { soundEngine } from "@/lib/soundEngine";
 import {
   X,
@@ -20,6 +20,29 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: "login" | "signup";
+}
+
+export function validateAuthFormInput(
+  mode: "login" | "register" | "switch",
+  username: string,
+  pin?: string
+): { valid: boolean; error: string | null } {
+  if (!username || !username.trim()) {
+    return { valid: false, error: "Username is required." };
+  }
+  const userValidation = validateUsername(username);
+  if (!userValidation.valid) {
+    return {
+      valid: false,
+      error: userValidation.message || "Username must be at least 3 alphanumeric characters.",
+    };
+  }
+  if (mode === "login" || mode === "register") {
+    if (!pin || pin.length < 4) {
+      return { valid: false, error: "Passphrase must be at least 4 characters." };
+    }
+  }
+  return { valid: true, error: null };
 }
 
 export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
@@ -51,6 +74,33 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
   if (!isOpen) return null;
 
   const savedAccountList = Object.values(accounts || {});
+
+  const availableModes: ("login" | "signup" | "accounts")[] =
+    savedAccountList.length > 0 ? ["login", "signup", "accounts"] : ["login", "signup"];
+
+  const handleTabKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      const currentIndex = availableModes.indexOf(mode);
+      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+      const nextIndex = (safeIndex + 1) % availableModes.length;
+      const nextMode = availableModes[nextIndex];
+      setMode(nextMode);
+      setErrorMsg(null);
+      soundEngine.playSfx("click");
+      document.getElementById(`auth-tab-${nextMode}`)?.focus();
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      const currentIndex = availableModes.indexOf(mode);
+      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+      const prevIndex = (safeIndex - 1 + availableModes.length) % availableModes.length;
+      const prevMode = availableModes[prevIndex];
+      setMode(prevMode);
+      setErrorMsg(null);
+      soundEngine.playSfx("click");
+      document.getElementById(`auth-tab-${prevMode}`)?.focus();
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +151,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-matrix-border bg-matrix-dark/80 relative z-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 flex items-center justify-center text-matrix-neonCyan shrink-0">
-              <ShieldCheck className="w-5 h-5 animate-pulse" />
+              <ShieldCheck className="w-5 h-5 animate-pulse" aria-hidden="true" />
             </div>
             <div>
               <h2 className="text-base font-bold text-white tracking-wide flex items-center gap-2">
@@ -123,7 +173,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
             aria-label="Close authentication modal"
             title="Close (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -131,12 +181,17 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
         <div
           role="tablist"
           aria-label="Authentication modes"
+          onKeyDown={handleTabKeyDown}
           className="flex border-b border-matrix-border bg-matrix-dark/50 text-xs font-mono"
         >
           <button
             type="button"
             role="tab"
+            id="auth-tab-login"
+            aria-controls="auth-modal-tabpanel"
             aria-selected={mode === "login"}
+            tabIndex={mode === "login" ? 0 : -1}
+            onKeyDown={handleTabKeyDown}
             onClick={() => {
               soundEngine.playSfx("click");
               setMode("login");
@@ -148,14 +203,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                 : "border-transparent text-gray-400 hover:text-white"
             }`}
           >
-            <LogIn className="w-3.5 h-3.5" />
+            <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Sign In</span>
           </button>
 
           <button
             type="button"
             role="tab"
+            id="auth-tab-signup"
+            aria-controls="auth-modal-tabpanel"
             aria-selected={mode === "signup"}
+            tabIndex={mode === "signup" ? 0 : -1}
+            onKeyDown={handleTabKeyDown}
             onClick={() => {
               soundEngine.playSfx("click");
               setMode("signup");
@@ -167,7 +226,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                 : "border-transparent text-gray-400 hover:text-white"
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" />
+            <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
             <span>New Cadet</span>
           </button>
 
@@ -175,7 +234,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
             <button
               type="button"
               role="tab"
+              id="auth-tab-accounts"
+              aria-controls="auth-modal-tabpanel"
               aria-selected={mode === "accounts"}
+              tabIndex={mode === "accounts" ? 0 : -1}
+              onKeyDown={handleTabKeyDown}
               onClick={() => {
                 soundEngine.playSfx("click");
                 setMode("accounts");
@@ -187,14 +250,19 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                   : "border-transparent text-gray-400 hover:text-white"
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Accounts ({savedAccountList.length})</span>
             </button>
           )}
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
+        <div
+          id="auth-modal-tabpanel"
+          role="tabpanel"
+          aria-labelledby={`auth-tab-${mode}`}
+          className="p-5 sm:p-6 overflow-y-auto space-y-4"
+        >
           {errorMsg && (
             <div
               role="alert"
@@ -319,7 +387,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                     Display Name (Call-sign):
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <User className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
                     <input
                       type="text"
                       placeholder="e.g. Neo Architect, Ada Coder"
@@ -356,7 +424,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login" }: Props) {
                   Security Passphrase:
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
                   <input
                     type="password"
                     required
