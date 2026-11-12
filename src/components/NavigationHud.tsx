@@ -26,7 +26,6 @@ import {
   Swords,
   Code,
   Award,
-  User,
 } from "lucide-react";
 import { SkillTreeModal } from "./SkillTreeModal";
 import { AchievementsModal } from "./AchievementsModal";
@@ -39,6 +38,51 @@ import { LeaderboardModal } from "./LeaderboardModal";
 import { XpGainFloatie } from "./XpGainFloatie";
 import { getLevelProgress } from "@/lib/levelSystem";
 import { useAuthStore, AVATAR_OPTIONS } from "@/lib/authStore";
+
+/**
+ * Calculates a safe integer percentage clamped to [0, 100].
+ * Returns 0 if inputs are invalid, NaN, infinite, or max <= 0.
+ */
+export function calculateHudBarPercentage(current: number, max: number): number {
+  if (
+    typeof current !== "number" ||
+    typeof max !== "number" ||
+    Number.isNaN(current) ||
+    Number.isNaN(max) ||
+    !Number.isFinite(current) ||
+    !Number.isFinite(max) ||
+    max <= 0
+  ) {
+    return 0;
+  }
+  const percentage = Math.round((current / max) * 100);
+  return Math.min(100, Math.max(0, percentage));
+}
+
+/**
+ * Determines whether a given navigation route is active.
+ * Handles exact matching for root ('/') including map aliases ('/map', '/world-map')
+ * versus prefix matching for nested paths (e.g. '/curriculum', '/ide').
+ */
+export function isHudRouteActive(pathname: string | null | undefined, targetHref: string): boolean {
+  if (!pathname || !targetHref) return false;
+  let cleanPath = pathname.trim();
+  let cleanTarget = targetHref.trim();
+  if (!cleanPath || !cleanTarget) return false;
+
+  if (cleanPath.length > 1 && cleanPath.endsWith("/")) {
+    cleanPath = cleanPath.slice(0, -1);
+  }
+  if (cleanTarget.length > 1 && cleanTarget.endsWith("/")) {
+    cleanTarget = cleanTarget.slice(0, -1);
+  }
+
+  if (cleanTarget === "/") {
+    return cleanPath === "/" || cleanPath === "/map" || cleanPath === "/world-map";
+  }
+
+  return cleanPath === cleanTarget || cleanPath.startsWith(`${cleanTarget}/`) || cleanPath.startsWith(`${cleanTarget}?`);
+}
 
 export function NavigationHud() {
   const {
@@ -60,9 +104,9 @@ export function NavigationHud() {
 
   const pathname = usePathname() || "/";
   const isGrandmaster = unlockedSkills.includes("matrix_grandmaster");
-  const isMapActive = pathname === "/" || pathname === "/map" || pathname === "/world-map";
-  const isCurriculumActive = pathname.startsWith("/curriculum");
-  const isIdeActive = pathname.startsWith("/ide");
+  const isMapActive = isHudRouteActive(pathname, "/");
+  const isCurriculumActive = isHudRouteActive(pathname, "/curriculum");
+  const isIdeActive = isHudRouteActive(pathname, "/ide");
 
   const [skillTreeOpen, setSkillTreeOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -121,7 +165,7 @@ export function NavigationHud() {
               onClick={() => soundEngine.playSfx("click")}
             >
               <div className="w-8 h-8 rounded-lg bg-matrix-accent/20 border border-matrix-accent flex items-center justify-center text-matrix-accent shadow-sm shadow-matrix-accent/30 group-hover:scale-105 transition-transform">
-                <Sparkles className="w-4 h-4 animate-pulse" />
+                <Sparkles className="w-4 h-4 animate-pulse" aria-hidden="true" />
               </div>
               <div>
                 <span className="font-mono text-xs tracking-wider text-matrix-neonCyan uppercase font-bold block">
@@ -148,7 +192,7 @@ export function NavigationHud() {
                   }
                 }}
               >
-                <MapPin className="w-3.5 h-3.5 text-matrix-accent shrink-0" />
+                <MapPin className="w-3.5 h-3.5 text-matrix-accent shrink-0" aria-hidden="true" />
                 <span className="hidden sm:inline">World Map</span>
               </Link>
               <Link
@@ -160,7 +204,7 @@ export function NavigationHud() {
                 }`}
                 onClick={() => soundEngine.playSfx("click")}
               >
-                <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" />
+                <BookOpen className="w-3.5 h-3.5 text-matrix-neonCyan shrink-0" aria-hidden="true" />
                 <span className="hidden sm:inline">Curriculum Vault</span>
               </Link>
               <Link
@@ -173,7 +217,7 @@ export function NavigationHud() {
                 onClick={() => soundEngine.playSfx("click")}
                 title="Open Full Multi-File Online Matrix IDE (VS Code Mode)"
               >
-                <Code className="w-3.5 h-3.5 shrink-0" />
+                <Code className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                 <span>Matrix IDE</span>
               </Link>
             </div>
@@ -235,7 +279,7 @@ export function NavigationHud() {
               <div className="hidden sm:block">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
-                    {isGrandmaster && <Crown className="w-3.5 h-3.5 text-matrix-neonGold animate-bounce" />}
+                    {isGrandmaster && <Crown className="w-3.5 h-3.5 text-matrix-neonGold animate-bounce" aria-hidden="true" />}
                     <span
                       className={`text-xs font-bold font-mono group-hover:underline ${
                         isGrandmaster ? "text-matrix-neonGold" : "text-matrix-accent"
@@ -267,7 +311,7 @@ export function NavigationHud() {
 
             {/* Health Bar */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-matrix-card border border-matrix-border">
-              <Heart className="w-3.5 h-3.5 text-matrix-neonRed fill-matrix-neonRed animate-pulse" />
+              <Heart className="w-3.5 h-3.5 text-matrix-neonRed fill-matrix-neonRed animate-pulse" aria-hidden="true" />
               <span className="font-mono text-xs font-bold text-gray-200">
                 {hp}/{maxHp}
               </span>
@@ -275,7 +319,7 @@ export function NavigationHud() {
 
             {/* Streak */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-matrix-card border border-matrix-border text-matrix-neonGold">
-              <Flame className="w-3.5 h-3.5 fill-matrix-neonGold" />
+              <Flame className="w-3.5 h-3.5 fill-matrix-neonGold" aria-hidden="true" />
               <span className="font-mono text-xs font-bold">{streak}d</span>
             </div>
 
@@ -295,7 +339,7 @@ export function NavigationHud() {
                 aria-label={audioMuted ? "Unmute Audio Mobile" : "Mute Audio Mobile"}
                 title={audioMuted ? "Unmute Audio" : "Mute Audio"}
               >
-                {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                {audioMuted ? <VolumeX className="w-3.5 h-3.5" aria-hidden="true" /> : <Volume2 className="w-3.5 h-3.5" aria-hidden="true" />}
               </button>
 
               <button
@@ -312,7 +356,7 @@ export function NavigationHud() {
                 aria-label={bgmActive ? "Stop 8-bit Chiptune Music Mobile" : "Play 8-bit Chiptune Music Mobile"}
                 title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
               >
-                <Music className="w-3.5 h-3.5" />
+                <Music className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
 
@@ -327,7 +371,7 @@ export function NavigationHud() {
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-matrix-neonCyan text-xs font-mono transition-all"
                 title="Quick Jump & Search (Ctrl+K)"
               >
-                <Search className="w-3.5 h-3.5 text-matrix-neonCyan" />
+                <Search className="w-3.5 h-3.5 text-matrix-neonCyan" aria-hidden="true" />
                 <span className="hidden lg:inline">Jump</span>
                 <kbd className="hidden xl:inline-block text-[10px] px-1 rounded bg-matrix-dark border border-matrix-border text-gray-400">
                   Ctrl+K
@@ -344,7 +388,7 @@ export function NavigationHud() {
                 aria-label="Skill Tree"
                 title="Skill Tree"
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4" aria-hidden="true" />
               </button>
 
               <button
@@ -357,7 +401,7 @@ export function NavigationHud() {
                 aria-label="Trophies & Badges"
                 title="Trophies & Badges"
               >
-                <Trophy className="w-4 h-4" />
+                <Trophy className="w-4 h-4" aria-hidden="true" />
                 {badges.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-matrix-neonGold rounded-full ring-2 ring-matrix-dark" />
                 )}
@@ -373,7 +417,7 @@ export function NavigationHud() {
                 aria-label="Keyboard Shortcuts"
                 title="Keyboard Shortcuts"
               >
-                <Keyboard className="w-4 h-4" />
+                <Keyboard className="w-4 h-4" aria-hidden="true" />
               </button>
 
               <button
@@ -386,7 +430,7 @@ export function NavigationHud() {
                 aria-label="Global Matrix Leaderboards"
                 title="Global Matrix Leaderboards"
               >
-                <Award className="w-4 h-4" />
+                <Award className="w-4 h-4" aria-hidden="true" />
               </button>
 
               {/* Audio Controls */}
@@ -404,7 +448,7 @@ export function NavigationHud() {
                 aria-label={audioMuted ? "Unmute Audio" : "Mute Audio"}
                 title={audioMuted ? "Unmute Audio" : "Mute Audio"}
               >
-                {audioMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                {audioMuted ? <VolumeX className="w-4 h-4" aria-hidden="true" /> : <Volume2 className="w-4 h-4" aria-hidden="true" />}
               </button>
 
               <button
@@ -421,7 +465,7 @@ export function NavigationHud() {
                 aria-label={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
                 title={bgmActive ? "Stop 8-bit Chiptune Music" : "Play 8-bit Chiptune Music"}
               >
-                <Music className="w-4 h-4" />
+                <Music className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -513,7 +557,7 @@ export function NavigationHud() {
             className="w-full max-w-xl bg-matrix-card border border-matrix-border rounded-2xl shadow-2xl overflow-hidden font-mono"
           >
             <div className="flex items-center gap-3 px-4 py-3 border-b border-matrix-border bg-matrix-dark">
-              <Search className="w-4 h-4 text-matrix-neonCyan shrink-0" />
+              <Search className="w-4 h-4 text-matrix-neonCyan shrink-0" aria-hidden="true" />
               <input
                 role="combobox"
                 aria-expanded={filteredRealms.length > 0}
@@ -536,7 +580,7 @@ export function NavigationHud() {
                 aria-label="Close command palette"
                 className="text-gray-400 hover:text-white p-1"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -553,7 +597,7 @@ export function NavigationHud() {
                   }}
                   className="p-2.5 rounded-xl bg-matrix-neonCyan/10 hover:bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 text-matrix-neonCyan font-bold flex items-center gap-2 transition-all"
                 >
-                  <Code className="w-4 h-4 shrink-0" />
+                  <Code className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <span>Open Matrix Studio IDE</span>
                 </Link>
                 <Link
@@ -564,7 +608,7 @@ export function NavigationHud() {
                   }}
                   className="p-2.5 rounded-xl bg-matrix-accent/10 hover:bg-matrix-accent/20 border border-matrix-accent/40 text-matrix-accent font-bold flex items-center gap-2 transition-all"
                 >
-                  <BookOpen className="w-4 h-4 shrink-0" />
+                  <BookOpen className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <span>Open Curriculum Vault</span>
                 </Link>
               </div>
@@ -605,7 +649,7 @@ export function NavigationHud() {
                             }}
                             className="text-[11px] text-matrix-neonCyan hover:underline flex items-center gap-1"
                           >
-                            <BookOpen className="w-3 h-3" />
+                            <BookOpen className="w-3 h-3" aria-hidden="true" />
                             Guide
                           </Link>
                         </div>
@@ -625,7 +669,7 @@ export function NavigationHud() {
                                   : "bg-matrix-card border-matrix-border hover:border-matrix-neonCyan text-gray-200"
                               }`}
                             >
-                              <Code className="w-3 h-3" />
+                              <Code className="w-3 h-3" aria-hidden="true" />
                               <span>{q.title}</span>
                             </Link>
                           ))}
@@ -643,7 +687,7 @@ export function NavigationHud() {
                                   : "bg-red-950/30 border-matrix-neonRed/40 hover:border-matrix-neonRed text-matrix-neonRed"
                               }`}
                             >
-                              <Swords className="w-3 h-3" />
+                              <Swords className="w-3 h-3" aria-hidden="true" />
                               <span>{boss.name}</span>
                             </Link>
                           )}
@@ -676,7 +720,7 @@ export function NavigationHud() {
             isMapActive ? "text-matrix-accent font-bold" : "text-gray-400 hover:text-white"
           }`}
         >
-          <MapPin className="w-4 h-4 mb-0.5" />
+          <MapPin className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Map</span>
         </Link>
 
@@ -688,7 +732,7 @@ export function NavigationHud() {
             isCurriculumActive ? "text-matrix-neonCyan font-bold" : "text-gray-400 hover:text-white"
           }`}
         >
-          <BookOpen className="w-4 h-4 mb-0.5" />
+          <BookOpen className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Vault</span>
         </Link>
 
@@ -702,7 +746,7 @@ export function NavigationHud() {
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Code className="w-4 h-4 mb-0.5" />
+          <Code className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>IDE</span>
         </Link>
 
@@ -715,7 +759,7 @@ export function NavigationHud() {
           }}
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-matrix-neonPurple transition-all"
         >
-          <Shield className="w-4 h-4 mb-0.5" />
+          <Shield className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Skills</span>
         </button>
 
@@ -728,7 +772,7 @@ export function NavigationHud() {
           }}
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[50px] min-h-[44px] text-gray-400 hover:text-matrix-neonGold relative transition-all"
         >
-          <Trophy className="w-4 h-4 mb-0.5" />
+          <Trophy className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Badges</span>
           {badges.length > 0 && (
             <span className="absolute top-1 right-2.5 w-2 h-2 bg-matrix-neonGold rounded-full ring-2 ring-matrix-dark" />
@@ -744,7 +788,7 @@ export function NavigationHud() {
           }}
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-neonCyan transition-all"
         >
-          <Award className="w-4 h-4 mb-0.5 text-matrix-neonCyan" />
+          <Award className="w-4 h-4 mb-0.5 text-matrix-neonCyan" aria-hidden="true" />
           <span>Ranks</span>
         </button>
 
@@ -770,7 +814,7 @@ export function NavigationHud() {
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-matrix-neonCyan transition-all"
           aria-label="Mobile Keyboard Shortcuts"
         >
-          <Keyboard className="w-4 h-4 mb-0.5" />
+          <Keyboard className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Keys</span>
         </button>
 
@@ -783,7 +827,7 @@ export function NavigationHud() {
           }}
           className="flex flex-col items-center justify-center p-1 rounded-lg min-w-[42px] min-h-[44px] text-gray-400 hover:text-white transition-all"
         >
-          <Search className="w-4 h-4 mb-0.5" />
+          <Search className="w-4 h-4 mb-0.5" aria-hidden="true" />
           <span>Jump</span>
         </button>
       </nav>

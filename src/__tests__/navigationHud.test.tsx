@@ -5,7 +5,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { NavigationHud } from "../components/NavigationHud";
+import { NavigationHud, calculateHudBarPercentage, isHudRouteActive } from "../components/NavigationHud";
 import { useGameStore } from "../lib/gameStore";
 import { useAuthStore } from "../lib/authStore";
 import { soundEngine } from "../lib/soundEngine";
@@ -366,5 +366,81 @@ describe("NavigationHud Component", () => {
 
     const signInBtn = screen.getByLabelText("Mobile Sign In");
     expect(signInBtn).toBeDefined();
+  });
+
+  it("hides decorative Lucide icons from assistive technology via aria-hidden", () => {
+    const { container } = render(<NavigationHud />);
+    const decorativeSvgs = container.querySelectorAll("svg[aria-hidden='true']");
+    expect(decorativeSvgs.length).toBeGreaterThan(10);
+  });
+
+  describe("calculateHudBarPercentage helper", () => {
+    it("calculates clamped integer percentage for standard inputs", () => {
+      expect(calculateHudBarPercentage(50, 100)).toBe(50);
+      expect(calculateHudBarPercentage(25, 50)).toBe(50);
+      expect(calculateHudBarPercentage(1, 3)).toBe(33);
+      expect(calculateHudBarPercentage(2, 3)).toBe(67);
+      expect(calculateHudBarPercentage(100, 100)).toBe(100);
+      expect(calculateHudBarPercentage(0, 100)).toBe(0);
+    });
+
+    it("clamps percentages to minimum 0 and maximum 100", () => {
+      expect(calculateHudBarPercentage(-20, 100)).toBe(0);
+      expect(calculateHudBarPercentage(150, 100)).toBe(100);
+      expect(calculateHudBarPercentage(999, 50)).toBe(100);
+    });
+
+    it("returns 0 when max is zero or negative", () => {
+      expect(calculateHudBarPercentage(50, 0)).toBe(0);
+      expect(calculateHudBarPercentage(50, -10)).toBe(0);
+      expect(calculateHudBarPercentage(0, 0)).toBe(0);
+    });
+
+    it("guards against NaN, non-finite values, and non-number types", () => {
+      expect(calculateHudBarPercentage(Number.NaN, 100)).toBe(0);
+      expect(calculateHudBarPercentage(50, Number.NaN)).toBe(0);
+      expect(calculateHudBarPercentage(Number.POSITIVE_INFINITY, 100)).toBe(0);
+      expect(calculateHudBarPercentage(50, Number.POSITIVE_INFINITY)).toBe(0);
+      // @ts-expect-error test invalid runtime inputs
+      expect(calculateHudBarPercentage("50", 100)).toBe(0);
+      // @ts-expect-error test invalid runtime inputs
+      expect(calculateHudBarPercentage(undefined, 100)).toBe(0);
+    });
+  });
+
+  describe("isHudRouteActive helper", () => {
+    it("matches root route '/' strictly for home and map aliases", () => {
+      expect(isHudRouteActive("/", "/")).toBe(true);
+      expect(isHudRouteActive("/map", "/")).toBe(true);
+      expect(isHudRouteActive("/world-map", "/")).toBe(true);
+      expect(isHudRouteActive("/curriculum", "/")).toBe(false);
+      expect(isHudRouteActive("/ide", "/")).toBe(false);
+      expect(isHudRouteActive("/quest/realm-1/quest-1", "/")).toBe(false);
+    });
+
+    it("handles prefix matching cleanly for nested routes", () => {
+      expect(isHudRouteActive("/curriculum", "/curriculum")).toBe(true);
+      expect(isHudRouteActive("/curriculum/realm-1", "/curriculum")).toBe(true);
+      expect(isHudRouteActive("/curriculum?file=quest.md", "/curriculum")).toBe(true);
+      expect(isHudRouteActive("/curriculum-advanced", "/curriculum")).toBe(false);
+
+      expect(isHudRouteActive("/ide", "/ide")).toBe(true);
+      expect(isHudRouteActive("/ide/editor", "/ide")).toBe(true);
+      expect(isHudRouteActive("/ide-legacy", "/ide")).toBe(false);
+    });
+
+    it("normalizes trailing slashes", () => {
+      expect(isHudRouteActive("/curriculum/", "/curriculum")).toBe(true);
+      expect(isHudRouteActive("/curriculum", "/curriculum/")).toBe(true);
+      expect(isHudRouteActive("/curriculum/", "/curriculum/")).toBe(true);
+    });
+
+    it("returns false for null, undefined, or empty inputs", () => {
+      expect(isHudRouteActive(null, "/curriculum")).toBe(false);
+      expect(isHudRouteActive(undefined, "/curriculum")).toBe(false);
+      expect(isHudRouteActive("", "/curriculum")).toBe(false);
+      expect(isHudRouteActive("/curriculum", "")).toBe(false);
+      expect(isHudRouteActive("   ", "/curriculum")).toBe(false);
+    });
   });
 });
