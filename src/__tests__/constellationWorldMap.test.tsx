@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ConstellationWorldMap } from "../components/ConstellationWorldMap";
+import { ConstellationWorldMap, getRealmNodeStatus } from "../components/ConstellationWorldMap";
 import { REALMS } from "../data/realms";
 import { QUESTS } from "../data/quests";
 import { soundEngine } from "../lib/soundEngine";
@@ -402,5 +402,160 @@ describe("ConstellationWorldMap Component", () => {
     // Selected realm actions toolbar
     const actionToolbar = screen.getByRole("toolbar", { name: "Realm launch actions" });
     expect(actionToolbar).toBeDefined();
+  });
+
+  describe("getRealmNodeStatus helper", () => {
+    it("returns 'locked' when realm is not unlocked regardless of quest progression", () => {
+      expect(getRealmNodeStatus(false, 0, 2)).toBe("locked");
+      expect(getRealmNodeStatus(false, 1, 2)).toBe("locked");
+      expect(getRealmNodeStatus(false, 2, 2)).toBe("locked");
+    });
+
+    it("returns 'available' when unlocked but no quests have been completed", () => {
+      expect(getRealmNodeStatus(true, 0, 2)).toBe("available");
+      expect(getRealmNodeStatus(true, 0, 0)).toBe("available");
+    });
+
+    it("returns 'in-progress' when unlocked and some but not all quests are completed", () => {
+      expect(getRealmNodeStatus(true, 1, 2)).toBe("in-progress");
+      expect(getRealmNodeStatus(true, 2, 3)).toBe("in-progress");
+    });
+
+    it("returns 'completed' when unlocked and all quests are completed or exceeded", () => {
+      expect(getRealmNodeStatus(true, 2, 2)).toBe("completed");
+      expect(getRealmNodeStatus(true, 3, 2)).toBe("completed");
+    });
+
+    it("assigns matching data-status attributes to rendered realm nodes", () => {
+      const onSelectRealm = vi.fn();
+
+      render(
+        <ConstellationWorldMap
+          selectedRealm={null}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html", "css"]}
+          completedBosses={[]}
+          completedQuests={["html_1_skeleton", "html_2_forms", "css_1_flexbox"]}
+          level={1}
+        />
+      );
+
+      // html has completed all 2 quests => completed
+      const htmlNode = screen.getByRole("button", { name: /html/i });
+      expect(htmlNode.getAttribute("data-status")).toBe("completed");
+
+      // css has completed 1 out of 2 quests => in-progress
+      const cssNode = screen.getByRole("button", { name: /css/i });
+      expect(cssNode.getAttribute("data-status")).toBe("in-progress");
+
+      // javascript is locked => locked
+      const jsNode = screen.getByRole("button", { name: /javascript/i });
+      expect(jsNode.getAttribute("data-status")).toBe("locked");
+    });
+  });
+
+  describe("Escape key deselect behavior", () => {
+    it("clears selection by calling onSelectRealm(null) when Escape is pressed on window", () => {
+      const onSelectRealm = vi.fn();
+      const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+      render(
+        <ConstellationWorldMap
+          selectedRealm={htmlRealm}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html"]}
+          completedBosses={[]}
+          completedQuests={[]}
+          level={1}
+        />
+      );
+
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onSelectRealm).toHaveBeenCalledTimes(1);
+      expect(onSelectRealm).toHaveBeenCalledWith(null);
+    });
+
+    it("does not call onSelectRealm when non-Escape keys are pressed on window", () => {
+      const onSelectRealm = vi.fn();
+      const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+      render(
+        <ConstellationWorldMap
+          selectedRealm={htmlRealm}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html"]}
+          completedBosses={[]}
+          completedQuests={[]}
+          level={1}
+        />
+      );
+
+      fireEvent.keyDown(window, { key: "Enter" });
+      fireEvent.keyDown(window, { key: "ArrowDown" });
+      expect(onSelectRealm).not.toHaveBeenCalled();
+    });
+
+    it("does not attach Escape listener when selectedRealm is null", () => {
+      const onSelectRealm = vi.fn();
+
+      render(
+        <ConstellationWorldMap
+          selectedRealm={null}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html"]}
+          completedBosses={[]}
+          completedQuests={[]}
+          level={1}
+        />
+      );
+
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onSelectRealm).not.toHaveBeenCalled();
+    });
+
+    it("cleans up the keydown listener when unmounted", () => {
+      const onSelectRealm = vi.fn();
+      const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+      const { unmount } = render(
+        <ConstellationWorldMap
+          selectedRealm={htmlRealm}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html"]}
+          completedBosses={[]}
+          completedQuests={[]}
+          level={1}
+        />
+      );
+
+      unmount();
+      fireEvent.keyDown(window, { key: "Escape" });
+      expect(onSelectRealm).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Decorative icon accessibility", () => {
+    it("ensures all Lucide icons carry aria-hidden='true'", () => {
+      const onSelectRealm = vi.fn();
+      const htmlRealm = REALMS.find((r) => r.id === "html")!;
+
+      const { container } = render(
+        <ConstellationWorldMap
+          selectedRealm={htmlRealm}
+          onSelectRealm={onSelectRealm}
+          unlockedRealms={["html", "capstone"]}
+          completedBosses={["capstone"]}
+          completedQuests={[]}
+          level={50}
+        />
+      );
+
+      // Query all SVG elements that have lucide classes (lucide or lucide-*)
+      const lucideIcons = container.querySelectorAll("svg.lucide");
+      expect(lucideIcons.length).toBeGreaterThan(0);
+      lucideIcons.forEach((icon) => {
+        expect(icon.getAttribute("aria-hidden")).toBe("true");
+      });
+    });
   });
 });

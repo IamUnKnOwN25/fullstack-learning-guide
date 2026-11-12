@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Realm, REALMS } from "@/data/realms";
@@ -22,7 +22,7 @@ import {
 
 interface Props {
   selectedRealm: Realm | null;
-  onSelectRealm: (realm: Realm) => void;
+  onSelectRealm: (realm: Realm | null) => void;
   unlockedRealms: string[];
   completedBosses: string[];
   completedQuests: string[];
@@ -60,6 +60,25 @@ const CONDUIT_PATHS = [
   { from: "security", to: "capstone" },
 ];
 
+export type RealmNodeStatus = "locked" | "available" | "in-progress" | "completed";
+
+export function getRealmNodeStatus(
+  isUnlocked: boolean,
+  completedQuests: number,
+  totalQuests: number
+): RealmNodeStatus {
+  if (!isUnlocked) {
+    return "locked";
+  }
+  if (totalQuests > 0 && completedQuests >= totalQuests) {
+    return "completed";
+  }
+  if (completedQuests > 0) {
+    return "in-progress";
+  }
+  return "available";
+}
+
 export function ConstellationWorldMap({
   selectedRealm,
   onSelectRealm,
@@ -70,6 +89,21 @@ export function ConstellationWorldMap({
   highlightedRealmIds,
 }: Props) {
   const router = useRouter();
+
+  useEffect(() => {
+    if (!selectedRealm) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onSelectRealm(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedRealm, onSelectRealm]);
 
   const handleLaunchRealm = (realm: Realm) => {
     const rQuests = QUESTS[realm.id] || [];
@@ -176,6 +210,7 @@ export function ConstellationWorldMap({
         const isSelected = selectedRealm?.id === realm.id;
         const realmQuests = QUESTS[realm.id] || [];
         const finishedQuests = realmQuests.filter((q) => completedQuests.includes(q.id)).length;
+        const nodeStatus = getRealmNodeStatus(isUnlocked, finishedQuests, realmQuests.length);
 
         // Frontier node: unlocked but boss not defeated yet
         const isFrontier = isUnlocked && !isBossDefeated;
@@ -189,6 +224,7 @@ export function ConstellationWorldMap({
             tabIndex={0}
             aria-pressed={isSelected}
             aria-disabled={!isUnlocked}
+            data-status={nodeStatus}
             aria-label={`${realm.title} (${isBossDefeated ? "Mastered" : isUnlocked ? "Unlocked" : "Sealed"})`}
             title={`${realm.title} — Click to inspect, Double-click to launch trial`}
             style={{
@@ -236,13 +272,13 @@ export function ConstellationWorldMap({
               }`}
             >
               {realm.id === "capstone" ? (
-                <Crown className={`w-6 h-6 ${isBossDefeated ? "text-matrix-neonGold animate-bounce" : ""}`} />
+                <Crown aria-hidden="true" className={`w-6 h-6 ${isBossDefeated ? "text-matrix-neonGold animate-bounce" : ""}`} />
               ) : isBossDefeated ? (
-                <CheckCircle2 className="w-6 h-6 text-matrix-accent" />
+                <CheckCircle2 aria-hidden="true" className="w-6 h-6 text-matrix-accent" />
               ) : isUnlocked ? (
                 <span>{coords.icon}</span>
               ) : (
-                <Lock className="w-5 h-5 text-gray-500" />
+                <Lock aria-hidden="true" className="w-5 h-5 text-gray-500" />
               )}
 
               {/* Mini Status Badge */}
@@ -292,7 +328,7 @@ export function ConstellationWorldMap({
             <span className="w-2 h-2 rounded-full bg-matrix-neonGold animate-pulse" /> Active Trial
           </span>
           <span className="flex items-center gap-1 text-gray-500">
-            <Lock className="w-2.5 h-2.5" /> Sealed
+            <Lock aria-hidden="true" className="w-2.5 h-2.5" /> Sealed
           </span>
         </div>
 
@@ -314,7 +350,7 @@ export function ConstellationWorldMap({
                   onClick={() => soundEngine.playSfx("click")}
                   className="px-2 py-0.5 rounded bg-matrix-accent hover:bg-matrix-accentDark text-matrix-dark font-bold flex items-center gap-1 transition-all"
                 >
-                  <Play className="w-2.5 h-2.5 fill-matrix-dark" />
+                  <Play aria-hidden="true" className="w-2.5 h-2.5 fill-matrix-dark" />
                   <span>Trial {q.order}</span>
                 </Link>
               ))}
@@ -325,7 +361,7 @@ export function ConstellationWorldMap({
                   onClick={() => soundEngine.playSfx("attack")}
                   className="px-2 py-0.5 rounded bg-matrix-neonRed hover:bg-red-600 text-white font-bold flex items-center gap-1 transition-all"
                 >
-                  <Swords className="w-2.5 h-2.5" />
+                  <Swords aria-hidden="true" className="w-2.5 h-2.5" />
                   <span>Boss</span>
                 </Link>
               )}
@@ -335,7 +371,7 @@ export function ConstellationWorldMap({
                 onClick={() => soundEngine.playSfx("click")}
                 className="px-2 py-0.5 rounded bg-matrix-dark hover:bg-matrix-cardHover border border-matrix-border text-matrix-neonCyan font-bold flex items-center gap-1 transition-all"
               >
-                <BookOpen className="w-2.5 h-2.5" />
+                <BookOpen aria-hidden="true" className="w-2.5 h-2.5" />
                 <span>Guide</span>
               </Link>
             </div>
