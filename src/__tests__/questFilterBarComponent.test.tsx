@@ -2,7 +2,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { QuestFilterBar } from "../components/QuestFilterBar";
+import { QuestFilterBar, formatActiveFiltersSummary } from "../components/QuestFilterBar";
 import { REALMS } from "../data/realms";
 import { soundEngine } from "../lib/soundEngine";
 
@@ -328,5 +328,172 @@ describe("QuestFilterBar Component", () => {
     );
 
     expect(statusRegion.textContent).toBe("Showing all quests");
+  });
+
+  it("clears search query when Escape is pressed on non-empty search input", () => {
+    const setSearchQuery = vi.fn();
+    const onSearchChange = vi.fn();
+
+    render(
+      <QuestFilterBar
+        searchQuery="typescript"
+        setSearchQuery={setSearchQuery}
+        onSearchChange={onSearchChange}
+        selectedRealm="All"
+        setSelectedRealm={vi.fn()}
+        difficulty="All"
+        setDifficulty={vi.fn()}
+      />
+    );
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /search quests by title, concept, or code/i,
+    });
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
+    expect(soundEngine.playSfx).toHaveBeenCalledWith("click");
+    expect(setSearchQuery).toHaveBeenCalledWith("");
+    expect(onSearchChange).toHaveBeenCalledWith("");
+  });
+
+  it("does not clear search query or play sfx when Escape is pressed on empty search input", () => {
+    const setSearchQuery = vi.fn();
+    const onSearchChange = vi.fn();
+
+    render(
+      <QuestFilterBar
+        searchQuery=""
+        setSearchQuery={setSearchQuery}
+        onSearchChange={onSearchChange}
+        selectedRealm="All"
+        setSelectedRealm={vi.fn()}
+        difficulty="All"
+        setDifficulty={vi.fn()}
+      />
+    );
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /search quests by title, concept, or code/i,
+    });
+
+    fireEvent.keyDown(searchInput, { key: "Escape" });
+    expect(soundEngine.playSfx).not.toHaveBeenCalled();
+    expect(setSearchQuery).not.toHaveBeenCalled();
+    expect(onSearchChange).not.toHaveBeenCalled();
+  });
+
+  it("does not clear search query when other keys are pressed", () => {
+    const setSearchQuery = vi.fn();
+
+    render(
+      <QuestFilterBar
+        searchQuery="react"
+        setSearchQuery={setSearchQuery}
+        selectedRealm="All"
+        setSelectedRealm={vi.fn()}
+        difficulty="All"
+        setDifficulty={vi.fn()}
+      />
+    );
+
+    const searchInput = screen.getByRole("textbox", {
+      name: /search quests by title, concept, or code/i,
+    });
+
+    fireEvent.keyDown(searchInput, { key: "Enter" });
+    fireEvent.keyDown(searchInput, { key: "Tab" });
+    fireEvent.keyDown(searchInput, { key: "ArrowDown" });
+    expect(setSearchQuery).not.toHaveBeenCalled();
+  });
+
+  it("marks all decorative Lucide icons with aria-hidden='true'", () => {
+    const { container } = render(
+      <QuestFilterBar
+        searchQuery="query"
+        setSearchQuery={vi.fn()}
+        selectedRealm="javascript"
+        setSelectedRealm={vi.fn()}
+        difficulty="Advanced"
+        setDifficulty={vi.fn()}
+      />
+    );
+
+    const svgIcons = container.querySelectorAll("svg");
+    expect(svgIcons.length).toBeGreaterThanOrEqual(5);
+    svgIcons.forEach((svg) => {
+      expect(svg.getAttribute("aria-hidden")).toBe("true");
+    });
+  });
+});
+
+describe("formatActiveFiltersSummary helper", () => {
+  it("formats summary when all quests are showing without filters", () => {
+    expect(formatActiveFiltersSummary(12, 12)).toBe("Showing all 12 quests");
+    expect(formatActiveFiltersSummary(0, 0)).toBe("Showing all 0 quests");
+  });
+
+  it("formats singular quest noun when total count is 1", () => {
+    expect(formatActiveFiltersSummary(1, 1)).toBe("Showing all 1 quest");
+  });
+
+  it("handles non-finite or negative counts safely", () => {
+    expect(formatActiveFiltersSummary(-5, -10)).toBe("Showing all 0 quests");
+    expect(formatActiveFiltersSummary(NaN, NaN)).toBe("Showing all 0 quests");
+    expect(formatActiveFiltersSummary(Infinity, 5)).toBe("Showing 0 of 5 quests");
+  });
+
+  it("formats count when showing count differs from total count without active filters", () => {
+    expect(formatActiveFiltersSummary(4, 10)).toBe("Showing 4 of 10 quests");
+    expect(formatActiveFiltersSummary(1, 10)).toBe("Showing 1 of 10 quests");
+  });
+
+  it("formats summary with active search query", () => {
+    expect(formatActiveFiltersSummary(3, 10, "async")).toBe(
+      'Showing 3 of 10 quests (search: "async")'
+    );
+    expect(formatActiveFiltersSummary(10, 10, "  flexbox  ")).toBe(
+      'Showing 10 of 10 quests (search: "flexbox")'
+    );
+  });
+
+  it("formats summary with known realm ID resolved to realm title", () => {
+    expect(formatActiveFiltersSummary(2, 8, undefined, "javascript")).toBe(
+      "Showing 2 of 8 quests (realm: Modern JavaScript (ES6+))"
+    );
+    expect(formatActiveFiltersSummary(5, 10, "", "css")).toBe(
+      "Showing 5 of 10 quests (realm: CSS, Flexbox & Grid)"
+    );
+  });
+
+  it("formats summary with unknown realm ID or custom realm string", () => {
+    expect(formatActiveFiltersSummary(1, 4, "", "custom-realm")).toBe(
+      "Showing 1 of 4 quests (realm: custom-realm)"
+    );
+  });
+
+  it("formats summary with active status or difficulty", () => {
+    expect(formatActiveFiltersSummary(4, 12, "", "All", "Beginner")).toBe(
+      "Showing 4 of 12 quests (status: Beginner)"
+    );
+    expect(formatActiveFiltersSummary(2, 6, undefined, undefined, "Completed")).toBe(
+      "Showing 2 of 6 quests (status: Completed)"
+    );
+  });
+
+  it("formats summary with combined search, realm, and status filters", () => {
+    expect(
+      formatActiveFiltersSummary(1, 15, "reduce", "javascript", "Advanced")
+    ).toBe(
+      'Showing 1 of 15 quests (search: "reduce", realm: Modern JavaScript (ES6+), status: Advanced)'
+    );
+  });
+
+  it("ignores 'All' and empty/whitespace filter arguments", () => {
+    expect(formatActiveFiltersSummary(8, 8, "   ", "All", "All")).toBe(
+      "Showing all 8 quests"
+    );
+    expect(formatActiveFiltersSummary(3, 8, "", "All", "All")).toBe(
+      "Showing 3 of 8 quests"
+    );
   });
 });

@@ -7,6 +7,7 @@ import { soundEngine } from "@/lib/soundEngine";
 export interface QuestFilterBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onSearchChange?: (query: string) => void;
   selectedRealm: string;
   setSelectedRealm: (realmId: string) => void;
   difficulty: DifficultyLevel;
@@ -17,6 +18,7 @@ export interface QuestFilterBarProps {
 export function QuestFilterBar({
   searchQuery,
   setSearchQuery,
+  onSearchChange,
   selectedRealm,
   setSelectedRealm,
   difficulty,
@@ -33,6 +35,7 @@ export function QuestFilterBar({
       onResetFilters();
     } else {
       setSearchQuery("");
+      onSearchChange?.("");
       setSelectedRealm("All");
       setDifficulty("All");
     }
@@ -72,12 +75,25 @@ export function QuestFilterBar({
       {/* Search Input */}
       <div className="relative flex-1 w-full group">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-matrix-neonCyan group-focus-within:text-white transition-colors" />
+          <Search
+            aria-hidden="true"
+            className="h-4 w-4 text-matrix-neonCyan group-focus-within:text-white transition-colors"
+          />
         </div>
         <input
           type="text"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            onSearchChange?.(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && searchQuery.length > 0) {
+              soundEngine.playSfx("click");
+              setSearchQuery("");
+              onSearchChange?.("");
+            }
+          }}
           aria-label="Search quests by title, concept, or code"
           placeholder="Search quests by title, concept, or code..."
           className="block w-full pl-10 pr-9 py-2 border border-matrix-border rounded-lg leading-5 bg-matrix-cardHover text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-matrix-neonCyan focus:border-matrix-neonCyan sm:text-sm transition-all"
@@ -88,11 +104,12 @@ export function QuestFilterBar({
             onClick={() => {
               soundEngine.playSfx("click");
               setSearchQuery("");
+              onSearchChange?.("");
             }}
             aria-label="Clear search text"
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
           >
-            <X className="h-4 w-4" />
+            <X aria-hidden="true" className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -101,7 +118,10 @@ export function QuestFilterBar({
         {/* Realm Dropdown */}
         <div className="relative flex-1 sm:w-48 group">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Layers className="h-4 w-4 text-matrix-accent group-focus-within:text-white transition-colors" />
+            <Layers
+              aria-hidden="true"
+              className="h-4 w-4 text-matrix-accent group-focus-within:text-white transition-colors"
+            />
           </div>
           <select
             aria-label="Filter quests by realm"
@@ -117,14 +137,17 @@ export function QuestFilterBar({
             ))}
           </select>
           <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-            <Filter className="h-3 w-3 text-gray-400" />
+            <Filter aria-hidden="true" className="h-3 w-3 text-gray-400" />
           </div>
         </div>
 
         {/* Difficulty Dropdown */}
         <div className="relative flex-1 sm:w-40 group">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Zap className="h-4 w-4 text-amber-400 group-focus-within:text-white transition-colors" />
+            <Zap
+              aria-hidden="true"
+              className="h-4 w-4 text-amber-400 group-focus-within:text-white transition-colors"
+            />
           </div>
           <select
             aria-label="Filter quests by difficulty"
@@ -138,7 +161,7 @@ export function QuestFilterBar({
             <option value="Advanced">Advanced (3 Stars)</option>
           </select>
           <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-            <Filter className="h-3 w-3 text-gray-400" />
+            <Filter aria-hidden="true" className="h-3 w-3 text-gray-400" />
           </div>
         </div>
 
@@ -150,12 +173,53 @@ export function QuestFilterBar({
             aria-label="Reset all filters"
             className="px-3 py-2 rounded-lg bg-matrix-card hover:bg-matrix-cardHover border border-matrix-border text-gray-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw aria-hidden="true" className="w-3.5 h-3.5" />
             <span>Reset</span>
           </button>
         )}
       </div>
-
     </div>
   );
+}
+
+/**
+ * Pure helper function summarizing current filter results.
+ * Returns a human-readable summary of how many quests are showing out of the total count,
+ * along with details of any active search, realm, or status/difficulty filters.
+ */
+export function formatActiveFiltersSummary(
+  showingCount: number,
+  totalCount: number,
+  searchQuery?: string,
+  selectedRealm?: string,
+  selectedStatus?: string
+): string {
+  const safeShowing = Math.max(0, Number.isFinite(showingCount) ? Math.floor(showingCount) : 0);
+  const safeTotal = Math.max(0, Number.isFinite(totalCount) ? Math.floor(totalCount) : 0);
+  const noun = safeTotal === 1 ? "quest" : "quests";
+
+  const details: string[] = [];
+  const query = (searchQuery || "").trim();
+  if (query) {
+    details.push(`search: "${query}"`);
+  }
+  if (selectedRealm && selectedRealm !== "All" && selectedRealm.trim()) {
+    const realmObj = REALMS.find(
+      (r) =>
+        r.id.toLowerCase() === selectedRealm.toLowerCase() ||
+        r.title.toLowerCase() === selectedRealm.toLowerCase()
+    );
+    details.push(`realm: ${realmObj ? realmObj.title : selectedRealm}`);
+  }
+  if (selectedStatus && selectedStatus !== "All" && selectedStatus.trim()) {
+    details.push(`status: ${selectedStatus}`);
+  }
+
+  if (details.length === 0) {
+    return safeShowing === safeTotal
+      ? `Showing all ${safeTotal} ${noun}`
+      : `Showing ${safeShowing} of ${safeTotal} ${noun}`;
+  }
+
+  return `Showing ${safeShowing} of ${safeTotal} ${noun} (${details.join(", ")})`;
 }
