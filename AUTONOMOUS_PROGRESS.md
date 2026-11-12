@@ -12,6 +12,131 @@ This document records each autonomous improvement cycle, deterministic verificat
 
 ## Autonomous Cycles
 
+- **[2026-11-12 13:48] Cycle 286: HUD Stat Percentage Helper, Active Route Matcher & Decorative Icon Hiding in NavigationHud (Tests: PASS)**
+  - Enhanced `src/components/NavigationHud.tsx` exporting pure helpers `calculateHudBarPercentage` (clamped integer percentage with NaN and max <= 0 guards) and `isHudRouteActive` (accurate pathname matching for exact `/` vs sub-route prefixes), and marked decorative Lucide icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/navigationHud.test.tsx` testing percentage calculations, route matching, and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 285: Escape Dismissal, Metric Tab-to-Tabpanel Linkage & Rank Badge Helper in LeaderboardModal (Tests: PASS)**
+  - Enhanced `src/components/LeaderboardModal.tsx` exporting `formatLeaderboardRankBadge` (mapping rank to tier labels with tie safety), linking metric tabs via `aria-controls="leaderboard-tabpanel"` to a `role="tabpanel"` wrapper, marking decorative Lucide icons `aria-hidden="true"`, and registering window Escape keydown listener with unmount cleanup.
+  - Expanded unit test suite in `src/__tests__/leaderboardModal.test.tsx` verifying badge formatting, Escape dismissal, and tab-to-tabpanel linkage.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 284: Auth Input Validator, Mode Tab Arrow Navigation & Icon Accessibility in AuthModal (Tests: PASS)**
+  - Enhanced `src/components/AuthModal.tsx` exporting pure `validateAuthFormInput` validator, adding WCAG 2.1 Tablist `ArrowLeft`/`ArrowRight` keyboard navigation across auth mode tabs with `aria-controls="auth-modal-tabpanel"` linkage to `role="tabpanel"`, and marking decorative Lucide icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/authModal.test.tsx` verifying validation edge cases, arrow navigation, and tabpanel semantics.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 283: Campaign Realm Filter Helper, Search Escape Clear & Icon Accessibility in WorldCampaignMap (Tests: PASS)**
+  - Enhanced `src/components/WorldCampaignMap.tsx` exporting pure `filterCampaignRealms` helper for case-insensitive realm search, adding Escape key listener on search input to clear active query, and marking decorative Lucide icons with `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/worldCampaignMap.test.tsx` testing realm filtering, Escape clearing, and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 282: Level-Up Screen Reader Announcement Helper & Decorative Icon Hiding in LevelUpModal (Tests: PASS)**
+  - Enhanced `src/components/LevelUpModal.tsx` exporting pure `getLevelUpAnnouncement` helper producing screen reader announcement strings with fallbacks for non-finite levels, and marked decorative Lucide icons with `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/levelUpModal.test.tsx` verifying announcement formatting and icon accessibility attributes.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 281: Level Journey Metrics Helper, Progress Width Clamping & Icon Accessibility in LevelJourneyModal (Tests: PASS)**
+  - Enhanced `src/components/LevelJourneyModal.tsx` exporting pure `calculateLevelJourneyMetrics` helper with negative/NaN guards, clamped inline progress bar width style to `[0, 100]`, and marked decorative icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/levelJourneyModal.test.tsx` verifying progress metrics calculation and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 280: Realm Node Status Helper, Escape Deselect Handler & Icon Accessibility in ConstellationWorldMap (Tests: PASS)**
+  - Enhanced `src/components/ConstellationWorldMap.tsx` exporting pure `getRealmNodeStatus` helper, adding window Escape keydown listener to clear active realm selection with unmount cleanup, and marking decorative icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/constellationWorldMap.test.tsx` covering node status resolution, Escape deselection, and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 279: Escape Dismissal, Retry aria-busy State & Status Label Helper in NetworkStatusIndicator (Tests: PASS)**
+  - Enhanced `src/components/NetworkStatusIndicator.tsx` exporting `getNetworkStatusAriaLabel` helper, adding window Escape listener to dismiss offline/online banner with clean unmount teardown, adding `aria-busy` on retry button, and marking decorative icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/networkStatus.test.tsx` covering status labels, Escape dismissal, and busy/hidden attributes.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 278: Shortcut Catalog Filter Helper, Search Escape Clear & Icon Accessibility in KeyboardShortcutsModal (Tests: PASS)**
+  - Enhanced `src/components/KeyboardShortcutsModal.tsx` exporting pure `filterShortcutCatalog` helper, adding Escape key listener in search input to clear query before modal dismissal, and marking decorative Lucide icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/keyboardShortcutsModal.test.tsx` testing catalog filtering, Escape query clearing, and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 277: Active Filter Summary Helper, Search Escape Clear & Icon Accessibility in QuestFilterBar (Tests: PASS)**
+  - Enhanced `src/components/QuestFilterBar.tsx` exporting pure `formatActiveFiltersSummary` helper, adding Escape key handler on search input to reset search, and marking decorative Lucide icons `aria-hidden="true"`.
+  - Expanded unit test suite in `src/__tests__/questFilterBarComponent.test.tsx` testing summary formatting, Escape clearing, and icon accessibility.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 276: PWA Manifest App Shortcuts, Discovery Categories & Maskable Icons in manifest.ts (Tests: PASS)**
+  - Enhanced `src/app/manifest.ts` adding `id`, `lang`, `dir`, discovery categories (`education`, `games`, `developer tools`), app quick-launch shortcuts for World Map (`/`), Curriculum (`/curriculum`), and Matrix IDE (`/ide`), and maskable icon declarations.
+  - Expanded unit test suite in `src/__tests__/pwaManifest.test.ts` verifying manifest metadata, shortcut definitions, and icon disk presence.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 275: Player Rank Percentile Resolver, Division Distribution & Neighboring Standings in leaderboardUtils.ts (Tests: PASS)**
+  - Enhanced `src/lib/leaderboardUtils.ts` exporting pure helpers `findPlayerRank` (1-based rank and top percentile calculation with tie-breakers), `computeDivisionDistribution`, and `getAdjacentRankNeighbors` (centered neighbor slice without mutation).
+  - Expanded unit test suite in `src/__tests__/leaderboardUtils.test.ts` with 52 passing tests covering ranking, percentiles, and neighbor slicing.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 274: Reading Time Estimator, Code Block Extractor & Plain-Text Stripper in markdownFormatter.ts (Tests: PASS)**
+  - Enhanced `src/lib/markdownFormatter.ts` exporting pure helpers `estimateReadingTimeMinutes` (WPM calculation with empty guards), `extractCodeBlocks` (fenced code extractor with language tags), and `stripMarkdownFormatting` (headings, emphasis, backticks, links cleaner).
+  - Expanded unit test suite in `src/__tests__/markdownFormatter.test.ts` to 67 passing tests covering code fences and text stripping.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 273: Code Difference Ratio Calculator & Backup Metadata Inspector in snippetResetGuard.ts (Tests: PASS)**
+  - Enhanced `src/lib/snippetResetGuard.ts` exporting pure helpers `computeCodeDifference` (CRLF normalization, line/char deltas, clamped similarity ratio via Levenshtein distance) and `inspectBackupPayload` (JSON validation with UTF-8 byte calculation).
+  - Expanded unit test suite in `src/__tests__/snippetResetGuard.test.ts` to 45 passing tests covering difference metrics and backup payload validation.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 272: Evaluation Progress Calculator, Missing Task Index Finder & Rule Integrity Validator in questTaskEvaluator.ts (Tests: PASS)**
+  - Enhanced `src/lib/questTaskEvaluator.ts` exporting pure helpers `calculateEvaluationProgress` (deduplicated valid task progress metrics), `getMissingTaskIndices`, and `validateQuestRulesIntegrity` catalog validator.
+  - Expanded unit test suite in `src/__tests__/questTaskEvaluator.test.ts` to 23 passing tests covering progress calculations and rule catalog integrity.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 271: Quest Difficulty Classifier, Multi-Mode Sorter & Realm Grouping Helpers in questFilter.ts (Tests: PASS)**
+  - Enhanced `src/lib/questFilter.ts` exporting pure helpers `getQuestDifficulty` (XP-based difficulty mapping), `sortQuestsList` (pure multi-mode sorting by order, XP asc/desc, title), and `groupQuestsByRealm`.
+  - Expanded unit test suite in `src/__tests__/questFilterBar.test.ts` to 27 passing tests covering difficulty bands and non-mutating sorting.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 270: Sandbox Unsafe Token Analyzer & Script/Style Segment Extractor in sandboxBuilder.ts (Tests: PASS)**
+  - Enhanced `src/lib/sandboxBuilder.ts` exporting pure helpers `detectPotentiallyUnsafeSandboxTokens` (regex scanning for window.top, parent, cookies, storage, eval with word boundaries) and `extractScriptAndStyleTags`.
+  - Expanded unit test suite in `src/__tests__/sandboxBuilder.test.ts` to 21 passing tests covering security tokens and HTML tag extraction.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 269: Skill Build Summary Metrics, Recommended Unlock Suggestions & Refund Validator in skillCalculator.ts (Tests: PASS)**
+  - Enhanced `src/lib/skillCalculator.ts` exporting pure helpers `calculateSkillBuildSummary` (SP and tier breakdowns), `getRecommendedNextSkills` (cost and tier sorted unlock suggestions), and `validateSkillRefund` (dependency orphan validation).
+  - Expanded unit test suite in `src/__tests__/skillCalculator.test.ts` to 43 passing tests covering refund graph integrity and unlock suggestions.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 268: Streak Tier Classifier, Freeze Projection & Activity Heatmap Generator in streakSystem.ts (Tests: PASS)**
+  - Enhanced `src/lib/streakSystem.ts` exporting pure helpers `getStreakTier` (streak day tiers and multipliers), `projectStreakStatus` (freeze consumption simulations), and `generateStreakActivityMap` (chronological date activity arrays).
+  - Expanded unit test suite in `src/__tests__/streakSystem.test.ts` to 44 passing tests covering streak tiers, freeze preservation, and date mapping.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 267: Split Pace Comparator, Signed Delta Formatter & Aggregate Speedrun Stats in speedrunTimer.ts (Tests: PASS)**
+  - Enhanced `src/lib/speedrunTimer.ts` exporting pure helpers `compareSplitPace` (pace comparison against PB), `formatSpeedrunDiff` (signed millisecond delta format), and `getSpeedrunStats` (aggregate speedrun telemetry).
+  - Expanded unit test suite in `src/__tests__/speedrunTimer.test.ts` to 55 passing tests covering split pace comparisons and delta formatting.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 266: Combat Rating Calculator, Boss Phase Enrage Transition & Floating Damage Text in battleEffects.ts (Tests: PASS)**
+  - Enhanced `src/lib/battleEffects.ts` exporting pure helpers `calculateCombatRating` (clamped combat score and S/A/B/C ranks), `calculateBossPhaseTransition` (HP percentage, 40% enrage state, and intensity tiers), and `formatFloatingDamageText` (crit damage formatters).
+  - Expanded unit test suite in `src/__tests__/battleEffects.test.ts` to 62 passing tests covering rating formulas and boss phase thresholds.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 265: Category Achievement Telemetry, Rarity Score Calculator & Unclaimed Milestone Lookup in achievements.ts (Tests: PASS)**
+  - Enhanced `src/data/achievements.ts` exporting pure helpers `getCategoryAchievementStats` (category counts and percentages), `calculateAchievementRarityScore`, and `getLockedAchievementsByCategory`.
+  - Expanded unit test suite in `src/__tests__/achievements.test.ts` to 50 passing tests covering category statistics and locked milestones.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 264: Bi-Directional Quest Navigation, Realm Quest Telemetry & Keyword Search in quests.ts (Tests: PASS)**
+  - Enhanced `src/data/quests.ts` exporting pure helpers `getPreviousQuestId` (symmetric counterpart to getNextQuestId), `getRealmQuestStats` (realm XP/gold telemetry), and `searchQuestsByKeyword`.
+  - Expanded unit test suite in `src/__tests__/quests.test.ts` to 60 passing tests covering bidirectional navigation and keyword searches.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 263: Campaign Progression Summary, Level Filter & Navigation Context Resolver in realms.ts (Tests: PASS)**
+  - Enhanced `src/data/realms.ts` exporting pure helpers `getCampaignProgression` (completion percentages with deduplication), `filterRealmsByMaxLevel`, `getRealmByBossId`, and `getRealmNavigationContext` (prev/current/next realm resolution).
+  - Expanded unit test suite in `src/__tests__/realms.test.ts` to 51 passing tests covering progression metrics and navigation contexts.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
+- **[2026-11-12 13:48] Cycle 262: Boss Phase Damage Accumulators, Phase Lookup & Catalog Integrity Validator in bosses.ts (Tests: PASS)**
+  - Enhanced `src/data/bosses.ts` exporting pure helpers `getBossTotalPhaseDamage` (sum of phase damage with case-insensitive ID resolution), `calculateBossTotalDamageToPlayer`, `getBossPhaseByNumber`, and `validateAllBossIntegrity`.
+  - Expanded unit test suite in `src/__tests__/bosses.test.ts` to 39 passing tests covering damage calculations and catalog integrity validation.
+  - Verified with `npm run validate` (57 test files, 1553 tests passing, 0 TypeScript compiler errors, 100% clean Next.js 15 production build).
+
 - **[2026-11-11 16:47] Cycle 261: Cyber Companion Byte Escape Drawer Dismissal & Tab-to-Tabpanel Linkage (Tests: PASS)**
   - Enhanced `src/components/CyberCompanionByte.tsx` adding an `Escape` keydown listener with clean unmount cleanup while the companion drawer is open, deterministic tab IDs (`byte-tab-tips`, `byte-tab-lore`, `byte-tab-shortcuts`) with `aria-controls="byte-tabpanel"`, and a dynamic `role="tabpanel"` wrapper with `aria-labelledby` matching the active tab.
   - Expanded unit test suite in `src/__tests__/cyberCompanionByte.test.tsx` verifying Escape key dismissal, listener cleanup, and tab-to-tabpanel ARIA linkage.
