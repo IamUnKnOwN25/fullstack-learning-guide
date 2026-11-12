@@ -5,7 +5,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, within } from "@testing-library/react";
-import { LevelUpModal } from "../components/LevelUpModal";
+import { LevelUpModal, getLevelUpAnnouncement } from "../components/LevelUpModal";
 import { useGameStore } from "../lib/gameStore";
 import { soundEngine } from "../lib/soundEngine";
 
@@ -311,6 +311,107 @@ describe("LevelUpModal Component", () => {
     expect(rewardsList).toBeDefined();
     const items = within(rewardsList).getAllByRole("listitem");
     expect(items.length).toBe(3);
+  });
+
+  describe("getLevelUpAnnouncement helper", () => {
+    it("generates concise screen reader announcement for valid level and title", () => {
+      expect(getLevelUpAnnouncement(4, "Script Adept")).toBe(
+        "Ascended to Level 4! Rank: Script Adept"
+      );
+    });
+
+    it("appends singular perk information when unlockedPerksCount is 1", () => {
+      expect(getLevelUpAnnouncement(4, "Script Adept", 1)).toBe(
+        "Ascended to Level 4! Rank: Script Adept (1 perk unlocked)"
+      );
+    });
+
+    it("appends plural perk information when unlockedPerksCount is greater than 1", () => {
+      expect(getLevelUpAnnouncement(5, "Logic Crafter", 3)).toBe(
+        "Ascended to Level 5! Rank: Logic Crafter (3 perks unlocked)"
+      );
+    });
+
+    it("omits perk suffix when unlockedPerksCount is zero, negative, or non-finite", () => {
+      expect(getLevelUpAnnouncement(4, "Script Adept", 0)).toBe(
+        "Ascended to Level 4! Rank: Script Adept"
+      );
+      expect(getLevelUpAnnouncement(4, "Script Adept", -1)).toBe(
+        "Ascended to Level 4! Rank: Script Adept"
+      );
+      expect(getLevelUpAnnouncement(4, "Script Adept", NaN)).toBe(
+        "Ascended to Level 4! Rank: Script Adept"
+      );
+    });
+
+    it("falls back to level 1 for non-finite, zero, or negative level numbers", () => {
+      expect(getLevelUpAnnouncement(NaN, "Novice Byte")).toBe(
+        "Ascended to Level 1! Rank: Novice Byte"
+      );
+      expect(getLevelUpAnnouncement(Infinity, "Novice Byte")).toBe(
+        "Ascended to Level 1! Rank: Novice Byte"
+      );
+      expect(getLevelUpAnnouncement(-5, "Novice Byte")).toBe(
+        "Ascended to Level 1! Rank: Novice Byte"
+      );
+      expect(getLevelUpAnnouncement(0, "Novice Byte")).toBe(
+        "Ascended to Level 1! Rank: Novice Byte"
+      );
+    });
+
+    it("floors floating-point level numbers and perks counts", () => {
+      expect(getLevelUpAnnouncement(3.9, "Novice Byte", 2.8)).toBe(
+        "Ascended to Level 3! Rank: Novice Byte (2 perks unlocked)"
+      );
+    });
+
+    it("falls back to 'Novice Byte' for empty, whitespace, or invalid titles", () => {
+      expect(getLevelUpAnnouncement(2, "")).toBe(
+        "Ascended to Level 2! Rank: Novice Byte"
+      );
+      expect(getLevelUpAnnouncement(2, "   ")).toBe(
+        "Ascended to Level 2! Rank: Novice Byte"
+      );
+      // @ts-expect-error testing runtime fallback for null/undefined title
+      expect(getLevelUpAnnouncement(2, null)).toBe(
+        "Ascended to Level 2! Rank: Novice Byte"
+      );
+    });
+
+    it("trims whitespace from title strings", () => {
+      expect(getLevelUpAnnouncement(7, "  DOM Weaver  ")).toBe(
+        "Ascended to Level 7! Rank: DOM Weaver"
+      );
+    });
+  });
+
+  it("marks all decorative Lucide icons with aria-hidden='true' to keep accessible tree clean", () => {
+    useGameStore.setState({
+      pendingLevelUp: {
+        previousLevel: 3,
+        newLevel: 4,
+        newRankTitle: "Script Adept",
+        isNewRank: true,
+        unlockedSkillPoints: 1,
+        maxHp: 130,
+        maxMana: 65,
+      },
+      streak: 4,
+    });
+
+    render(
+      <LevelUpModal
+        onOpenSkillTree={mockOpenSkillTree}
+        onOpenLevelJourney={mockOpenLevelJourney}
+      />
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const icons = dialog.querySelectorAll("svg");
+    expect(icons.length).toBeGreaterThan(0);
+    icons.forEach((icon) => {
+      expect(icon.getAttribute("aria-hidden")).toBe("true");
+    });
   });
 
   it("gracefully catches and tolerates confetti throwing an exception", () => {

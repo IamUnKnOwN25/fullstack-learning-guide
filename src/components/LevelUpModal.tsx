@@ -22,6 +22,35 @@ interface Props {
   onOpenLevelJourney?: () => void;
 }
 
+export function getLevelUpAnnouncement(
+  level: number,
+  title: string,
+  unlockedPerksCount?: number
+): string {
+  const safeLevel =
+    typeof level === "number" && Number.isFinite(level) && level > 0
+      ? Math.floor(level)
+      : 1;
+  const safeTitle =
+    typeof title === "string" && title.trim().length > 0
+      ? title.trim()
+      : "Novice Byte";
+
+  const base = `Ascended to Level ${safeLevel}! Rank: ${safeTitle}`;
+
+  if (
+    typeof unlockedPerksCount === "number" &&
+    Number.isFinite(unlockedPerksCount) &&
+    unlockedPerksCount > 0
+  ) {
+    const perks = Math.floor(unlockedPerksCount);
+    const perkNoun = perks === 1 ? "perk" : "perks";
+    return `${base} (${perks} ${perkNoun} unlocked)`;
+  }
+
+  return base;
+}
+
 export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
   const { pendingLevelUp, dismissLevelUp, streak } = useGameStore();
 
@@ -96,24 +125,24 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           className="absolute top-3.5 right-3.5 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-matrix-dark/80 transition-colors z-10 cursor-pointer"
           title="Dismiss (Esc)"
         >
-          <X className="w-5 h-5" />
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
 
         {/* Live status announcement for screen readers */}
         <div role="status" aria-live="polite" className="sr-only">
-          Ascended to Level {newLevel}! Rank: {newRankTitle}
+          {getLevelUpAnnouncement(newLevel, newRankTitle)}
         </div>
 
         {/* Modal Header */}
         <div className="pt-8 pb-4 px-6 text-center relative">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-matrix-neonGold/20 border-2 border-matrix-neonGold shadow-lg shadow-matrix-neonGold/30 text-matrix-neonGold mb-3.5 animate-bounce">
-            <Sparkles className="w-8 h-8" />
+            <Sparkles className="w-8 h-8" aria-hidden="true" />
           </div>
 
           <div className="flex items-center justify-center gap-1.5 text-xs font-mono uppercase tracking-widest text-matrix-neonGold font-bold mb-1">
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Cybernetic Ascension</span>
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
           </div>
 
           <h2 id="levelup-modal-title" className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -124,7 +153,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
             <span className="text-sm font-mono text-gray-400 line-through">
               Level {previousLevel}
             </span>
-            <ArrowRight className="w-4 h-4 text-matrix-neonGold" />
+            <ArrowRight className="w-4 h-4 text-matrix-neonGold" aria-hidden="true" />
             <span className="text-lg font-mono font-bold text-matrix-neonGold px-3 py-0.5 rounded-full bg-matrix-neonGold/10 border border-matrix-neonGold/40 shadow-sm">
               Level {newLevel}
             </span>
@@ -135,7 +164,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
         {isNewRank && (
           <div className="mx-6 mb-4 p-3 rounded-2xl bg-gradient-to-r from-matrix-neonGold/20 via-matrix-accent/15 to-matrix-neonCyan/20 border border-matrix-neonGold/40 flex items-center gap-3 shadow-md">
             <div className="w-10 h-10 rounded-xl bg-matrix-neonGold/20 border border-matrix-neonGold flex items-center justify-center text-matrix-neonGold shrink-0">
-              <Crown className="w-5 h-5" />
+              <Crown className="w-5 h-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-mono uppercase font-bold text-matrix-neonGold tracking-wider">
@@ -157,7 +186,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonPurple/20 border border-matrix-neonPurple/40 flex items-center justify-center text-matrix-neonPurple">
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <div className="text-xs font-bold text-white">Skill Point</div>
@@ -174,7 +203,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonRed/20 border border-matrix-neonRed/40 flex items-center justify-center text-matrix-neonRed">
-                <Heart className="w-4 h-4" />
+                <Heart className="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <div className="text-xs font-bold text-white">Maximum Health</div>
@@ -191,7 +220,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           <div role="listitem" className="p-3 rounded-xl bg-matrix-dark/80 border border-matrix-border flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-matrix-neonCyan/20 border border-matrix-neonCyan/40 flex items-center justify-center text-matrix-neonCyan">
-                <Zap className="w-4 h-4" />
+                <Zap className="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <div className="text-xs font-bold text-white">Maximum Mana</div>
@@ -208,7 +237,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
           {streak > 1 && (
             <div role="listitem" className="p-2.5 rounded-xl bg-matrix-neonGold/10 border border-matrix-neonGold/30 flex items-center justify-between text-xs font-mono">
               <div className="flex items-center gap-1.5 text-matrix-neonGold">
-                <Flame className="w-4 h-4 fill-matrix-neonGold" />
+                <Flame className="w-4 h-4 fill-matrix-neonGold" aria-hidden="true" />
                 <span className="font-bold">{streak}-Day Study Streak Active</span>
               </div>
               <span className="text-[11px] text-gray-300">
@@ -231,7 +260,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
                 }}
                 className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-neonPurple hover:bg-matrix-neonPurple/90 text-white font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-neonPurple/30 transition-all cursor-pointer"
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4" aria-hidden="true" />
                 <span>Unlock Skill Perks</span>
               </button>
             )}
@@ -244,7 +273,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
               }}
               className="flex-1 py-2.5 px-4 rounded-xl bg-matrix-accent hover:bg-matrix-accent/90 text-matrix-dark font-mono font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-matrix-accent/30 transition-all cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
               <span>Continue Journey</span>
             </button>
           </div>
@@ -259,7 +288,7 @@ export function LevelUpModal({ onOpenSkillTree, onOpenLevelJourney }: Props) {
               }}
               className="w-full py-2 px-3 rounded-xl bg-matrix-dark/60 hover:bg-matrix-dark border border-matrix-neonGold/30 hover:border-matrix-neonGold text-matrix-neonGold text-xs font-mono font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Compass className="w-3.5 h-3.5" />
+              <Compass className="w-3.5 h-3.5" aria-hidden="true" />
               <span>View Rank Ladder & Level Roadmap</span>
             </button>
           )}
