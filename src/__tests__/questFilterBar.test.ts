@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
 import fs from "fs";
 import path from "path";
-import { filterQuestsList, DifficultyLevel, FilterableQuest } from "../lib/questFilter";
+import {
+  filterQuestsList,
+  DifficultyLevel,
+  FilterableQuest,
+  getQuestDifficulty,
+  sortQuestsList,
+  groupQuestsByRealm,
+} from "../lib/questFilter";
 
 describe("QuestFilterBar", () => {
   it("enforces QuestFilterBar component UI rendering invariants", () => {
@@ -166,6 +173,142 @@ describe("QuestFilterBar", () => {
       // They should NOT match Advanced (xp >= 75)
       const advanced = filterQuestsList(nanQuests, "", "All", "Advanced");
       expect(advanced).toHaveLength(0);
+    });
+  });
+
+  describe("getQuestDifficulty", () => {
+    it("classifies XP < 150 as beginner", () => {
+      expect(getQuestDifficulty(0)).toBe("beginner");
+      expect(getQuestDifficulty(50)).toBe("beginner");
+      expect(getQuestDifficulty(149)).toBe("beginner");
+    });
+
+    it("classifies XP between 150 and 299 as intermediate", () => {
+      expect(getQuestDifficulty(150)).toBe("intermediate");
+      expect(getQuestDifficulty(200)).toBe("intermediate");
+      expect(getQuestDifficulty(299)).toBe("intermediate");
+    });
+
+    it("classifies XP between 300 and 499 as advanced", () => {
+      expect(getQuestDifficulty(300)).toBe("advanced");
+      expect(getQuestDifficulty(400)).toBe("advanced");
+      expect(getQuestDifficulty(499)).toBe("advanced");
+    });
+
+    it("classifies XP >= 500 as master", () => {
+      expect(getQuestDifficulty(500)).toBe("master");
+      expect(getQuestDifficulty(750)).toBe("master");
+      expect(getQuestDifficulty(1200)).toBe("master");
+    });
+
+    it("handles negative numbers, NaN, and non-finite values safely", () => {
+      expect(getQuestDifficulty(-50)).toBe("beginner");
+      expect(getQuestDifficulty(Number.NaN)).toBe("beginner");
+      expect(getQuestDifficulty(Number.NEGATIVE_INFINITY)).toBe("beginner");
+      expect(getQuestDifficulty(Number.POSITIVE_INFINITY)).toBe("beginner");
+    });
+  });
+
+  describe("sortQuestsList", () => {
+    const sampleQuests = [
+      { id: "q1", title: "Zebra Styling", xpReward: 300, order: 3 },
+      { id: "q2", title: "Apple HTML", xpReward: 100, order: 1 },
+      { id: "q3", title: "Medium Script", xpReward: 500, order: 2 },
+    ];
+
+    it("returns a new array and does not mutate the original input array", () => {
+      const originalCopy = [...sampleQuests];
+      const sorted = sortQuestsList(sampleQuests, "title");
+
+      expect(sorted).not.toBe(sampleQuests);
+      expect(sampleQuests).toEqual(originalCopy);
+    });
+
+    it("sorts by order ascending", () => {
+      const sorted = sortQuestsList(sampleQuests, "order");
+      expect(sorted.map((q) => q.id)).toEqual(["q2", "q3", "q1"]);
+    });
+
+    it("sorts by xp-asc ascending", () => {
+      const sorted = sortQuestsList(sampleQuests, "xp-asc");
+      expect(sorted.map((q) => q.id)).toEqual(["q2", "q1", "q3"]);
+    });
+
+    it("sorts by xp-desc descending", () => {
+      const sorted = sortQuestsList(sampleQuests, "xp-desc");
+      expect(sorted.map((q) => q.id)).toEqual(["q3", "q1", "q2"]);
+    });
+
+    it("sorts by title alphabetically", () => {
+      const sorted = sortQuestsList(sampleQuests, "title");
+      expect(sorted.map((q) => q.id)).toEqual(["q2", "q3", "q1"]);
+    });
+
+    it("handles missing or undefined order gracefully", () => {
+      const questsWithoutOrder = [
+        { id: "noOrder", title: "No Order Quest", xpReward: 200 },
+        { id: "orderOne", title: "First Quest", xpReward: 150, order: 1 },
+        { id: "orderTwo", title: "Second Quest", xpReward: 300, order: 2 },
+      ];
+
+      const sorted = sortQuestsList(questsWithoutOrder, "order");
+      // order default 0 puts noOrder first (order: 0 < 1 < 2)
+      expect(sorted[0].id).toBe("noOrder");
+      expect(sorted[1].id).toBe("orderOne");
+      expect(sorted[2].id).toBe("orderTwo");
+    });
+
+    it("returns empty array when input is null, undefined, or not an array", () => {
+      expect(sortQuestsList(null as any, "order")).toEqual([]);
+      expect(sortQuestsList(undefined as any, "title")).toEqual([]);
+      expect(sortQuestsList("not-an-array" as any, "xp-asc")).toEqual([]);
+    });
+  });
+
+  describe("groupQuestsByRealm", () => {
+    it("groups quests by their realmId", () => {
+      const quests = [
+        { id: "q1", realmId: "html", title: "HTML Basics" },
+        { id: "q2", realmId: "css", title: "CSS Grid" },
+        { id: "q3", realmId: "html", title: "HTML Forms" },
+        { id: "q4", realmId: "js", title: "JS Closures" },
+      ];
+
+      const grouped = groupQuestsByRealm(quests);
+      expect(Object.keys(grouped).sort()).toEqual(["css", "html", "js"]);
+      expect(grouped.html.map((q) => q.id)).toEqual(["q1", "q3"]);
+      expect(grouped.css.map((q) => q.id)).toEqual(["q2"]);
+      expect(grouped.js.map((q) => q.id)).toEqual(["q4"]);
+    });
+
+    it("preserves original array sequence within each group", () => {
+      const quests = [
+        { id: "h1", realmId: "html", title: "First HTML" },
+        { id: "h2", realmId: "html", title: "Second HTML" },
+        { id: "h3", realmId: "html", title: "Third HTML" },
+      ];
+
+      const grouped = groupQuestsByRealm(quests);
+      expect(grouped.html.map((q) => q.id)).toEqual(["h1", "h2", "h3"]);
+    });
+
+    it("returns empty object when input is empty or invalid", () => {
+      expect(groupQuestsByRealm([])).toEqual({});
+      expect(groupQuestsByRealm(null as any)).toEqual({});
+      expect(groupQuestsByRealm(undefined as any)).toEqual({});
+      expect(groupQuestsByRealm("invalid" as any)).toEqual({});
+    });
+
+    it("handles missing or non-string realmId by placing in unknown group", () => {
+      const quests = [
+        { id: "q1", realmId: "html", title: "HTML" },
+        { id: "q2", realmId: undefined as any, title: "Mystery" },
+      ];
+
+      const grouped = groupQuestsByRealm(quests);
+      expect(grouped.html).toHaveLength(1);
+      expect(grouped.unknown).toHaveLength(1);
+      expect(grouped.unknown[0].id).toBe("q2");
     });
   });
 });

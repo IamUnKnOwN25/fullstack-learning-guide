@@ -53,3 +53,88 @@ export function filterQuestsList<T extends FilterableQuest = FilterableQuest>(
     return matchSearch && matchRealm && matchDifficulty;
   });
 }
+
+export type QuestDifficulty = "beginner" | "intermediate" | "advanced" | "master";
+
+/**
+ * Classifies quest difficulty based on its XP reward:
+ * - < 150: 'beginner'
+ * - 150..299: 'intermediate'
+ * - 300..499: 'advanced'
+ * - >= 500: 'master'
+ */
+export function getQuestDifficulty(xpReward: number): QuestDifficulty {
+  const xp = Number.isFinite(xpReward) ? xpReward : 0;
+  if (xp < 150) return "beginner";
+  if (xp < 300) return "intermediate";
+  if (xp < 500) return "advanced";
+  return "master";
+}
+
+export type QuestSortOption = "order" | "xp-asc" | "xp-desc" | "title";
+
+/**
+ * Sorts a list of quests by the specified sorting criteria without mutating the input array.
+ */
+export function sortQuestsList<
+  T extends { id: string; title: string; xpReward: number; order?: number }
+>(quests: T[], sortBy: "order" | "xp-asc" | "xp-desc" | "title"): T[] {
+  if (!quests || !Array.isArray(quests)) {
+    return [];
+  }
+
+  const copy = [...quests];
+
+  return copy.sort((a, b) => {
+    switch (sortBy) {
+      case "order": {
+        const orderA = typeof a.order === "number" && Number.isFinite(a.order) ? a.order : 0;
+        const orderB = typeof b.order === "number" && Number.isFinite(b.order) ? b.order : 0;
+        return orderA - orderB;
+      }
+      case "xp-asc": {
+        const xpA = typeof a.xpReward === "number" && Number.isFinite(a.xpReward) ? a.xpReward : 0;
+        const xpB = typeof b.xpReward === "number" && Number.isFinite(b.xpReward) ? b.xpReward : 0;
+        return xpA - xpB;
+      }
+      case "xp-desc": {
+        const xpA = typeof a.xpReward === "number" && Number.isFinite(a.xpReward) ? a.xpReward : 0;
+        const xpB = typeof b.xpReward === "number" && Number.isFinite(b.xpReward) ? b.xpReward : 0;
+        return xpB - xpA;
+      }
+      case "title": {
+        const titleA = typeof a.title === "string" ? a.title : "";
+        const titleB = typeof b.title === "string" ? b.title : "";
+        return titleA.localeCompare(titleB);
+      }
+      default:
+        return 0;
+    }
+  });
+}
+
+/**
+ * Groups quests by their realmId into a record map.
+ */
+export function groupQuestsByRealm<T extends { realmId: string }>(
+  quests: T[]
+): Record<string, T[]> {
+  if (!quests || !Array.isArray(quests)) {
+    return {};
+  }
+
+  const grouped: Record<string, T[]> = {};
+
+  for (const quest of quests) {
+    if (!quest || typeof quest !== "object") {
+      continue;
+    }
+    const realm = typeof quest.realmId === "string" ? quest.realmId : "unknown";
+    if (!grouped[realm]) {
+      grouped[realm] = [];
+    }
+    grouped[realm].push(quest);
+  }
+
+  return grouped;
+}
