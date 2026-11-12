@@ -285,3 +285,102 @@ export function isRealmUnlocked(
   return safePlayerLevel >= realm.requiredLevel;
 }
 
+
+export const normalizeRealmId = resolveRealmAlias;
+
+export interface RealmNavigationContext {
+  prev: Realm | null;
+  current: Realm | null;
+  next: Realm | null;
+}
+
+/**
+ * Calculates campaign progression statistics based on a list of completed realm identifiers.
+ * Deduplicates and normalizes realm IDs against known REALMS, returning the completed count,
+ * total realm count, and a rounded completion percentage between 0 and 100.
+ */
+export function getCampaignProgression(completedRealmIds: string[]): {
+  completedCount: number;
+  totalCount: number;
+  percentage: number;
+} {
+  const totalCount = REALMS.length;
+  if (!Array.isArray(completedRealmIds) || totalCount === 0) {
+    return {
+      completedCount: 0,
+      totalCount,
+      percentage: 0,
+    };
+  }
+
+  const validCompletedSet = new Set<string>();
+
+  for (const rawId of completedRealmIds) {
+    const realm = getRealmById(rawId);
+    if (realm) {
+      validCompletedSet.add(realm.id);
+    }
+  }
+
+  const completedCount = validCompletedSet.size;
+  const rawPercentage = (completedCount / totalCount) * 100;
+  const percentage = Math.min(100, Math.max(0, Math.round(rawPercentage)));
+
+  return {
+    completedCount,
+    totalCount,
+    percentage,
+  };
+}
+
+/**
+ * Filters realms that are available up to a given player level (requiredLevel <= floor(playerLevel)).
+ * Returns an empty array if playerLevel is less than 1 or non-finite.
+ */
+export function filterRealmsByMaxLevel(playerLevel: number): Realm[] {
+  if (typeof playerLevel !== "number" || !Number.isFinite(playerLevel) || playerLevel < 1) {
+    return [];
+  }
+  const flooredLevel = Math.floor(playerLevel);
+  return REALMS.filter((realm) => realm.requiredLevel <= flooredLevel);
+}
+
+/**
+ * Retrieves a realm associated with a specific boss identifier, matching case-insensitively.
+ * Returns undefined if no matching realm is found or if bossId is invalid.
+ */
+export function getRealmByBossId(bossId: string): Realm | undefined {
+  if (typeof bossId !== "string") {
+    return undefined;
+  }
+  const cleaned = bossId.trim().toLowerCase();
+  if (!cleaned) {
+    return undefined;
+  }
+  return REALMS.find((realm) => realm.bossId.toLowerCase() === cleaned);
+}
+
+/**
+ * Resolves the navigation context (previous, current, and next realms) for a given realm ID.
+ * Supports realm aliases and returns null for predecessor/successor at boundaries or when
+ * the realm cannot be resolved.
+ */
+export function getRealmNavigationContext(realmId: string): RealmNavigationContext {
+  const current = getRealmById(realmId) ?? null;
+  if (!current) {
+    return {
+      prev: null,
+      current: null,
+      next: null,
+    };
+  }
+
+  const prev = getPreviousRealm(current.id) ?? null;
+  const next = getNextRealm(current.id) ?? null;
+
+  return {
+    prev,
+    current,
+    next,
+  };
+}

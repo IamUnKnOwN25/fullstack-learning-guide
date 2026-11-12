@@ -9,6 +9,11 @@ import {
   getNextRealm,
   getPreviousRealm,
   isRealmUnlocked,
+  getCampaignProgression,
+  filterRealmsByMaxLevel,
+  getRealmByBossId,
+  getRealmNavigationContext,
+  normalizeRealmId,
 } from "../data/realms";
 import { BOSSES } from "../data/bosses";
 import { QUESTS } from "../data/quests";
@@ -256,6 +261,221 @@ describe("Realm Query, Progression, and Unlock Helpers", () => {
 
     it("returns false for non-existent realm even if present in unlockedRealms", () => {
       expect(isRealmUnlocked("mythical-realm", 100, ["mythical-realm"])).toBe(false);
+    });
+  });
+});
+
+
+describe("Campaign Progression, Filtering, Boss Lookup, and Navigation Context Helpers", () => {
+  describe("getCampaignProgression", () => {
+    it("returns zero counts and percentage for empty completed realm list", () => {
+      const result = getCampaignProgression([]);
+      expect(result).toEqual({
+        completedCount: 0,
+        totalCount: 12,
+        percentage: 0,
+      });
+    });
+
+    it("correctly calculates progress and rounds percentage for partial completion", () => {
+      // 1 realm: 1/12 = 8.33% -> 8%
+      expect(getCampaignProgression(["html"])).toEqual({
+        completedCount: 1,
+        totalCount: 12,
+        percentage: 8,
+      });
+
+      // 2 realms: 2/12 = 16.67% -> 17%
+      expect(getCampaignProgression(["html", "css"])).toEqual({
+        completedCount: 2,
+        totalCount: 12,
+        percentage: 17,
+      });
+
+      // 6 realms: 6/12 = 50%
+      expect(
+        getCampaignProgression(["html", "css", "javascript", "typescript", "react", "backend"])
+      ).toEqual({
+        completedCount: 6,
+        totalCount: 12,
+        percentage: 50,
+      });
+    });
+
+    it("returns 100% when all realms are completed", () => {
+      const allIds = REALMS.map((r) => r.id);
+      expect(getCampaignProgression(allIds)).toEqual({
+        completedCount: 12,
+        totalCount: 12,
+        percentage: 100,
+      });
+    });
+
+    it("deduplicates identical realm identifiers", () => {
+      const result = getCampaignProgression(["html", "html", "html"]);
+      expect(result).toEqual({
+        completedCount: 1,
+        totalCount: 12,
+        percentage: 8,
+      });
+    });
+
+    it("normalizes shorthand aliases and prevents double-counting aliases of the same realm", () => {
+      const result = getCampaignProgression(["js", "javascript", "ts", "typescript", "db", "databases"]);
+      expect(result).toEqual({
+        completedCount: 3,
+        totalCount: 12,
+        percentage: 25,
+      });
+    });
+
+    it("ignores unrecognized, whitespace-only, or invalid realm IDs", () => {
+      const result = getCampaignProgression(["html", "unknown_realm", "   ", ""]);
+      expect(result).toEqual({
+        completedCount: 1,
+        totalCount: 12,
+        percentage: 8,
+      });
+    });
+
+    it("handles non-array inputs defensively at runtime", () => {
+      // @ts-expect-error test non-array input
+      expect(getCampaignProgression(null)).toEqual({
+        completedCount: 0,
+        totalCount: 12,
+        percentage: 0,
+      });
+      // @ts-expect-error test non-array input
+      expect(getCampaignProgression(undefined)).toEqual({
+        completedCount: 0,
+        totalCount: 12,
+        percentage: 0,
+      });
+    });
+  });
+
+  describe("filterRealmsByMaxLevel", () => {
+    it("returns realms whose requiredLevel is less than or equal to player level", () => {
+      const level1Realms = filterRealmsByMaxLevel(1);
+      expect(level1Realms.map((r) => r.id)).toEqual(["html"]);
+
+      const level2Realms = filterRealmsByMaxLevel(2);
+      expect(level2Realms.map((r) => r.id)).toEqual(["html", "css"]);
+
+      const level6Realms = filterRealmsByMaxLevel(6);
+      expect(level6Realms.map((r) => r.id)).toEqual(["html", "css", "javascript", "typescript"]);
+    });
+
+    it("floors floating-point player levels", () => {
+      const realms = filterRealmsByMaxLevel(2.9);
+      expect(realms.map((r) => r.id)).toEqual(["html", "css"]);
+    });
+
+    it("returns all 12 realms if player level meets or exceeds max realm requirement", () => {
+      const realms = filterRealmsByMaxLevel(35);
+      expect(realms).toHaveLength(12);
+      expect(realms.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
+    });
+
+    it("returns an empty array for playerLevel < 1", () => {
+      expect(filterRealmsByMaxLevel(0)).toEqual([]);
+      expect(filterRealmsByMaxLevel(-5)).toEqual([]);
+    });
+
+    it("returns an empty array for non-finite or non-number values", () => {
+      expect(filterRealmsByMaxLevel(NaN)).toEqual([]);
+      expect(filterRealmsByMaxLevel(Infinity)).toEqual([]);
+      expect(filterRealmsByMaxLevel(-Infinity)).toEqual([]);
+      // @ts-expect-error test non-number level
+      expect(filterRealmsByMaxLevel("5")).toEqual([]);
+      // @ts-expect-error test non-number level
+      expect(filterRealmsByMaxLevel(null)).toEqual([]);
+    });
+  });
+
+  describe("getRealmByBossId", () => {
+    it("finds realm by exact boss identifier", () => {
+      const realm = getRealmByBossId("html_boss");
+      expect(realm).toBeDefined();
+      expect(realm?.id).toBe("html");
+      expect(realm?.bossId).toBe("html_boss");
+    });
+
+    it("matches bossId case-insensitively and trims whitespace", () => {
+      expect(getRealmByBossId("HTML_BOSS")?.id).toBe("html");
+      expect(getRealmByBossId("  css_boss  ")?.id).toBe("css");
+      expect(getRealmByBossId("Js_BoSs")?.id).toBe("javascript");
+      expect(getRealmByBossId("FINAL_BOSS")?.id).toBe("capstone");
+    });
+
+    it("returns undefined for non-existent boss IDs or empty strings", () => {
+      expect(getRealmByBossId("nonexistent_boss")).toBeUndefined();
+      expect(getRealmByBossId("")).toBeUndefined();
+      expect(getRealmByBossId("   ")).toBeUndefined();
+      // @ts-expect-error test non-string input
+      expect(getRealmByBossId(null)).toBeUndefined();
+      // @ts-expect-error test non-string input
+      expect(getRealmByBossId(123)).toBeUndefined();
+    });
+  });
+
+  describe("getRealmNavigationContext", () => {
+    it("returns navigation context for the first realm (HTML)", () => {
+      const context = getRealmNavigationContext("html");
+      expect(context.prev).toBeNull();
+      expect(context.current?.id).toBe("html");
+      expect(context.next?.id).toBe("css");
+    });
+
+    it("returns navigation context for a middle realm (CSS)", () => {
+      const context = getRealmNavigationContext("css");
+      expect(context.prev?.id).toBe("html");
+      expect(context.current?.id).toBe("css");
+      expect(context.next?.id).toBe("javascript");
+    });
+
+    it("returns navigation context for the last realm (Capstone)", () => {
+      const context = getRealmNavigationContext("capstone");
+      expect(context.prev?.id).toBe("security");
+      expect(context.current?.id).toBe("capstone");
+      expect(context.next).toBeNull();
+    });
+
+    it("supports realm shorthand aliases and case/whitespace normalization", () => {
+      const context = getRealmNavigationContext("  JS ");
+      expect(context.prev?.id).toBe("css");
+      expect(context.current?.id).toBe("javascript");
+      expect(context.next?.id).toBe("typescript");
+    });
+
+    it("returns all nulls if the realm cannot be found", () => {
+      const context = getRealmNavigationContext("invalid_realm");
+      expect(context).toEqual({
+        prev: null,
+        current: null,
+        next: null,
+      });
+
+      expect(getRealmNavigationContext("")).toEqual({
+        prev: null,
+        current: null,
+        next: null,
+      });
+
+      // @ts-expect-error test non-string input
+      expect(getRealmNavigationContext(null)).toEqual({
+        prev: null,
+        current: null,
+        next: null,
+      });
+    });
+  });
+
+  describe("normalizeRealmId", () => {
+    it("aliases resolveRealmAlias identically", () => {
+      expect(normalizeRealmId).toBe(resolveRealmAlias);
+      expect(normalizeRealmId("js")).toBe("javascript");
+      expect(normalizeRealmId("ts")).toBe("typescript");
     });
   });
 });
