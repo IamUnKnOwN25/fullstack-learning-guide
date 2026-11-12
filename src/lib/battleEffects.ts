@@ -204,3 +204,108 @@ export function generateParticleVectors(
   }
   return particles;
 }
+
+export interface CombatStats {
+  hpRemaining: number;
+  maxHp: number;
+  turnsTaken: number;
+  hintsUsed: number;
+  parTurns?: number;
+  turnPenalty?: number;
+  hintPenalty?: number;
+}
+
+export type CombatRank = 'S' | 'A' | 'B' | 'C';
+
+export interface CombatRating {
+  score: number;
+  rank: CombatRank;
+}
+
+/**
+ * Calculates a clamped [0, 100] combat score and rank ('S' | 'A' | 'B' | 'C') based on HP remaining ratio
+ * minus penalties for excess turns and hints used.
+ */
+export function calculateCombatRating(stats: CombatStats): CombatRating {
+  if (!stats || typeof stats !== 'object') {
+    return { score: 0, rank: 'C' };
+  }
+
+  const hpRatio = calculateHpPercentage(stats.hpRemaining, stats.maxHp);
+  const turnsTaken = Number.isFinite(stats.turnsTaken) && stats.turnsTaken > 0 ? Math.floor(stats.turnsTaken) : 0;
+  const hintsUsed = Number.isFinite(stats.hintsUsed) && stats.hintsUsed > 0 ? Math.floor(stats.hintsUsed) : 0;
+
+  const parTurns = Number.isFinite(stats.parTurns) && (stats.parTurns as number) >= 0 ? (stats.parTurns as number) : 3;
+  const turnPenaltyWeight = Number.isFinite(stats.turnPenalty) && (stats.turnPenalty as number) >= 0 ? (stats.turnPenalty as number) : 2;
+  const hintPenaltyWeight = Number.isFinite(stats.hintPenalty) && (stats.hintPenalty as number) >= 0 ? (stats.hintPenalty as number) : 5;
+
+  const excessTurns = Math.max(0, turnsTaken - parTurns);
+  const turnPenalty = excessTurns * turnPenaltyWeight;
+  const hintPenalty = hintsUsed * hintPenaltyWeight;
+
+  const rawScore = hpRatio - turnPenalty - hintPenalty;
+  const score = Number(Math.max(0, Math.min(100, rawScore)).toFixed(2));
+
+  let rank: CombatRank;
+  if (score >= 90) {
+    rank = 'S';
+  } else if (score >= 75) {
+    rank = 'A';
+  } else if (score >= 50) {
+    rank = 'B';
+  } else {
+    rank = 'C';
+  }
+
+  return { score, rank };
+}
+
+export interface BossPhaseTransition {
+  hpPercent: number;
+  isEnraged: boolean;
+  intensity: 'normal' | 'elevated' | 'critical';
+}
+
+/**
+ * Calculates boss HP percentage, enrage status, and phase combat intensity.
+ * - hpPercent: Clamped [0, 100] percentage of remaining boss health.
+ * - isEnraged: true when hpPercent <= 40 and currentHp > 0.
+ * - intensity: '> 60' -> 'normal', '31..60' -> 'elevated', '<= 30' -> 'critical'.
+ */
+export function calculateBossPhaseTransition(
+  currentHp: number,
+  maxHp: number
+): BossPhaseTransition {
+  const hpPercent = Number(calculateHpPercentage(currentHp, maxHp).toFixed(2));
+  const isEnraged =
+    hpPercent <= 40 &&
+    Number.isFinite(currentHp) &&
+    currentHp > 0 &&
+    Number.isFinite(maxHp) &&
+    maxHp > 0;
+
+  let intensity: 'normal' | 'elevated' | 'critical';
+  if (hpPercent > 60) {
+    intensity = 'normal';
+  } else if (hpPercent > 30) {
+    intensity = 'elevated';
+  } else {
+    intensity = 'critical';
+  }
+
+  return { hpPercent, isEnraged, intensity };
+}
+
+/**
+ * Formats damage numbers safely into floating battle feedback text.
+ * Clamps negative/non-finite amounts to 0. Appends '(CRIT!)' badge for critical hits.
+ * @param amount Damage amount dealt or taken.
+ * @param isCritical Whether hit was a critical strike.
+ */
+export function formatFloatingDamageText(
+  amount: number,
+  isCritical: boolean = false
+): string {
+  const safeAmount = Number.isFinite(amount) ? Math.max(0, Math.round(amount)) : 0;
+  return isCritical ? `-${safeAmount} HP (CRIT!)` : `-${safeAmount} HP`;
+}

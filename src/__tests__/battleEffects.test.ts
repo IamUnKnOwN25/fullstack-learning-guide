@@ -7,6 +7,9 @@ import {
   generateParticleVectors,
   sanitizeParticleCount,
   sanitizeScreenShakeDamage,
+  calculateCombatRating,
+  calculateBossPhaseTransition,
+  formatFloatingDamageText,
 } from '../lib/battleEffects';
 
 describe('battleEffects', () => {
@@ -287,6 +290,334 @@ describe('battleEffects', () => {
 
       const neon = generateParticleVectors(3, 0, 0, 'neon');
       expect(neon[0].color).toBe('#FF007F');
+    });
+  });
+
+  describe('calculateCombatRating', () => {
+    it('returns score 100 and rank S for perfect combat runs', () => {
+      const result = calculateCombatRating({
+        hpRemaining: 100,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(result).toEqual({ score: 100, rank: 'S' });
+    });
+
+    it('maps scores >= 90 to rank S', () => {
+      const s95 = calculateCombatRating({
+        hpRemaining: 95,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(s95).toEqual({ score: 95, rank: 'S' });
+
+      const s90 = calculateCombatRating({
+        hpRemaining: 90,
+        maxHp: 100,
+        turnsTaken: 2,
+        hintsUsed: 0,
+      });
+      expect(s90).toEqual({ score: 90, rank: 'S' });
+    });
+
+    it('maps scores >= 75 and < 90 to rank A', () => {
+      const a85 = calculateCombatRating({
+        hpRemaining: 85,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(a85).toEqual({ score: 85, rank: 'A' });
+
+      const a75 = calculateCombatRating({
+        hpRemaining: 75,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(a75).toEqual({ score: 75, rank: 'A' });
+    });
+
+    it('applies penalties for excess turns and hints', () => {
+      // 5 turns taken with par 3 = 2 excess turns (2 * 2 = 4 penalty)
+      // 2 hints used = 2 * 5 = 10 penalty
+      // 100 - 4 - 10 = 86 -> rank A
+      const penalized = calculateCombatRating({
+        hpRemaining: 100,
+        maxHp: 100,
+        turnsTaken: 5,
+        hintsUsed: 2,
+      });
+      expect(penalized).toEqual({ score: 86, rank: 'A' });
+    });
+
+    it('maps scores >= 50 and < 75 to rank B', () => {
+      const b74 = calculateCombatRating({
+        hpRemaining: 74,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(b74).toEqual({ score: 74, rank: 'B' });
+
+      const b50 = calculateCombatRating({
+        hpRemaining: 50,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(b50).toEqual({ score: 50, rank: 'B' });
+
+      // With excess turns dropping score to B
+      const bWithPenalties = calculateCombatRating({
+        hpRemaining: 80,
+        maxHp: 100,
+        turnsTaken: 11, // 8 excess turns * 2 = 16 penalty
+        hintsUsed: 2, // 2 hints * 5 = 10 penalty
+      });
+      expect(bWithPenalties).toEqual({ score: 54, rank: 'B' });
+    });
+
+    it('maps scores < 50 to rank C', () => {
+      const c49 = calculateCombatRating({
+        hpRemaining: 49,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(c49).toEqual({ score: 49, rank: 'C' });
+
+      const cLow = calculateCombatRating({
+        hpRemaining: 20,
+        maxHp: 100,
+        turnsTaken: 5,
+        hintsUsed: 1,
+      });
+      expect(cLow.score).toBeLessThan(50);
+      expect(cLow.rank).toBe('C');
+    });
+
+    it('clamps combat score to minimum 0 for heavy penalties or defeat', () => {
+      const defeated = calculateCombatRating({
+        hpRemaining: 0,
+        maxHp: 100,
+        turnsTaken: 10,
+        hintsUsed: 5,
+      });
+      expect(defeated).toEqual({ score: 0, rank: 'C' });
+
+      const negativeRaw = calculateCombatRating({
+        hpRemaining: 10,
+        maxHp: 100,
+        turnsTaken: 20,
+        hintsUsed: 10,
+      });
+      expect(negativeRaw).toEqual({ score: 0, rank: 'C' });
+    });
+
+    it('clamps combat score to maximum 100 if hpRemaining exceeds maxHp', () => {
+      const overMax = calculateCombatRating({
+        hpRemaining: 200,
+        maxHp: 100,
+        turnsTaken: 3,
+        hintsUsed: 0,
+      });
+      expect(overMax).toEqual({ score: 100, rank: 'S' });
+    });
+
+    it('handles non-finite, NaN, and negative stats gracefully', () => {
+      expect(
+        calculateCombatRating({
+          hpRemaining: NaN,
+          maxHp: 100,
+          turnsTaken: 3,
+          hintsUsed: 0,
+        })
+      ).toEqual({ score: 0, rank: 'C' });
+
+      expect(
+        calculateCombatRating({
+          hpRemaining: 50,
+          maxHp: 0,
+          turnsTaken: 3,
+          hintsUsed: 0,
+        })
+      ).toEqual({ score: 0, rank: 'C' });
+
+      expect(
+        calculateCombatRating({
+          hpRemaining: 80,
+          maxHp: 100,
+          turnsTaken: -5,
+          hintsUsed: -2,
+        })
+      ).toEqual({ score: 80, rank: 'A' });
+
+      // @ts-expect-error test nullish defense
+      expect(calculateCombatRating(null)).toEqual({ score: 0, rank: 'C' });
+    });
+
+    it('supports custom parTurns, turnPenalty, and hintPenalty weights', () => {
+      const custom = calculateCombatRating({
+        hpRemaining: 100,
+        maxHp: 100,
+        turnsTaken: 6,
+        hintsUsed: 1,
+        parTurns: 5,
+        turnPenalty: 1,
+        hintPenalty: 2,
+      });
+      // 1 excess turn * 1 = 1 penalty; 1 hint * 2 = 2 penalty -> 100 - 3 = 97
+      expect(custom).toEqual({ score: 97, rank: 'S' });
+    });
+  });
+
+  describe('calculateBossPhaseTransition', () => {
+    it('calculates full HP status correctly with normal intensity', () => {
+      expect(calculateBossPhaseTransition(100, 100)).toEqual({
+        hpPercent: 100,
+        isEnraged: false,
+        intensity: 'normal',
+      });
+    });
+
+    it('classifies intensity as normal when hpPercent > 60', () => {
+      expect(calculateBossPhaseTransition(75, 100)).toEqual({
+        hpPercent: 75,
+        isEnraged: false,
+        intensity: 'normal',
+      });
+      expect(calculateBossPhaseTransition(61, 100)).toEqual({
+        hpPercent: 61,
+        isEnraged: false,
+        intensity: 'normal',
+      });
+    });
+
+    it('classifies intensity as elevated for hpPercent between 31 and 60', () => {
+      expect(calculateBossPhaseTransition(60, 100)).toEqual({
+        hpPercent: 60,
+        isEnraged: false,
+        intensity: 'elevated',
+      });
+      expect(calculateBossPhaseTransition(45, 100)).toEqual({
+        hpPercent: 45,
+        isEnraged: false,
+        intensity: 'elevated',
+      });
+      expect(calculateBossPhaseTransition(31, 100)).toEqual({
+        hpPercent: 31,
+        isEnraged: true,
+        intensity: 'elevated',
+      });
+    });
+
+    it('sets isEnraged true when hpPercent <= 40 and currentHp > 0', () => {
+      const at40 = calculateBossPhaseTransition(40, 100);
+      expect(at40.hpPercent).toBe(40);
+      expect(at40.isEnraged).toBe(true);
+      expect(at40.intensity).toBe('elevated');
+
+      const at35 = calculateBossPhaseTransition(35, 100);
+      expect(at35.isEnraged).toBe(true);
+
+      const at41 = calculateBossPhaseTransition(41, 100);
+      expect(at41.isEnraged).toBe(false);
+    });
+
+    it('classifies intensity as critical when hpPercent <= 30', () => {
+      expect(calculateBossPhaseTransition(30, 100)).toEqual({
+        hpPercent: 30,
+        isEnraged: true,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(15, 100)).toEqual({
+        hpPercent: 15,
+        isEnraged: true,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(1, 100)).toEqual({
+        hpPercent: 1,
+        isEnraged: true,
+        intensity: 'critical',
+      });
+    });
+
+    it('sets isEnraged to false when currentHp is 0 or negative', () => {
+      expect(calculateBossPhaseTransition(0, 100)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(-20, 100)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+    });
+
+    it('clamps hpPercent to 100 if currentHp exceeds maxHp', () => {
+      expect(calculateBossPhaseTransition(150, 100)).toEqual({
+        hpPercent: 100,
+        isEnraged: false,
+        intensity: 'normal',
+      });
+    });
+
+    it('safely handles NaN, Infinity, and invalid maxHp', () => {
+      expect(calculateBossPhaseTransition(NaN, 100)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(50, NaN)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(50, 0)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+      expect(calculateBossPhaseTransition(50, -50)).toEqual({
+        hpPercent: 0,
+        isEnraged: false,
+        intensity: 'critical',
+      });
+    });
+  });
+
+  describe('formatFloatingDamageText', () => {
+    it('formats normal damage with standard suffix', () => {
+      expect(formatFloatingDamageText(250)).toBe('-250 HP');
+      expect(formatFloatingDamageText(250, false)).toBe('-250 HP');
+      expect(formatFloatingDamageText(100)).toBe('-100 HP');
+      expect(formatFloatingDamageText(1)).toBe('-1 HP');
+    });
+
+    it('formats critical damage with CRIT! badge', () => {
+      expect(formatFloatingDamageText(250, true)).toBe('-250 HP (CRIT!)');
+      expect(formatFloatingDamageText(750, true)).toBe('-750 HP (CRIT!)');
+      expect(formatFloatingDamageText(1, true)).toBe('-1 HP (CRIT!)');
+    });
+
+    it('clamps zero, negative, and non-finite damage to 0', () => {
+      expect(formatFloatingDamageText(0)).toBe('-0 HP');
+      expect(formatFloatingDamageText(0, true)).toBe('-0 HP (CRIT!)');
+      expect(formatFloatingDamageText(-50)).toBe('-0 HP');
+      expect(formatFloatingDamageText(-100, true)).toBe('-0 HP (CRIT!)');
+      expect(formatFloatingDamageText(NaN)).toBe('-0 HP');
+      expect(formatFloatingDamageText(Infinity)).toBe('-0 HP');
+      expect(formatFloatingDamageText(-Infinity, true)).toBe('-0 HP (CRIT!)');
+    });
+
+    it('safely rounds fractional damage numbers', () => {
+      expect(formatFloatingDamageText(249.7)).toBe('-250 HP');
+      expect(formatFloatingDamageText(249.2)).toBe('-249 HP');
+      expect(formatFloatingDamageText(15.4, true)).toBe('-15 HP (CRIT!)');
     });
   });
 });
