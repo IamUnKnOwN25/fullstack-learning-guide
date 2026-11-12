@@ -9,6 +9,9 @@ import {
   getStreakSummary,
   StreakState,
   STREAK_MILESTONES,
+  getStreakTier,
+  projectStreakStatus,
+  generateStreakActivityMap,
 } from "../lib/streakSystem";
 
 describe("streakSystem", () => {
@@ -354,6 +357,173 @@ describe("streakSystem", () => {
 
       const maxSummary = getStreakSummary(100, "2024-03-01", "2024-03-02", 2);
       expect(maxSummary.nextMilestone).toBeNull();
+    });
+  });
+
+  describe("getStreakTier", () => {
+    it("classifies <= 0 streak days as 'none' with 1.0 multiplier", () => {
+      expect(getStreakTier(0)).toEqual({ tier: "none", multiplier: 1.0 });
+      expect(getStreakTier(-5)).toEqual({ tier: "none", multiplier: 1.0 });
+      expect(getStreakTier(NaN)).toEqual({ tier: "none", multiplier: 1.0 });
+      expect(getStreakTier(null as unknown as number)).toEqual({ tier: "none", multiplier: 1.0 });
+    });
+
+    it("classifies 1..2 streak days as 'spark' with 1.05 multiplier", () => {
+      expect(getStreakTier(1)).toEqual({ tier: "spark", multiplier: 1.05 });
+      expect(getStreakTier(2)).toEqual({ tier: "spark", multiplier: 1.05 });
+    });
+
+    it("classifies 3..6 streak days as 'flame' with 1.1 multiplier", () => {
+      expect(getStreakTier(3)).toEqual({ tier: "flame", multiplier: 1.1 });
+      expect(getStreakTier(4)).toEqual({ tier: "flame", multiplier: 1.1 });
+      expect(getStreakTier(5)).toEqual({ tier: "flame", multiplier: 1.1 });
+      expect(getStreakTier(6)).toEqual({ tier: "flame", multiplier: 1.1 });
+    });
+
+    it("classifies 7..13 streak days as 'inferno' with 1.25 multiplier", () => {
+      expect(getStreakTier(7)).toEqual({ tier: "inferno", multiplier: 1.25 });
+      expect(getStreakTier(10)).toEqual({ tier: "inferno", multiplier: 1.25 });
+      expect(getStreakTier(13)).toEqual({ tier: "inferno", multiplier: 1.25 });
+    });
+
+    it("classifies >= 14 streak days as 'supernova' with 1.5 multiplier", () => {
+      expect(getStreakTier(14)).toEqual({ tier: "supernova", multiplier: 1.5 });
+      expect(getStreakTier(30)).toEqual({ tier: "supernova", multiplier: 1.5 });
+      expect(getStreakTier(100)).toEqual({ tier: "supernova", multiplier: 1.5 });
+      expect(getStreakTier(365)).toEqual({ tier: "supernova", multiplier: 1.5 });
+    });
+
+    it("handles floating point streak days by flooring", () => {
+      expect(getStreakTier(2.9)).toEqual({ tier: "spark", multiplier: 1.05 });
+      expect(getStreakTier(6.8)).toEqual({ tier: "flame", multiplier: 1.1 });
+      expect(getStreakTier(13.9)).toEqual({ tier: "inferno", multiplier: 1.25 });
+    });
+  });
+
+  describe("projectStreakStatus", () => {
+    it("handles zero days missed without consuming freezes", () => {
+      const res = projectStreakStatus(5, 0, 2);
+      expect(res).toEqual({
+        survivingStreak: 5,
+        freezesRemaining: 2,
+        broken: false,
+      });
+    });
+
+    it("covers missed days when freezes are sufficient", () => {
+      // 1 day missed with 2 freezes
+      expect(projectStreakStatus(10, 1, 2)).toEqual({
+        survivingStreak: 10,
+        freezesRemaining: 1,
+        broken: false,
+      });
+
+      // 2 days missed with exactly 2 freezes
+      expect(projectStreakStatus(10, 2, 2)).toEqual({
+        survivingStreak: 10,
+        freezesRemaining: 0,
+        broken: false,
+      });
+    });
+
+    it("breaks streak when missed days exceed available freezes", () => {
+      // 3 days missed with only 2 freezes
+      expect(projectStreakStatus(10, 3, 2)).toEqual({
+        survivingStreak: 0,
+        freezesRemaining: 2,
+        broken: true,
+      });
+
+      // 1 day missed with 0 freezes
+      expect(projectStreakStatus(10, 1, 0)).toEqual({
+        survivingStreak: 0,
+        freezesRemaining: 0,
+        broken: true,
+      });
+    });
+
+    it("sanitizes negative or non-finite inputs gracefully", () => {
+      expect(projectStreakStatus(-5, 0, 2)).toEqual({
+        survivingStreak: 0,
+        freezesRemaining: 2,
+        broken: false,
+      });
+
+      expect(projectStreakStatus(10, -2, -1)).toEqual({
+        survivingStreak: 10,
+        freezesRemaining: 0,
+        broken: false,
+      });
+
+      expect(projectStreakStatus(NaN, 1, 1)).toEqual({
+        survivingStreak: 0,
+        freezesRemaining: 0,
+        broken: false,
+      });
+    });
+  });
+
+  describe("generateStreakActivityMap", () => {
+    it("generates 7-day activity map by default ending at reference date", () => {
+      const activeDates = ["2024-03-02", "2024-03-04", "2024-03-07"];
+      const result = generateStreakActivityMap(activeDates, "2024-03-07");
+
+      expect(result).toHaveLength(7);
+      expect(result[0]).toEqual({ date: "2024-03-01", active: false });
+      expect(result[1]).toEqual({ date: "2024-03-02", active: true });
+      expect(result[2]).toEqual({ date: "2024-03-03", active: false });
+      expect(result[3]).toEqual({ date: "2024-03-04", active: true });
+      expect(result[4]).toEqual({ date: "2024-03-05", active: false });
+      expect(result[5]).toEqual({ date: "2024-03-06", active: false });
+      expect(result[6]).toEqual({ date: "2024-03-07", active: true });
+    });
+
+    it("respects custom daysCount parameter", () => {
+      const activeDates = ["2024-03-05"];
+      const result = generateStreakActivityMap(activeDates, "2024-03-05", 3);
+
+      expect(result).toHaveLength(3);
+      expect(result[0]).toEqual({ date: "2024-03-03", active: false });
+      expect(result[1]).toEqual({ date: "2024-03-04", active: false });
+      expect(result[2]).toEqual({ date: "2024-03-05", active: true });
+    });
+
+    it("correctly handles leap year transition (February to March)", () => {
+      const result = generateStreakActivityMap(["2024-02-29"], "2024-03-02", 4);
+
+      expect(result).toHaveLength(4);
+      expect(result[0]).toEqual({ date: "2024-02-28", active: false });
+      expect(result[1]).toEqual({ date: "2024-02-29", active: true });
+      expect(result[2]).toEqual({ date: "2024-03-01", active: false });
+      expect(result[3]).toEqual({ date: "2024-03-02", active: false });
+    });
+
+    it("correctly handles year-end boundary transitions", () => {
+      const result = generateStreakActivityMap(["2023-12-31", "2024-01-01"], "2024-01-02", 4);
+
+      expect(result).toHaveLength(4);
+      expect(result[0]).toEqual({ date: "2023-12-30", active: false });
+      expect(result[1]).toEqual({ date: "2023-12-31", active: true });
+      expect(result[2]).toEqual({ date: "2024-01-01", active: true });
+      expect(result[3]).toEqual({ date: "2024-01-02", active: false });
+    });
+
+    it("returns empty array for invalid or malformed reference dates", () => {
+      expect(generateStreakActivityMap([], "invalid-date")).toEqual([]);
+      expect(generateStreakActivityMap([], "")).toEqual([]);
+      expect(generateStreakActivityMap([], "2024-02-30")).toEqual([]);
+    });
+
+    it("returns empty array for zero or negative daysCount", () => {
+      expect(generateStreakActivityMap(["2024-03-01"], "2024-03-01", 0)).toEqual([]);
+      expect(generateStreakActivityMap(["2024-03-01"], "2024-03-01", -5)).toEqual([]);
+    });
+
+    it("handles non-array or empty activeDates safely", () => {
+      const result = generateStreakActivityMap(null as unknown as string[], "2024-03-02", 2);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ date: "2024-03-01", active: false });
+      expect(result[1]).toEqual({ date: "2024-03-02", active: false });
     });
   });
 });

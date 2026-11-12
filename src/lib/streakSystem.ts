@@ -295,3 +295,109 @@ export function getStreakSummary(
     freezesAvailable: Math.max(0, Math.floor(freezesAvailable || 0)),
   };
 }
+
+export type StreakTier = "none" | "spark" | "flame" | "inferno" | "supernova";
+
+export interface StreakTierResult {
+  tier: StreakTier;
+  multiplier: number;
+}
+
+export function getStreakTier(streakDays: number): StreakTierResult {
+  const safeDays = Number.isFinite(streakDays) ? Math.floor(streakDays) : 0;
+  if (safeDays <= 0) {
+    return { tier: "none", multiplier: 1.0 };
+  }
+  if (safeDays <= 2) {
+    return { tier: "spark", multiplier: 1.05 };
+  }
+  if (safeDays <= 6) {
+    return { tier: "flame", multiplier: 1.1 };
+  }
+  if (safeDays <= 13) {
+    return { tier: "inferno", multiplier: 1.25 };
+  }
+  return { tier: "supernova", multiplier: 1.5 };
+}
+
+export interface StreakProjectionResult {
+  survivingStreak: number;
+  freezesRemaining: number;
+  broken: boolean;
+}
+
+export function projectStreakStatus(
+  currentStreak: number,
+  daysMissed: number,
+  freezesAvailable: number
+): StreakProjectionResult {
+  const safeStreak = Number.isFinite(currentStreak) ? Math.max(0, Math.floor(currentStreak)) : 0;
+  const safeMissed = Number.isFinite(daysMissed) ? Math.max(0, Math.floor(daysMissed)) : 0;
+  const safeFreezes = Number.isFinite(freezesAvailable) ? Math.max(0, Math.floor(freezesAvailable)) : 0;
+
+  if (safeMissed === 0) {
+    return {
+      survivingStreak: safeStreak,
+      freezesRemaining: safeFreezes,
+      broken: false,
+    };
+  }
+
+  if (safeFreezes >= safeMissed) {
+    return {
+      survivingStreak: safeStreak,
+      freezesRemaining: safeFreezes - safeMissed,
+      broken: false,
+    };
+  }
+
+  return {
+    survivingStreak: 0,
+    freezesRemaining: safeFreezes,
+    broken: true,
+  };
+}
+
+export interface StreakActivityEntry {
+  date: string;
+  active: boolean;
+}
+
+function formatDateUtc(timestamp: number): string {
+  const d = new Date(timestamp);
+  const year = d.getUTCFullYear();
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function generateStreakActivityMap(
+  activeDates: string[],
+  referenceDateStr: string,
+  daysCount: number = 7
+): StreakActivityEntry[] {
+  const refTime = parseDateUtc(referenceDateStr);
+  if (refTime === null) {
+    return [];
+  }
+
+  const safeCount = Number.isFinite(daysCount) ? Math.max(0, Math.floor(daysCount)) : 7;
+  if (safeCount <= 0) {
+    return [];
+  }
+
+  const activeSet = new Set(Array.isArray(activeDates) ? activeDates : []);
+  const result: StreakActivityEntry[] = [];
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  for (let i = safeCount - 1; i >= 0; i--) {
+    const timestamp = refTime - i * DAY_MS;
+    const dateStr = formatDateUtc(timestamp);
+    result.push({
+      date: dateStr,
+      active: activeSet.has(dateStr),
+    });
+  }
+
+  return result;
+}
