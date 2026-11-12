@@ -6,6 +6,9 @@ import {
   stripComments,
   getRegisteredQuestIds,
   getQuestTaskRuleCount,
+  calculateEvaluationProgress,
+  getMissingTaskIndices,
+  validateQuestRulesIntegrity,
 } from "../lib/questTaskEvaluator";
 
 const CANONICAL_SOLUTIONS: Record<string, string> = {
@@ -482,5 +485,188 @@ describe("questTaskEvaluator", () => {
     expect(getQuestTaskRuleCount("")).toBe(0);
     // @ts-expect-error Testing invalid runtime inputs
     expect(getQuestTaskRuleCount(12345)).toBe(0);
+  });
+
+  describe("calculateEvaluationProgress", () => {
+    it("calculates progress correctly for empty, partial, and complete passed sets", () => {
+      // 0 of 4 tasks passed
+      const empty = calculateEvaluationProgress([], 4);
+      expect(empty).toEqual({
+        passedCount: 0,
+        remainingCount: 4,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      // 1 of 4 tasks passed (25%)
+      const one = calculateEvaluationProgress([0], 4);
+      expect(one).toEqual({
+        passedCount: 1,
+        remainingCount: 3,
+        percentage: 25,
+        isComplete: false,
+      });
+
+      // 2 of 3 tasks passed (67% rounded)
+      const twoOfThree = calculateEvaluationProgress([0, 2], 3);
+      expect(twoOfThree).toEqual({
+        passedCount: 2,
+        remainingCount: 1,
+        percentage: 67,
+        isComplete: false,
+      });
+
+      // 4 of 4 tasks passed (100% complete)
+      const complete = calculateEvaluationProgress([0, 1, 2, 3], 4);
+      expect(complete).toEqual({
+        passedCount: 4,
+        remainingCount: 0,
+        percentage: 100,
+        isComplete: true,
+      });
+    });
+
+    it("deduplicates redundant indices and discards out-of-range indices", () => {
+      // Duplicate 0, duplicate 1, out-of-range -5, 99, 4 on totalTasks = 4
+      const deduplicated = calculateEvaluationProgress([0, 1, 0, 1, -5, 99, 4], 4);
+      expect(deduplicated).toEqual({
+        passedCount: 2,
+        remainingCount: 2,
+        percentage: 50,
+        isComplete: false,
+      });
+    });
+
+    it("handles totalTasks <= 0 and non-finite inputs safely", () => {
+      expect(calculateEvaluationProgress([0, 1], 0)).toEqual({
+        passedCount: 0,
+        remainingCount: 0,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      expect(calculateEvaluationProgress([0, 1], -3)).toEqual({
+        passedCount: 0,
+        remainingCount: 0,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      expect(calculateEvaluationProgress([0, 1], NaN)).toEqual({
+        passedCount: 0,
+        remainingCount: 0,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      expect(calculateEvaluationProgress([0, 1], null as unknown as number)).toEqual({
+        passedCount: 0,
+        remainingCount: 0,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      expect(calculateEvaluationProgress([0, 1], undefined as unknown as number)).toEqual({
+        passedCount: 0,
+        remainingCount: 0,
+        percentage: 0,
+        isComplete: false,
+      });
+    });
+
+    it("handles null, undefined, and non-array passedIndices safely", () => {
+      expect(calculateEvaluationProgress(null, 5)).toEqual({
+        passedCount: 0,
+        remainingCount: 5,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      expect(calculateEvaluationProgress(undefined, 5)).toEqual({
+        passedCount: 0,
+        remainingCount: 5,
+        percentage: 0,
+        isComplete: false,
+      });
+
+      // @ts-expect-error Testing non-array runtime input
+      expect(calculateEvaluationProgress("not-an-array", 5)).toEqual({
+        passedCount: 0,
+        remainingCount: 5,
+        percentage: 0,
+        isComplete: false,
+      });
+    });
+  });
+
+  describe("getMissingTaskIndices", () => {
+    it("returns all indices when no tasks have passed", () => {
+      expect(getMissingTaskIndices([], 4)).toEqual([0, 1, 2, 3]);
+    });
+
+    it("returns empty array when all tasks have passed", () => {
+      expect(getMissingTaskIndices([0, 1, 2], 3)).toEqual([]);
+    });
+
+    it("returns sorted missing indices for partial completions", () => {
+      expect(getMissingTaskIndices([2, 0], 4)).toEqual([1, 3]);
+      expect(getMissingTaskIndices([3], 5)).toEqual([0, 1, 2, 4]);
+    });
+
+    it("filters out duplicates and invalid or out-of-range indices gracefully", () => {
+      expect(getMissingTaskIndices([1, 1, -1, 99, 100], 3)).toEqual([0, 2]);
+    });
+
+    it("safely handles totalTasks <= 0 or invalid inputs", () => {
+      expect(getMissingTaskIndices([0, 1], 0)).toEqual([]);
+      expect(getMissingTaskIndices([0, 1], -5)).toEqual([]);
+      expect(getMissingTaskIndices([0, 1], NaN)).toEqual([]);
+      expect(getMissingTaskIndices(null, 3)).toEqual([0, 1, 2]);
+      expect(getMissingTaskIndices(undefined, 2)).toEqual([0, 1]);
+      // @ts-expect-error Testing non-array runtime input
+      expect(getMissingTaskIndices("invalid", 3)).toEqual([0, 1, 2]);
+    });
+  });
+
+  describe("validateQuestRulesIntegrity", () => {
+    it("verifies that all 24 registered quests have valid non-empty rule sets", () => {
+      const integrity = validateQuestRulesIntegrity();
+      expect(integrity.valid).toBe(true);
+      expect(integrity.questCount).toBe(24);
+      expect(integrity.invalidQuestIds).toEqual([]);
+    });
+
+    it("detects empty or invalid quest rules when passed custom rules", () => {
+      // Empty rules record
+      const emptyCheck = validateQuestRulesIntegrity({});
+      expect(emptyCheck.valid).toBe(false);
+      expect(emptyCheck.questCount).toBe(0);
+      expect(emptyCheck.invalidQuestIds).toEqual([]);
+
+      // Quest rule with empty array
+      const emptyArrayCheck = validateQuestRulesIntegrity({
+        invalid_quest_1: [],
+      });
+      expect(emptyArrayCheck.valid).toBe(false);
+      expect(emptyArrayCheck.questCount).toBe(1);
+      expect(emptyArrayCheck.invalidQuestIds).toEqual(["invalid_quest_1"]);
+
+      // Quest rule with non-function item
+      const nonFunctionCheck = validateQuestRulesIntegrity({
+        // @ts-expect-error Testing invalid runtime rule type
+        corrupted_quest: ["not-a-function"],
+      });
+      expect(nonFunctionCheck.valid).toBe(false);
+      expect(nonFunctionCheck.questCount).toBe(1);
+      expect(nonFunctionCheck.invalidQuestIds).toEqual(["corrupted_quest"]);
+
+      // Valid custom rule set
+      const validCustomCheck = validateQuestRulesIntegrity({
+        mock_quest: [(code) => code.length > 0],
+      });
+      expect(validCustomCheck.valid).toBe(true);
+      expect(validCustomCheck.questCount).toBe(1);
+      expect(validCustomCheck.invalidQuestIds).toEqual([]);
+    });
   });
 });

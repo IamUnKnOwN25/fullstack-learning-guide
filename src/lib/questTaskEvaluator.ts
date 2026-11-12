@@ -205,6 +205,111 @@ export function evaluateQuestTasks(
   });
 }
 
+export interface EvaluationProgress {
+  passedCount: number;
+  remainingCount: number;
+  percentage: number;
+  isComplete: boolean;
+}
+
+export function calculateEvaluationProgress(
+  passedIndices?: number[] | null,
+  totalTasks?: number | null
+): EvaluationProgress {
+  const safeTotal =
+    typeof totalTasks === "number" && Number.isFinite(totalTasks) && totalTasks > 0
+      ? Math.floor(totalTasks)
+      : 0;
+
+  if (safeTotal === 0 || !Array.isArray(passedIndices)) {
+    return {
+      passedCount: 0,
+      remainingCount: safeTotal,
+      percentage: 0,
+      isComplete: false,
+    };
+  }
+
+  const validIndices = new Set<number>();
+  for (const idx of passedIndices) {
+    if (typeof idx === "number" && Number.isInteger(idx) && idx >= 0 && idx < safeTotal) {
+      validIndices.add(idx);
+    }
+  }
+
+  const passedCount = validIndices.size;
+  const remainingCount = Math.max(0, safeTotal - passedCount);
+  const rawPercentage = (passedCount / safeTotal) * 100;
+  const percentage = Math.min(100, Math.max(0, Math.round(rawPercentage)));
+  const isComplete = safeTotal > 0 && passedCount === safeTotal;
+
+  return {
+    passedCount,
+    remainingCount,
+    percentage,
+    isComplete,
+  };
+}
+
+export function getMissingTaskIndices(
+  passedIndices?: number[] | null,
+  totalTasks?: number | null
+): number[] {
+  const safeTotal =
+    typeof totalTasks === "number" && Number.isFinite(totalTasks) && totalTasks > 0
+      ? Math.floor(totalTasks)
+      : 0;
+
+  if (safeTotal === 0) {
+    return [];
+  }
+
+  const passedSet = new Set<number>();
+  if (Array.isArray(passedIndices)) {
+    for (const idx of passedIndices) {
+      if (typeof idx === "number" && Number.isInteger(idx) && idx >= 0 && idx < safeTotal) {
+        passedSet.add(idx);
+      }
+    }
+  }
+
+  const missing: number[] = [];
+  for (let i = 0; i < safeTotal; i++) {
+    if (!passedSet.has(i)) {
+      missing.push(i);
+    }
+  }
+
+  return missing;
+}
+
+export interface QuestRulesIntegrityResult {
+  valid: boolean;
+  questCount: number;
+  invalidQuestIds: string[];
+}
+
+export function validateQuestRulesIntegrity(
+  customRules?: Record<string, Array<(cleanCode: string, rawCode: string) => boolean>> | null
+): QuestRulesIntegrityResult {
+  const targetRules = customRules ?? QUEST_TASK_RULES;
+  const questEntries = Object.entries(targetRules);
+  const questCount = questEntries.length;
+  const invalidQuestIds: string[] = [];
+
+  for (const [questId, rules] of questEntries) {
+    if (!Array.isArray(rules) || rules.length === 0 || rules.some((rule) => typeof rule !== "function")) {
+      invalidQuestIds.push(questId);
+    }
+  }
+
+  return {
+    valid: invalidQuestIds.length === 0 && questCount > 0,
+    questCount,
+    invalidQuestIds,
+  };
+}
+
 export interface TaskDiagnostic {
   index: number;
   task: string;
