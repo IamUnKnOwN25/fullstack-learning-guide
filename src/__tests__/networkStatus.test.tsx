@@ -4,7 +4,7 @@
 
 import { render, screen, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { NetworkStatusIndicator } from "../components/NetworkStatusIndicator";
+import { NetworkStatusIndicator, getNetworkStatusAriaLabel } from "../components/NetworkStatusIndicator";
 import React from "react";
 
 describe("NetworkStatusIndicator", () => {
@@ -428,5 +428,149 @@ describe("NetworkStatusIndicator", () => {
     // Should immediately return null without showing status banner
     expect(container.firstChild).toBeNull();
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  describe("getNetworkStatusAriaLabel", () => {
+    it("returns Network online when online and not checking", () => {
+      expect(getNetworkStatusAriaLabel(true)).toBe("Network online");
+      expect(getNetworkStatusAriaLabel(true, false)).toBe("Network online");
+    });
+
+    it("returns Network offline when offline and not checking", () => {
+      expect(getNetworkStatusAriaLabel(false)).toBe("Network offline");
+      expect(getNetworkStatusAriaLabel(false, false)).toBe("Network offline");
+    });
+
+    it("returns Checking network connection... when isChecking is true", () => {
+      expect(getNetworkStatusAriaLabel(true, true)).toBe("Checking network connection...");
+      expect(getNetworkStatusAriaLabel(false, true)).toBe("Checking network connection...");
+    });
+  });
+
+  describe("Keyboard Escape Dismissal", () => {
+    it("dismisses offline alert when Escape key is pressed", () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
+
+      render(<NetworkStatusIndicator />);
+      expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      });
+
+      expect(screen.queryByTestId("network-status-indicator")).toBeNull();
+    });
+
+    it("does not dismiss offline alert when non-Escape key is pressed", () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
+
+      render(<NetworkStatusIndicator />);
+      expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab" }));
+      });
+
+      expect(screen.getByTestId("network-status-indicator")).toBeDefined();
+    });
+
+    it("dismisses reconnected banner when Escape key is pressed", () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        value: true,
+        configurable: true,
+      });
+
+      render(<NetworkStatusIndicator />);
+
+      act(() => {
+        window.dispatchEvent(new Event("offline"));
+      });
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      expect(screen.getByRole("status")).toBeDefined();
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      });
+
+      expect(screen.queryByRole("status")).toBeNull();
+    });
+
+    it("registers and unregisters keydown listener cleanly when banner visibility changes or unmounts", () => {
+      const addListenerSpy = vi.spyOn(window, "addEventListener");
+      const removeListenerSpy = vi.spyOn(window, "removeEventListener");
+
+      Object.defineProperty(window.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
+
+      const { unmount } = render(<NetworkStatusIndicator />);
+
+      expect(addListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+
+      unmount();
+
+      expect(removeListenerSpy).toHaveBeenCalledWith("keydown", expect.any(Function));
+    });
+  });
+
+  describe("Accessibility attributes (aria-busy, aria-hidden, aria-label)", () => {
+    it("renders aria-busy on manual retry button and aria-hidden on decorative icons", () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        value: false,
+        configurable: true,
+      });
+
+      const { container } = render(<NetworkStatusIndicator />);
+
+      const retryBtn = screen.getByLabelText("Check connection");
+      expect(retryBtn.getAttribute("aria-busy")).toBe("false");
+
+      // Lucide icons should all have aria-hidden="true"
+      const svgs = container.querySelectorAll("svg");
+      expect(svgs.length).toBeGreaterThan(0);
+      svgs.forEach((svg) => {
+        expect(svg.getAttribute("aria-hidden")).toBe("true");
+      });
+
+      // Role alert should have descriptive aria-label
+      const alertEl = screen.getByRole("alert");
+      expect(alertEl.getAttribute("aria-label")).toBe("Network offline");
+    });
+
+    it("renders aria-label and aria-hidden on reconnected banner", () => {
+      Object.defineProperty(window.navigator, "onLine", {
+        value: true,
+        configurable: true,
+      });
+
+      const { container } = render(<NetworkStatusIndicator />);
+
+      act(() => {
+        window.dispatchEvent(new Event("offline"));
+      });
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      const statusEl = screen.getByRole("status");
+      expect(statusEl.getAttribute("aria-label")).toBe("Network online");
+
+      const svgs = container.querySelectorAll("svg");
+      expect(svgs.length).toBeGreaterThan(0);
+      svgs.forEach((svg) => {
+        expect(svg.getAttribute("aria-hidden")).toBe("true");
+      });
+    });
   });
 });

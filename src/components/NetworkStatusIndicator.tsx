@@ -11,6 +11,13 @@ export interface NetworkStatusIndicatorProps {
   reconnectionTimeout?: number;
 }
 
+export function getNetworkStatusAriaLabel(isOnline: boolean, isChecking: boolean = false): string {
+  if (isChecking) {
+    return "Checking network connection...";
+  }
+  return isOnline ? "Network online" : "Network offline";
+}
+
 export function NetworkStatusIndicator({
   onStatusChange,
   enableManualRetry = true,
@@ -112,16 +119,39 @@ export function NetworkStatusIndicator({
     setShowReconnected(false);
   };
 
+  useEffect(() => {
+    const isBannerVisible = (!isOnline && !isDismissed) || (isOnline && showReconnected);
+    if (!isBannerVisible) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Esc") {
+        if (!isOnline && !isDismissed) {
+          handleDismiss();
+        } else if (isOnline && showReconnected) {
+          handleDismissReconnected();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOnline, isDismissed, showReconnected]);
+
   if (!isOnline && !isDismissed) {
     return (
       <div
         role="alert"
         aria-live="assertive"
+        aria-label={getNetworkStatusAriaLabel(false, isChecking)}
         data-testid="network-status-indicator"
         className="fixed bottom-4 right-4 z-50 flex items-center gap-3 bg-red-950/90 text-red-200 px-4 py-3 rounded-lg shadow-lg border border-red-800/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4"
       >
         <div className="relative flex items-center justify-center">
-          <WifiOff className="w-5 h-5 text-red-400 shrink-0" />
+          <WifiOff aria-hidden="true" className="w-5 h-5 text-red-400 shrink-0" />
           <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
         </div>
         <div className="flex flex-col">
@@ -134,11 +164,12 @@ export function NetworkStatusIndicator({
               type="button"
               onClick={handleRetry}
               disabled={isChecking}
+              aria-busy={isChecking}
               title="Check Network Connection"
               aria-label="Check connection"
               className="p-1 rounded text-red-300 hover:text-red-100 hover:bg-red-900/60 transition disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isChecking ? "animate-spin" : ""}`} />
+              <RefreshCw aria-hidden="true" className={`w-3.5 h-3.5 ${isChecking ? "animate-spin" : ""}`} />
             </button>
           )}
           <button
@@ -148,7 +179,7 @@ export function NetworkStatusIndicator({
             aria-label="Dismiss offline notification"
             className="p-1 rounded text-red-300 hover:text-red-100 hover:bg-red-900/60 transition"
           >
-            <X className="w-3.5 h-3.5" />
+            <X aria-hidden="true" className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -160,11 +191,12 @@ export function NetworkStatusIndicator({
       <div
         role="status"
         aria-live="polite"
+        aria-label={getNetworkStatusAriaLabel(true)}
         data-testid="network-reconnected-indicator"
         className="fixed bottom-4 right-4 z-50 flex items-center gap-3 bg-emerald-950/90 text-emerald-200 px-4 py-3 rounded-lg shadow-lg border border-emerald-800/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4"
       >
         <div className="relative flex items-center justify-center">
-          <Wifi className="w-5 h-5 text-emerald-400 shrink-0" />
+          <Wifi aria-hidden="true" className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500" />
         </div>
         <div className="flex flex-col">
@@ -179,7 +211,7 @@ export function NetworkStatusIndicator({
             aria-label="Dismiss online notification"
             className="p-1 rounded text-emerald-300 hover:text-emerald-100 hover:bg-emerald-900/60 transition"
           >
-            <X className="w-3.5 h-3.5" />
+            <X aria-hidden="true" className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
