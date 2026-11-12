@@ -6,6 +6,9 @@ import {
   getAchievementsByRarity,
   getAchievementById,
   calculateAchievementProgress,
+  getCategoryAchievementStats,
+  calculateAchievementRarityScore,
+  getLockedAchievementsByCategory,
 } from "../data/achievements";
 import { PlayerStats } from "../lib/gameStore";
 
@@ -321,6 +324,148 @@ describe("Achievements Data & Logic", () => {
       expect(progress.unlocked).toBe(3);
       expect(progress.claimed).toBe(1);
       expect(progress.claimable).toBe(2); // first_blood_boss and skill_pioneer are claimable
+    });
+  });
+
+  describe("Category Telemetry, Rarity Score & Locked Milestones", () => {
+    describe("getCategoryAchievementStats", () => {
+      it("computes baseline 0% unlocked stats across all categories for empty unlockedIds", () => {
+        const stats = getCategoryAchievementStats([]);
+        expect(stats).toHaveProperty("bosses");
+        expect(stats).toHaveProperty("quests");
+        expect(stats).toHaveProperty("scholar");
+        expect(stats).toHaveProperty("mastery");
+
+        const bosses = ACHIEVEMENTS.filter((a) => a.category === "bosses");
+        const quests = ACHIEVEMENTS.filter((a) => a.category === "quests");
+
+        expect(stats.bosses).toEqual({
+          unlocked: 0,
+          total: bosses.length,
+          percentage: 0,
+        });
+        expect(stats.quests).toEqual({
+          unlocked: 0,
+          total: quests.length,
+          percentage: 0,
+        });
+      });
+
+      it("calculates partial and 100% completion percentages accurately", () => {
+        const stats = getCategoryAchievementStats(["first_blood_boss"]);
+        const bossesTotal = ACHIEVEMENTS.filter((a) => a.category === "bosses").length;
+        const expectedPct = Math.round((1 / bossesTotal) * 100);
+
+        expect(stats.bosses.unlocked).toBe(1);
+        expect(stats.bosses.total).toBe(bossesTotal);
+        expect(stats.bosses.percentage).toBe(expectedPct);
+
+        // Unlock all scholar achievements
+        const scholarIds = ACHIEVEMENTS.filter((a) => a.category === "scholar").map((a) => a.id);
+        const statsScholar = getCategoryAchievementStats(scholarIds);
+        expect(statsScholar.scholar.unlocked).toBe(scholarIds.length);
+        expect(statsScholar.scholar.total).toBe(scholarIds.length);
+        expect(statsScholar.scholar.percentage).toBe(100);
+      });
+
+      it("deduplicates redundant unlockedIds and ignores unknown IDs", () => {
+        const redundant = ["first_blood_boss", "first_blood_boss", "non_existent_achievement_id"];
+        const stats = getCategoryAchievementStats(redundant);
+        expect(stats.bosses.unlocked).toBe(1);
+      });
+
+      it("handles null, undefined, or missing unlockedIds gracefully", () => {
+        const statsNull = getCategoryAchievementStats(null as unknown as string[]);
+        expect(statsNull.bosses.unlocked).toBe(0);
+        expect(statsNull.bosses.percentage).toBe(0);
+
+        const statsUndef = getCategoryAchievementStats(undefined);
+        expect(statsUndef.mastery.unlocked).toBe(0);
+
+        const statsNoArgs = getCategoryAchievementStats();
+        expect(statsNoArgs.quests.unlocked).toBe(0);
+      });
+    });
+
+    describe("calculateAchievementRarityScore", () => {
+      it("returns 0 for empty, null, or undefined unlocked lists", () => {
+        expect(calculateAchievementRarityScore([])).toBe(0);
+        expect(calculateAchievementRarityScore(null as unknown as string[])).toBe(0);
+        expect(calculateAchievementRarityScore(undefined)).toBe(0);
+        expect(calculateAchievementRarityScore()).toBe(0);
+      });
+
+      it("sums xpReward values across unique unlocked achievements", () => {
+        const ach1 = ACHIEVEMENTS.find((a) => a.id === "first_blood_boss")!;
+        const ach2 = ACHIEVEMENTS.find((a) => a.id === "welcome_initiate")!;
+        const score = calculateAchievementRarityScore([ach1.id, ach2.id]);
+        expect(score).toBe(ach1.xpReward + ach2.xpReward);
+      });
+
+      it("deduplicates repeated unlocked achievement IDs", () => {
+        const ach1 = ACHIEVEMENTS.find((a) => a.id === "first_blood_boss")!;
+        const score = calculateAchievementRarityScore([ach1.id, ach1.id, ach1.id]);
+        expect(score).toBe(ach1.xpReward);
+      });
+
+      it("ignores unknown or invalid achievement IDs in score calculation", () => {
+        const ach1 = ACHIEVEMENTS.find((a) => a.id === "first_blood_boss")!;
+        const score = calculateAchievementRarityScore([ach1.id, "ghost_achievement", "void_id"]);
+        expect(score).toBe(ach1.xpReward);
+      });
+
+      it("calculates max rarity score for all achievements unlocked", () => {
+        const allIds = ACHIEVEMENTS.map((a) => a.id);
+        const totalXp = ACHIEVEMENTS.reduce((sum, a) => sum + a.xpReward, 0);
+        expect(calculateAchievementRarityScore(allIds)).toBe(totalXp);
+      });
+    });
+
+    describe("getLockedAchievementsByCategory", () => {
+      it("returns all achievements when no achievements are unlocked and category is omitted or 'all'", () => {
+        const lockedAll = getLockedAchievementsByCategory([]);
+        expect(lockedAll.length).toBe(ACHIEVEMENTS.length);
+
+        const lockedExplicitAll = getLockedAchievementsByCategory([], "all");
+        expect(lockedExplicitAll.length).toBe(ACHIEVEMENTS.length);
+      });
+
+      it("filters out unlocked achievements and returns only locked ones", () => {
+        const unlockedIds = ["first_blood_boss", "welcome_initiate"];
+        const locked = getLockedAchievementsByCategory(unlockedIds);
+        expect(locked.length).toBe(ACHIEVEMENTS.length - 2);
+        expect(locked.some((a) => unlockedIds.includes(a.id))).toBe(false);
+      });
+
+      it("filters locked achievements by specified category", () => {
+        const unlockedIds = ["first_blood_boss"];
+        const lockedBosses = getLockedAchievementsByCategory(unlockedIds, "bosses");
+        const totalBosses = ACHIEVEMENTS.filter((a) => a.category === "bosses").length;
+
+        expect(lockedBosses.length).toBe(totalBosses - 1);
+        expect(lockedBosses.every((a) => a.category === "bosses")).toBe(true);
+        expect(lockedBosses.some((a) => a.id === "first_blood_boss")).toBe(false);
+      });
+
+      it("returns empty array when all achievements in category are unlocked", () => {
+        const scholarIds = ACHIEVEMENTS.filter((a) => a.category === "scholar").map((a) => a.id);
+        const lockedScholar = getLockedAchievementsByCategory(scholarIds, "scholar");
+        expect(lockedScholar).toEqual([]);
+      });
+
+      it("returns empty array for non-existent category", () => {
+        const locked = getLockedAchievementsByCategory([], "non_existent_category");
+        expect(locked).toEqual([]);
+      });
+
+      it("handles null and undefined unlockedIds safely", () => {
+        const lockedNull = getLockedAchievementsByCategory(null as unknown as string[]);
+        expect(lockedNull.length).toBe(ACHIEVEMENTS.length);
+
+        const lockedUndef = getLockedAchievementsByCategory(undefined, "bosses");
+        const totalBosses = ACHIEVEMENTS.filter((a) => a.category === "bosses").length;
+        expect(lockedUndef.length).toBe(totalBosses);
+      });
     });
   });
 

@@ -494,3 +494,73 @@ export function calculateAchievementProgress(
     totalXpClaimed,
   };
 }
+
+
+export interface CategoryAchievementStats {
+  unlocked: number;
+  total: number;
+  percentage: number;
+}
+
+/**
+ * Computes category breakdown for achievements: unlocked count, total count, and rounded percentage [0, 100].
+ */
+export function getCategoryAchievementStats(
+  unlockedIds: string[] = []
+): Record<string, CategoryAchievementStats> {
+  const safeUnlocked = new Set(Array.isArray(unlockedIds) ? unlockedIds : []);
+  const stats: Record<string, CategoryAchievementStats> = {};
+
+  for (const ach of ACHIEVEMENTS) {
+    if (!stats[ach.category]) {
+      stats[ach.category] = { unlocked: 0, total: 0, percentage: 0 };
+    }
+    stats[ach.category].total += 1;
+    if (safeUnlocked.has(ach.id)) {
+      stats[ach.category].unlocked += 1;
+    }
+  }
+
+  for (const cat of Object.keys(stats)) {
+    const s = stats[cat];
+    s.percentage = s.total > 0 ? Math.min(100, Math.max(0, Math.round((s.unlocked / s.total) * 100))) : 0;
+  }
+
+  return stats;
+}
+
+/**
+ * Calculates rarity score summing xpReward across unique valid unlocked achievements.
+ */
+export function calculateAchievementRarityScore(unlockedIds: string[] = []): number {
+  if (!Array.isArray(unlockedIds) || unlockedIds.length === 0) {
+    return 0;
+  }
+  const safeUnlocked = new Set(unlockedIds);
+  let totalScore = 0;
+  for (const ach of ACHIEVEMENTS) {
+    if (safeUnlocked.has(ach.id)) {
+      totalScore += ach.xpReward;
+    }
+  }
+  return totalScore;
+}
+
+/**
+ * Returns all achievements not present in unlockedIds, optionally filtered by category.
+ */
+export function getLockedAchievementsByCategory(
+  unlockedIds: string[] = [],
+  category?: string
+): Achievement[] {
+  const safeUnlocked = new Set(Array.isArray(unlockedIds) ? unlockedIds : []);
+  return ACHIEVEMENTS.filter((ach) => {
+    if (safeUnlocked.has(ach.id)) {
+      return false;
+    }
+    if (category && category !== "all" && ach.category !== category) {
+      return false;
+    }
+    return true;
+  });
+}
